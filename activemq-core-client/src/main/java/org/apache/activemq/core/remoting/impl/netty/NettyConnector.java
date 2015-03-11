@@ -782,7 +782,7 @@ public class NettyConnector extends AbstractConnector
                request.headers().set(SEC_ACTIVEMQ_REMOTING_KEY, key);
                ch.attr(REMOTING_KEY).set(key);
 
-               ActiveMQClientLogger.LOGGER.debugf("Sending HTTP request %s", request);
+               ActiveMQClientLogger.LOGGER.debug("Sending HTTP request " + request);
 
                // Send the HTTP request.
                ch.writeAndFlush(request);

@@ -17,9 +17,9 @@
 package org.apache.activemq.integration.aerogear;
 
 import org.apache.activemq.api.core.ActiveMQIllegalStateException;
-import org.jboss.logging.annotations.Message;
-import org.jboss.logging.annotations.MessageBundle;
-import org.jboss.logging.Messages;
+import org.apache.activemq.i18n.I18NFactory;
+import org.apache.activemq.i18n.annotation.Bundle;
+import org.apache.activemq.i18n.annotation.Message;
 
 /**
  *         Logger Code 23
@@ -28,10 +28,10 @@ import org.jboss.logging.Messages;
  *         <p/>
  *         so 239000 to 239999
  */
-@MessageBundle(projectCode = "AMQ")
+@Bundle(projectCode = "AMQ")
 public interface ActiveMQAeroGearBundle
 {
-   ActiveMQAeroGearBundle BUNDLE = Messages.getBundle(ActiveMQAeroGearBundle.class);
+   ActiveMQAeroGearBundle BUNDLE = I18NFactory.getMessageBundle(ActiveMQAeroGearBundle.class);
 
    @Message(id = 239000, value = "endpoint can not be null")
    ActiveMQIllegalStateException endpointNull();
@@ -42,6 +42,29 @@ public interface ActiveMQAeroGearBundle
    @Message(id = 239002, value = "master-secret can not be null")
    ActiveMQIllegalStateException masterSecretNull();
 
-   @Message(id = 239003, value = "{0}: queue {1} not found", format = Message.Format.MESSAGE_FORMAT)
+   @Message(id = 239003, value = "{0}: queue {1} not found")
    ActiveMQIllegalStateException noQueue(String connectorName, String queueName);
+   
+   
+
+   // Logger messages
+
+   @Message(id = 231001, value = "aerogear connector connected to {0}", format = Message.Format.MESSAGE_FORMAT)
+   void connected(String endpoint);
+
+   @Message(id = 232003, value = "removing aerogear connector as credentials are invalid", format = Message.Format.MESSAGE_FORMAT)
+   void reply401();
+
+   @Message(id = 232004, value = "removing aerogear connector as endpoint is invalid", format = Message.Format.MESSAGE_FORMAT)
+   void reply404();
+
+   @Message(id = 232005, value = "removing aerogear connector as unexpected respone {0} returned", format = Message.Format.MESSAGE_FORMAT)
+   void replyUnknown(int status);
+
+   @Message(id = 232006, value = "unable to connect to aerogear server, retrying in {0} seconds", format = Message.Format.MESSAGE_FORMAT)
+   void sendFailed(int retry);
+
+   @Message(id = 232007, value = "removing aerogear connector unable to connect after {0} attempts, giving up", format = Message.Format.MESSAGE_FORMAT)
+   void unableToReconnect(int retryAttempt);
+
 }

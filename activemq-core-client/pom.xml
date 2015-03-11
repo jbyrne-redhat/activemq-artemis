@@ -33,8 +33,11 @@
 
    <dependencies>
       <dependency>
-         <groupId>org.jboss.logging</groupId>
-         <artifactId>jboss-logging-processor</artifactId>
+         <groupId>org.apache.activemq</groupId>
+         <artifactId>activemq-i18n</artifactId>
+         <version>${project.version}</version>
+         <!-- This is a compile-time dependency only.
+              Don't need to send it forward on any dependencies -->
          <scope>provided</scope>
          <optional>true</optional>
       </dependency>

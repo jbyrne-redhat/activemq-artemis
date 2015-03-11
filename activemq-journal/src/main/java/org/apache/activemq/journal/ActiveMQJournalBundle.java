@@ -18,9 +18,9 @@ package org.apache.activemq.journal;
 
 
 import org.apache.activemq.api.core.ActiveMQIOErrorException;
-import org.jboss.logging.annotations.Message;
-import org.jboss.logging.annotations.MessageBundle;
-import org.jboss.logging.Messages;
+import org.apache.activemq.i18n.I18NFactory;
+import org.apache.activemq.i18n.annotation.Bundle;
+import org.apache.activemq.i18n.annotation.Message;
 
 /**
  * Logger Code 14
@@ -29,10 +29,10 @@ import org.jboss.logging.Messages;
  *
  * so 149000 to 149999
  */
-@MessageBundle(projectCode = "AMQ")
+@Bundle(projectCode = "AMQ")
 public interface ActiveMQJournalBundle
 {
-   ActiveMQJournalBundle BUNDLE = Messages.getBundle(ActiveMQJournalBundle.class);
+   ActiveMQJournalBundle BUNDLE = I18NFactory.getMessageBundle(ActiveMQJournalBundle.class);
 
    @Message(id = 149000, value =  "failed to rename file {0} to {1}", format = Message.Format.MESSAGE_FORMAT)
    ActiveMQIOErrorException ioRenameFileError(String name, String newFileName);

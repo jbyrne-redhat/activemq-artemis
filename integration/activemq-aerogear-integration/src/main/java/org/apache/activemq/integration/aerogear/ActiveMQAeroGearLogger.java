@@ -16,11 +16,10 @@
  */
 package org.apache.activemq.integration.aerogear;
 
-import org.jboss.logging.BasicLogger;
-import org.jboss.logging.Logger;
-import org.jboss.logging.annotations.LogMessage;
-import org.jboss.logging.annotations.Message;
-import org.jboss.logging.annotations.MessageLogger;
+import org.apache.activemq.i18n.I18NFactory;
+import org.apache.activemq.i18n.annotation.Bundle;
+import org.apache.activemq.i18n.annotation.LogMessage;
+import org.apache.activemq.i18n.annotation.Message;
 
 /**
  * Logger Code 23
@@ -36,35 +35,28 @@ import org.jboss.logging.annotations.MessageLogger;
  *
  * so an INFO message would be 181000 to 181999
  */
-@MessageLogger(projectCode = "AMQ")
-public interface ActiveMQAeroGearLogger extends BasicLogger
+@Bundle(projectCode = "AMQ")
+public interface ActiveMQAeroGearLogger
 {
    /**
     * The aerogear logger.
     */
-   ActiveMQAeroGearLogger LOGGER = Logger.getMessageLogger(ActiveMQAeroGearLogger.class, ActiveMQAeroGearLogger.class.getPackage().getName());
+   ActiveMQAeroGearLogger LOGGER = I18NFactory.getMessageLogger(ActiveMQAeroGearLogger.class);
 
-   @LogMessage(level = Logger.Level.INFO)
-   @Message(id = 231001, value = "aerogear connector connected to {0}", format = Message.Format.MESSAGE_FORMAT)
    void connected(String endpoint);
 
-   @LogMessage(level = Logger.Level.WARN)
-   @Message(id = 232003, value = "removing aerogear connector as credentials are invalid", format = Message.Format.MESSAGE_FORMAT)
+   @LogMessage(level = LogMessage.Level.WARN, id = 232003, value = "removing aerogear connector as credentials are invalid", format = Message.Format.MESSAGE_FORMAT)
    void reply401();
 
-   @LogMessage(level = Logger.Level.WARN)
-   @Message(id = 232004, value = "removing aerogear connector as endpoint is invalid", format = Message.Format.MESSAGE_FORMAT)
+   @LogMessage(level = LogMessage.Level.WARN, id = 232004, value = "removing aerogear connector as endpoint is invalid", format = Message.Format.MESSAGE_FORMAT)
    void reply404();
 
-   @LogMessage(level = Logger.Level.WARN)
-   @Message(id = 232005, value = "removing aerogear connector as unexpected respone {0} returned", format = Message.Format.MESSAGE_FORMAT)
+   @LogMessage(level = LogMessage.Level.WARN, id = 232005, value = "removing aerogear connector as unexpected respone {0} returned", format = Message.Format.MESSAGE_FORMAT)
    void replyUnknown(int status);
 
-   @LogMessage(level = Logger.Level.WARN)
-   @Message(id = 232006, value = "unable to connect to aerogear server, retrying in {0} seconds", format = Message.Format.MESSAGE_FORMAT)
+   @LogMessage(level = LogMessage.Level.WARN, id = 232006, value = "unable to connect to aerogear server, retrying in {0} seconds", format = Message.Format.MESSAGE_FORMAT)
    void sendFailed(int retry);
 
-   @LogMessage(level = Logger.Level.WARN)
-   @Message(id = 232007, value = "removing aerogear connector unable to connect after {0} attempts, giving up", format = Message.Format.MESSAGE_FORMAT)
+   @LogMessage(level = LogMessage.Level.WARN, id = 232007, value = "removing aerogear connector unable to connect after {0} attempts, giving up", format = Message.Format.MESSAGE_FORMAT)
    void unableToReconnect(int retryAttempt);
 }

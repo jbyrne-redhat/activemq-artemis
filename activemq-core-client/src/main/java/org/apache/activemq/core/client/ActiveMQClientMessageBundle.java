@@ -31,10 +31,10 @@ import org.apache.activemq.api.core.ActiveMQTransactionOutcomeUnknownException;
 import org.apache.activemq.api.core.ActiveMQTransactionRolledBackException;
 import org.apache.activemq.api.core.ActiveMQUnBlockedException;
 import org.apache.activemq.core.cluster.DiscoveryGroup;
+import org.apache.activemq.i18n.annotation.Bundle;
+import org.apache.activemq.i18n.annotation.Cause;
+import org.apache.activemq.i18n.annotation.Message;
 import org.apache.activemq.spi.core.remoting.Connection;
-import org.jboss.logging.annotations.Cause;
-import org.jboss.logging.annotations.Message;
-import org.jboss.logging.annotations.MessageBundle;
 import org.jboss.logging.Messages;
 import org.w3c.dom.Node;
 
@@ -45,7 +45,7 @@ import org.w3c.dom.Node;
  *
  * so 119000 to 119999
  */
-@MessageBundle(projectCode = "AMQ")
+@Bundle(projectCode = "AMQ")
 public interface ActiveMQClientMessageBundle
 {
    ActiveMQClientMessageBundle BUNDLE = Messages.getBundle(ActiveMQClientMessageBundle.class);
@@ -220,7 +220,7 @@ public interface ActiveMQClientMessageBundle
    @Message(id = 119057, value = "Error decoding password")
    IllegalArgumentException errordecodingPassword(@Cause Exception e);
 
-   @Message(id = 119058, value = "Address \"{0}\" is full. Message encode size = {1}B", format = Message.Format.MESSAGE_FORMAT)
+   @Message(id = 119058, value = "Address {0} is full. Message encode size = {1}B", format = Message.Format.MESSAGE_FORMAT)
    ActiveMQAddressFullException addressIsFull(String addressName, int size);
 
    @Message(id = 119059, value = "Interceptor {0} rejected packet in a blocking call. This call will never complete."

@@ -18,24 +18,23 @@ package org.apache.activemq.logs;
 
 
 import org.apache.activemq.api.core.ActiveMQIllegalStateException;
-import org.jboss.logging.annotations.Cause;
-import org.jboss.logging.annotations.Message;
-import org.jboss.logging.annotations.MessageBundle;
-import org.jboss.logging.Messages;
+import org.apache.activemq.i18n.I18NFactory;
+import org.apache.activemq.i18n.annotation.Bundle;
+import org.apache.activemq.i18n.annotation.Message;
 
 /**
  * Logger Code 20
- *
+ * <p/>
  * each message id must be 6 digits long starting with 20, the 3rd digit should be 9
- *
+ * <p/>
  * so 209000 to 209999
  */
-@MessageBundle(projectCode = "AMQ")
+@Bundle(projectCode = "AMQ")
 public interface ActiveMQUtilBundle
 {
-   ActiveMQUtilBundle BUNDLE = Messages.getBundle(ActiveMQUtilBundle.class);
+   ActiveMQUtilBundle BUNDLE = I18NFactory.getMessageBundle(ActiveMQUtilBundle.class);
 
-   @Message(id = 209000, value = "invalid property: {0}" , format = Message.Format.MESSAGE_FORMAT)
+   @Message(id = 209000, value = "invalid property: {0}", format = Message.Format.MESSAGE_FORMAT)
    ActiveMQIllegalStateException invalidProperty(String part);
 
    @Message(id = 209001, value = "Invalid type: {0}", format = Message.Format.MESSAGE_FORMAT)
@@ -45,5 +44,5 @@ public interface ActiveMQUtilBundle
    IllegalStateException stringTooLong(Integer length);
 
    @Message(id = 209003, value = "Error instantiating codec {0}", format = Message.Format.MESSAGE_FORMAT)
-   IllegalArgumentException errorCreatingCodec(@Cause Exception e, String codecClassName);
+   IllegalArgumentException errorCreatingCodec(/*@Cause Exception e,*/ String codecClassName);
 }

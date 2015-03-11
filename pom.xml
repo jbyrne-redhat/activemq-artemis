@@ -31,6 +31,8 @@
    <modules>
       <module>activemq-protocols</module>
       <module>activemq-dto</module>
+      <module>activemq-i18n</module>
+      <module>activemq-logging</module>
    </modules>
 
    <name>ActiveMQ6 Parent</name>

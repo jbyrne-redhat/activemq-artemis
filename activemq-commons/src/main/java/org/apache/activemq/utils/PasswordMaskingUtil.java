@@ -61,7 +61,7 @@ public class PasswordMaskingUtil
             }
             catch (Exception e)
             {
-               throw ActiveMQUtilBundle.BUNDLE.errorCreatingCodec(e, codecClassName);
+               throw ActiveMQUtilBundle.BUNDLE.errorCreatingCodec(/*e, */ codecClassName);
             }
          }
       });
