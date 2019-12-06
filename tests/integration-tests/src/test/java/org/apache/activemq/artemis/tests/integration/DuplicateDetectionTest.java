@@ -111,6 +111,8 @@ public class DuplicateDetectionTest extends ActiveMQTestBase {
       producer.send(message);
       message2 = consumer.receiveImmediate();
       Assert.assertNull(message2);
+
+      session.close();
    }
 
    @Test
@@ -212,6 +214,8 @@ public class DuplicateDetectionTest extends ActiveMQTestBase {
       }
 
       Assert.assertEquals(0, ((PostOfficeImpl) server.getPostOffice()).getDuplicateIDCaches().size());
+
+      session.close();
    }
 
    // It is important to test the shrink with this rule
@@ -1813,5 +1817,18 @@ public class DuplicateDetectionTest extends ActiveMQTestBase {
       locator = createInVMNonHALocator();
 
       sf = createSessionFactory(locator);
+   }
+
+   @Override
+   public void tearDown() throws Exception {
+      locator.close();
+      locator = null;
+      sf.close();
+      sf = null;
+      server.stop();
+      server = null;
+      locator = null;
+      config = null;
+      super.tearDown();
    }
 }

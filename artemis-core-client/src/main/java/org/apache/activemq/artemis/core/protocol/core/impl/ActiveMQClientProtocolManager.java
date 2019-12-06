@@ -211,6 +211,11 @@ public class ActiveMQClientProtocolManager implements ClientProtocolManager {
 
       waitLatch.countDown();
 
+      channel1 = null;
+      factoryInternal = null;
+      connection = null;
+
+
    }
 
    @Override

@@ -81,6 +81,13 @@ import org.junit.runners.Parameterized;
 @RunWith(value = Parameterized.class)
 public class ConsumerTest extends ActiveMQTestBase {
 
+   @Override
+   public void tearDown() throws Exception {
+      server.stop();
+      server = null;
+      super.tearDown();
+   }
+
    @Parameterized.Parameters(name = "isNetty={0}, persistent={1}")
    public static Collection getParameters() {
       return Arrays.asList(new Object[][]{{true, true}, {false, false}, {false, true}, {true, false}});
@@ -896,6 +903,7 @@ public class ConsumerTest extends ActiveMQTestBase {
 
    @Test
    public void testNoReceiveWithListener() throws Exception {
+
       ClientSessionFactory sf = createSessionFactory(locator);
 
       ClientSession session = sf.createSession(false, true, true);

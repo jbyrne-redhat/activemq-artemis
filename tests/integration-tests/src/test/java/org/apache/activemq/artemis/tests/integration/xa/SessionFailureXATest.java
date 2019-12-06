@@ -104,6 +104,23 @@ public class SessionFailureXATest extends ActiveMQTestBase {
       clientSession.createQueue(atestq, atestq, null, true);
    }
 
+   @Override
+   public void tearDown() throws Exception {
+      super.tearDown();
+      messagingService = null;
+      try {
+         clientSession.close();
+         locator.close();
+         sessionFactory.close();
+      } catch (Exception ignored) {
+      }
+      locator = null;
+      sessionFactory = null;
+      addressSettings.clear();
+
+
+   }
+
    @Test
    public void testFailureWithXAEnd() throws Exception {
       testFailure(true);

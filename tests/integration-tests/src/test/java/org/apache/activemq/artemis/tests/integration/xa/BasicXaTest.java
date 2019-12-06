@@ -86,6 +86,15 @@ public class BasicXaTest extends ActiveMQTestBase {
    }
 
    @Override
+   public void tearDown() throws Exception {
+      super.tearDown();
+      messagingService = null;
+      clientSession = null;
+      sessionFactory = null;
+      configuration = null;
+   }
+
+   @Override
    @Before
    public void setUp() throws Exception {
       super.setUp();

@@ -139,6 +139,7 @@ import org.apache.activemq.artemis.utils.ActiveMQThreadFactory;
 import org.apache.activemq.artemis.utils.CleanupSystemPropertiesRule;
 import org.apache.activemq.artemis.utils.Env;
 import org.apache.activemq.artemis.utils.FileUtil;
+import org.apache.activemq.artemis.utils.NoLeakRule;
 import org.apache.activemq.artemis.utils.PortCheckRule;
 import org.apache.activemq.artemis.utils.RandomUtil;
 import org.apache.activemq.artemis.utils.ThreadDumpUtil;
@@ -162,6 +163,13 @@ import org.junit.runner.Description;
  * Base class with basic utilities on starting up a basic server
  */
 public abstract class ActiveMQTestBase extends Assert {
+
+   /** if you forget any instances around, this will throw failures and prevent memory issues. */
+   @ClassRule
+   public static NoLeakRule noServerLeaks = new NoLeakRule(ActiveMQServerImpl.class.getName(), false, true, 10, 0);
+
+   @ClassRule
+   public static NoLeakRule noMessages = new NoLeakRule(CoreMessage.class.getName(), false, true, 10, 0);
 
    static {
       Env.setTestEnv(true);

@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import com.dsect.jvmti.JVMTIInterface;
 import org.jboss.logging.Logger;
 import org.junit.Assert;
 import org.junit.rules.TestWatcher;
@@ -135,6 +136,11 @@ public class ThreadLeakCheckRule extends TestWatcher {
    private static int failedGCCalls = 0;
 
    public static void forceGC() {
+      if (JVMTIInterface.isLoaded()) {
+         JVMTIInterface jvmtiInterface = new JVMTIInterface();
+         jvmtiInterface.forceGC();
+         return;
+      }
 
       if (failedGCCalls >= 10) {
          log.info("ignoring forceGC call since it seems System.gc is not working anyways");

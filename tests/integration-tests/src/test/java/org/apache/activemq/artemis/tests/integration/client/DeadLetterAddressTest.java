@@ -500,6 +500,14 @@ public class DeadLetterAddressTest extends ActiveMQTestBase {
    }
 
    @Override
+   public void tearDown() throws Exception {
+      super.tearDown();
+      server = null;
+      clientSession = null;
+      locator = null;
+   }
+
+   @Override
    @Before
    public void setUp() throws Exception {
       super.setUp();

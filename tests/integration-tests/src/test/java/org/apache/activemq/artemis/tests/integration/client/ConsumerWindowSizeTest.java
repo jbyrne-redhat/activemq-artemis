@@ -72,6 +72,12 @@ public class ConsumerWindowSizeTest extends ActiveMQTestBase {
    }
 
    @Override
+   public void tearDown() throws Exception {
+      locator = null;
+      super.tearDown();
+   }
+
+   @Override
    @Before
    public void setUp() throws Exception {
       super.setUp();

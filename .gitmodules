@@ -1,0 +1,3 @@
+[submodule "d-sect"]
+	path = d-sect
+	url = https://github.com/clebertsuconic/d-sect.git

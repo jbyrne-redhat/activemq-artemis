@@ -30,6 +30,7 @@
    </parent>
 
    <modules>
+      <module>d-sect</module>
       <module>artemis-protocols</module>
       <module>artemis-dto</module>
       <module>artemis-cdi-client</module>
@@ -172,7 +173,7 @@
 
       -->
 
-      <activemq-surefire-argline>-Dbrokerconfig.maxDiskUsage=100 -Dorg.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants.DEFAULT_QUIET_PERIOD=0 -Dorg.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants.DEFAULT_SHUTDOWN_TIMEOUT=0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+      <activemq-surefire-argline>${agent-surefire-argline} -Dbrokerconfig.maxDiskUsage=100 -Dorg.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants.DEFAULT_QUIET_PERIOD=0 -Dorg.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants.DEFAULT_SHUTDOWN_TIMEOUT=0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager
          -Dlogging.configuration="file:${activemq.basedir}/tests/config/logging.properties"
          -Djava.library.path="${activemq.basedir}/target/bin/lib/linux-x86_64:${activemq.basedir}/target/bin/lib/linux-i686" -Djgroups.bind_addr=localhost -Dorg.apache.activemq.artemis.api.core.UDPBroadcastEndpointFactory.localBindAddress=localhost
          -Djava.net.preferIPv4Stack=true -Dbasedir=${basedir}
@@ -850,7 +851,33 @@
    </dependencyManagement>
 
    <profiles>
-       <profile>
+      <profile>
+         <id>Mac</id>
+         <activation>
+            <os>
+               <family>Mac</family>
+            </os>
+         </activation>
+         <properties>
+            <agent-surefire-argline>
+               -agentpath:${activemq.basedir}/d-sect/core/src/main/resources/lib/darwin/libdsect.dylib
+            </agent-surefire-argline>
+         </properties>
+      </profile>
+      <profile>
+         <id>Linux</id>
+         <activation>
+            <os>
+               <family>Linux</family>
+            </os>
+         </activation>
+         <properties>
+            <agent-surefire-argline>
+               -agentpath:${activemq.basedir}/d-sect/core/src/main/resources/lib/linux-amd64/libdsect.so
+            </agent-surefire-argline>
+         </properties>
+      </profile>
+      <profile>
            <id>M2E</id>
            <activation>
                <property>
@@ -1638,6 +1665,8 @@
                <reportFile>${activemq.basedir}/ratReport.txt</reportFile>
                <skip>${skipLicenseCheck}</skip>
                <excludes>
+                  <exclude>.gitmodules</exclude>
+                  <exclude>d-sect/**</exclude>
                   <exclude>.travis.yml</exclude>
                   <exclude>**/footer.html</exclude>
                   <exclude>**/*.txt</exclude>

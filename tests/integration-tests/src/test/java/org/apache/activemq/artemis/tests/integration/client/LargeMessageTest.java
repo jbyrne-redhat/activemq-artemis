@@ -52,6 +52,7 @@ import org.apache.activemq.artemis.tests.integration.largemessage.LargeMessageTe
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.tests.util.RandomUtil;
 import org.apache.activemq.artemis.tests.util.Wait;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,6 +68,12 @@ public class LargeMessageTest extends LargeMessageTestBase {
    protected boolean isCompressedTest = false;
 
    private int largeMessageSize;
+
+   @After
+   public void clearStuff() {
+      locator.close();
+      locator = null;
+   }
 
    protected boolean isNetty() {
       return false;
@@ -1513,6 +1520,8 @@ public class LargeMessageTest extends LargeMessageTestBase {
 
       session.close();
 
+      server = null;
+
       validateNoFilesOnLargeDir();
    }
 
@@ -1741,7 +1750,6 @@ public class LargeMessageTest extends LargeMessageTestBase {
             ClientConsumerInternal consumer = (ClientConsumerInternal) session.createConsumer(ADDRESS);
 
             Assert.assertTrue(Wait.waitFor(() -> consumer.getBufferSize() >= 5, 30_000, 100));
-
 
             for (int i = 0; i < NUMBER_OF_MESSAGES; i++) {
                ClientMessage msg = consumer.receive(10000);

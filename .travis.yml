@@ -1,6 +1,8 @@
 sudo: false
 language: java
 install: true
+git:
+    submodule: recursive
 jdk:
   - openjdk8
 

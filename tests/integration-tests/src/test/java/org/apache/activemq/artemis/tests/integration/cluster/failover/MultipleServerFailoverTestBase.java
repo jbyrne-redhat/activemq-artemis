@@ -72,6 +72,15 @@ public abstract class MultipleServerFailoverTestBase extends ActiveMQTestBase {
    public abstract String getNodeGroupName();
 
    @Override
+   public void tearDown() throws Exception {
+      super.tearDown();
+      liveServers.clear();
+      backupServers.clear();
+      backupConfigs.clear();
+      liveConfigs.clear();
+   }
+
+   @Override
    @Before
    public void setUp() throws Exception {
       super.setUp();
