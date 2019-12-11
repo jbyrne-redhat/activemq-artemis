@@ -16,6 +16,8 @@
  */
 package org.apache.activemq.artemis.core.security.jaas;
 
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
 import org.apache.directory.server.annotations.CreateLdapServer;
 import org.apache.directory.server.annotations.CreateTransport;
 import org.apache.directory.server.core.annotations.ApplyLdifFiles;
@@ -23,6 +25,7 @@ import org.apache.directory.server.core.integ.AbstractLdapTestUnit;
 import org.apache.directory.server.core.integ.FrameworkRunner;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -40,6 +43,12 @@ import static org.junit.Assert.fail;
 @CreateLdapServer(transports = {@CreateTransport(protocol = "LDAP", port = 1024)})
 @ApplyLdifFiles("test.ldif")
 public class LDAPLoginModuleMaskPasswordTest extends AbstractLdapTestUnit {
+
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.ldap.LdapServer", false, true, 1, 5);
 
    private final String loginConfigSysPropName = "java.security.auth.login.config";
    private String oldLoginConfig;
