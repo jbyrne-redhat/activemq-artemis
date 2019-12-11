@@ -38,6 +38,8 @@ public class NoLeakRule extends TestWatcher {
       this.reportDepth = reportDepth;
       this.before = before;
       this.after = after;
+
+      Assert.assertTrue("You have to choose between before, after or both", before || after);
    }
 
    String className;
