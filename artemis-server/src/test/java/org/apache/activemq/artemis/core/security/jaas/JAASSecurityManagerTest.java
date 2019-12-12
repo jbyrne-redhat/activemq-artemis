@@ -19,6 +19,9 @@ package org.apache.activemq.artemis.core.security.jaas;
 import org.apache.activemq.artemis.core.security.CheckType;
 import org.apache.activemq.artemis.core.security.Role;
 import org.apache.activemq.artemis.spi.core.security.ActiveMQJAASSecurityManager;
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -41,6 +44,11 @@ import static org.junit.Assert.assertNotNull;
 @RunWith(Parameterized.class)
 public class JAASSecurityManagerTest {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    @Parameterized.Parameters(name = "newLoader=({0})")
    public static Collection<Object[]> data() {
       return Arrays.asList(new Object[][] {{true}, {false}});

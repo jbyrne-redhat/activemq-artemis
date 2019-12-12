@@ -29,12 +29,20 @@ import java.util.Vector;
 import org.apache.activemq.artemis.spi.core.security.jaas.JaasCallbackHandler;
 import org.apache.activemq.artemis.spi.core.security.jaas.RolePrincipal;
 import org.apache.activemq.artemis.spi.core.security.jaas.UserPrincipal;
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class CertificateLoginModuleTest extends Assert {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    private static final String USER_NAME = "testUser";
    private static final List<String> ROLE_NAMES = new Vector<>();
 

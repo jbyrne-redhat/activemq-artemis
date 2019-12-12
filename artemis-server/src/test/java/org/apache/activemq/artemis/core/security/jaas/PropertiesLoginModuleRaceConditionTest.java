@@ -36,8 +36,11 @@ import org.apache.activemq.artemis.spi.core.security.jaas.JaasCallbackHandler;
 import org.apache.activemq.artemis.spi.core.security.jaas.PropertiesLoader;
 import org.apache.activemq.artemis.spi.core.security.jaas.PropertiesLoginModule;
 import org.apache.activemq.artemis.utils.ActiveMQThreadFactory;
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
@@ -48,6 +51,11 @@ import static org.junit.Assert.assertTrue;
 
 public class PropertiesLoginModuleRaceConditionTest {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    private static final String ROLES_FILE = "roles.properties";
    private static final String USERS_FILE = "users.properties";
    private static final String USERNAME = "first";

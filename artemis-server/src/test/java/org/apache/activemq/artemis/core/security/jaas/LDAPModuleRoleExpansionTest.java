@@ -35,6 +35,8 @@ import java.util.HashSet;
 import java.util.Hashtable;
 
 import org.apache.activemq.artemis.spi.core.security.jaas.RolePrincipal;
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
 import org.apache.directory.server.annotations.CreateLdapServer;
 import org.apache.directory.server.annotations.CreateTransport;
 import org.apache.directory.server.core.annotations.ApplyLdifFiles;
@@ -42,6 +44,7 @@ import org.apache.directory.server.core.integ.AbstractLdapTestUnit;
 import org.apache.directory.server.core.integ.FrameworkRunner;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -52,6 +55,11 @@ import static org.junit.Assert.assertTrue;
 @ApplyLdifFiles("test.ldif")
 public class LDAPModuleRoleExpansionTest extends AbstractLdapTestUnit {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    private static final String PRINCIPAL = "uid=admin,ou=system";
    private static final String CREDENTIALS = "secret";
    private final String loginConfigSysPropName = "java.security.auth.login.config";

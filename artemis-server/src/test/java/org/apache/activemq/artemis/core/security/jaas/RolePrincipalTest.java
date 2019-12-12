@@ -17,11 +17,19 @@
 package org.apache.activemq.artemis.core.security.jaas;
 
 import org.apache.activemq.artemis.spi.core.security.jaas.RolePrincipal;
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RolePrincipalTest extends Assert {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    @Test
    public void testArguments() {
       RolePrincipal principal = new RolePrincipal("FOO");

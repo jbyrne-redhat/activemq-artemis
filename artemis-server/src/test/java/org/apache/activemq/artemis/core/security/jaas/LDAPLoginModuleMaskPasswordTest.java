@@ -44,11 +44,11 @@ import static org.junit.Assert.fail;
 @ApplyLdifFiles("test.ldif")
 public class LDAPLoginModuleMaskPasswordTest extends AbstractLdapTestUnit {
 
-   @ClassRule
-   public static PrintMemory printMemory = new PrintMemory();
+   //@ClassRule
+   //public static PrintMemory printMemory = new PrintMemory();
 
    @ClassRule
-   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.ldap.LdapServer", false, true, 1, 5);
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
 
    private final String loginConfigSysPropName = "java.security.auth.login.config";
    private String oldLoginConfig;

@@ -23,8 +23,17 @@ import java.security.PublicKey;
 import java.util.Date;
 import java.util.Set;
 
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
+import org.junit.ClassRule;
+
 public class StubX509Certificate extends X509Certificate {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    private final Principal id;
 
    public StubX509Certificate(Principal id) {

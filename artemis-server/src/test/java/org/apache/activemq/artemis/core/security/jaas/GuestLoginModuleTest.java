@@ -30,12 +30,20 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.activemq.artemis.spi.core.security.jaas.RolePrincipal;
 import org.apache.activemq.artemis.spi.core.security.jaas.UserPrincipal;
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
 import org.jboss.logging.Logger;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class GuestLoginModuleTest extends Assert {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    private static final Logger logger = Logger.getLogger(GuestLoginModuleTest.class);
 
    static {

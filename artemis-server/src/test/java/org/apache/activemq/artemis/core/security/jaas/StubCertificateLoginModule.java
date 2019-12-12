@@ -21,9 +21,17 @@ import javax.security.cert.X509Certificate;
 import java.util.Set;
 
 import org.apache.activemq.artemis.spi.core.security.jaas.CertificateLoginModule;
+import org.apache.activemq.artemis.utils.NoLeakRule;
+import org.apache.activemq.artemis.utils.PrintMemory;
+import org.junit.ClassRule;
 
 public class StubCertificateLoginModule extends CertificateLoginModule {
 
+   @ClassRule
+   public static PrintMemory printMemory = new PrintMemory();
+
+   @ClassRule
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
    final String userName;
    final Set groupNames;
 
