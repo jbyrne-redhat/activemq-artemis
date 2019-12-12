@@ -59,7 +59,7 @@ public class LDAPModuleRoleExpansionTest extends AbstractLdapTestUnit {
    public static PrintMemory printMemory = new PrintMemory();
 
    @ClassRule
-   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", false, true, 1, 5);
+   public static NoLeakRule noLeakRule = new NoLeakRule("org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition", true, false, 0, 5);
    private static final String PRINCIPAL = "uid=admin,ou=system";
    private static final String CREDENTIALS = "secret";
    private final String loginConfigSysPropName = "java.security.auth.login.config";
