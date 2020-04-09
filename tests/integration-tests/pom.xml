@@ -484,6 +484,7 @@
                <excludes>
                   <exclude>**/ReplicatedJMSFailoverTest.java</exclude>
                   <exclude>org.apache.activemq/tests/util/*.java</exclude>
+                  <exclude>**/integration/cluster/**/*.java</exclude>
                </excludes>
                <argLine>-Djgroups.bind_addr=::1 ${activemq-surefire-argline}</argLine>
             </configuration>
