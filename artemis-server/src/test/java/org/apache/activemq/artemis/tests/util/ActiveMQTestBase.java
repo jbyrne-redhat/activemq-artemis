@@ -170,7 +170,7 @@ public abstract class ActiveMQTestBase extends Assert {
 
    /** if you forget any instances around, this will throw failures and prevent memory issues. */
    @ClassRule
-   public static NoLeakRule noServerLeaks = new NoLeakRule(ActiveMQServerImpl.class.getName(), false, true, 10, 0);
+   public static NoLeakRule noServerLeaks = new NoLeakRule(ActiveMQServerImpl.class.getName(), false, true, 1, 0);
 
    @ClassRule
    public static NoLeakRule noMessages = new NoLeakRule(CoreMessage.class.getName(), false, true, 10, 0);
