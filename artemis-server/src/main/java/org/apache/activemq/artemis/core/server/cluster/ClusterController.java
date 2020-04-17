@@ -56,7 +56,6 @@ import org.apache.activemq.artemis.core.server.cluster.qourum.QuorumVoteHandler;
 import org.apache.activemq.artemis.core.server.cluster.qourum.Vote;
 import org.apache.activemq.artemis.core.server.impl.Activation;
 import org.apache.activemq.artemis.spi.core.remoting.Acceptor;
-import org.apache.activemq.artemis.utils.collections.ConcurrentHashSet;
 import org.jboss.logging.Logger;
 
 /**
@@ -82,8 +81,6 @@ public class ClusterController implements ActiveMQComponent {
 
    private CountDownLatch replicationClusterConnectedLatch;
 
-   private ConcurrentHashSet<ConnectRunnable> connectRunnables = new ConcurrentHashSet<>();
-
    private boolean started;
    private SimpleString replicatedClusterName;
 
@@ -95,6 +92,7 @@ public class ClusterController implements ActiveMQComponent {
 
    @Override
    public void start() throws Exception {
+      new Exception("Starting Cluster Controller " + System.identityHashCode(this) + " for server " + System.identityHashCode(server)).printStackTrace(System.out);
       if (started)
          return;
       //set the default locator that will be used to connecting to the default cluster.
@@ -125,19 +123,17 @@ public class ClusterController implements ActiveMQComponent {
       //connect all the locators in a separate thread
       for (ServerLocatorInternal serverLocatorInternal : locators.values()) {
          if (serverLocatorInternal.isConnectable()) {
-            ConnectRunnable connectRunnable = new ConnectRunnable(serverLocatorInternal);
-            connectRunnables.add(connectRunnable);
-            executor.execute(connectRunnable);
+            executor.execute(new ConnectRunnable(serverLocatorInternal));
          }
       }
    }
 
    @Override
    public void stop() throws Exception {
+      System.out.println("Stopping Cluster Controller " + System.identityHashCode(this) + " for server " + this.server);
       started = false;
       //close all the locators
       for (ServerLocatorInternal serverLocatorInternal : locators.values()) {
-         new Exception("Closing locator " + System.identityHashCode(serverLocatorInternal)).printStackTrace(System.out);
          serverLocatorInternal.close();
       }
       //stop the quorum manager
@@ -435,17 +431,16 @@ public class ClusterController implements ActiveMQComponent {
       public void run() {
          try {
             if (started) {
-               new Exception("Issuing a retry for " + System.identityHashCode(serverLocator) + " started = " + started).printStackTrace();
                serverLocator.connect();
                if (serverLocator == replicationLocator) {
                   replicationClusterConnectedLatch.countDown();
-                  connectRunnables.remove(ConnectRunnable.this);
                }
             }
          } catch (ActiveMQException e) {
             if (!started) {
                return;
             }
+            System.out.println("retry on Cluster Controller " + System.identityHashCode(ClusterController.this));
             server.getScheduledPool().schedule(this, serverLocator.getRetryInterval(), TimeUnit.MILLISECONDS);
          }
       }

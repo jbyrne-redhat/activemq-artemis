@@ -872,6 +872,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
    @Override
    public void stop(boolean isShutdown)  throws Exception {
+      new Exception("Stopping server " + System.identityHashCode(this)).printStackTrace(System.out);
       try {
          stop(false, isShutdown);
       } finally {
@@ -3899,7 +3900,9 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       public void run() {
          lockActivation();
          try {
-            runnable.run();
+            if (state != SERVER_STATE.STOPPED && state != SERVER_STATE.STOPPING) {
+               runnable.run();
+            }
          } finally {
             unlockActivation();
          }
