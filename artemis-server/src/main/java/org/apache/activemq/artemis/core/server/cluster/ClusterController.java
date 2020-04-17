@@ -56,6 +56,7 @@ import org.apache.activemq.artemis.core.server.cluster.qourum.QuorumVoteHandler;
 import org.apache.activemq.artemis.core.server.cluster.qourum.Vote;
 import org.apache.activemq.artemis.core.server.impl.Activation;
 import org.apache.activemq.artemis.spi.core.remoting.Acceptor;
+import org.apache.activemq.artemis.utils.collections.ConcurrentHashSet;
 import org.jboss.logging.Logger;
 
 /**
@@ -80,6 +81,8 @@ public class ClusterController implements ActiveMQComponent {
    private final Executor executor;
 
    private CountDownLatch replicationClusterConnectedLatch;
+
+   private ConcurrentHashSet<ConnectRunnable> connectRunnables = new ConcurrentHashSet<>();
 
    private boolean started;
    private SimpleString replicatedClusterName;
@@ -122,20 +125,23 @@ public class ClusterController implements ActiveMQComponent {
       //connect all the locators in a separate thread
       for (ServerLocatorInternal serverLocatorInternal : locators.values()) {
          if (serverLocatorInternal.isConnectable()) {
-            executor.execute(new ConnectRunnable(serverLocatorInternal));
+            ConnectRunnable connectRunnable = new ConnectRunnable(serverLocatorInternal);
+            connectRunnables.add(connectRunnable);
+            executor.execute(connectRunnable);
          }
       }
    }
 
    @Override
    public void stop() throws Exception {
+      started = false;
       //close all the locators
       for (ServerLocatorInternal serverLocatorInternal : locators.values()) {
+         new Exception("Closing locator " + System.identityHashCode(serverLocatorInternal)).printStackTrace(System.out);
          serverLocatorInternal.close();
       }
       //stop the quorum manager
       quorumManager.stop();
-      started = false;
    }
 
    @Override
@@ -428,9 +434,13 @@ public class ClusterController implements ActiveMQComponent {
       @Override
       public void run() {
          try {
-            serverLocator.connect();
-            if (serverLocator == replicationLocator) {
-               replicationClusterConnectedLatch.countDown();
+            if (started) {
+               new Exception("Issuing a retry for " + System.identityHashCode(serverLocator) + " started = " + started).printStackTrace();
+               serverLocator.connect();
+               if (serverLocator == replicationLocator) {
+                  replicationClusterConnectedLatch.countDown();
+                  connectRunnables.remove(ConnectRunnable.this);
+               }
             }
          } catch (ActiveMQException e) {
             if (!started) {

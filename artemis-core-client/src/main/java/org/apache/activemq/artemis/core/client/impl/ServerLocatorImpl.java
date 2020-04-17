@@ -68,6 +68,7 @@ import org.apache.activemq.artemis.uri.ServerLocatorParser;
 import org.apache.activemq.artemis.utils.ActiveMQThreadFactory;
 import org.apache.activemq.artemis.utils.ActiveMQThreadPoolExecutor;
 import org.apache.activemq.artemis.utils.ClassloadingUtil;
+import org.apache.activemq.artemis.utils.ReusableLatch;
 import org.apache.activemq.artemis.utils.ThreadDumpUtil;
 import org.apache.activemq.artemis.utils.UUIDGenerator;
 import org.apache.activemq.artemis.utils.actors.Actor;
@@ -147,7 +148,7 @@ public final class ServerLocatorImpl implements ServerLocatorInternal, Discovery
 
    private final Object stateGuard = new Object();
    private transient STATE state;
-   private transient CountDownLatch latch;
+   private final ReusableLatch latch = new ReusableLatch(0);
 
    private final List<Interceptor> incomingInterceptors = new CopyOnWriteArrayList<>();
 
@@ -254,7 +255,8 @@ public final class ServerLocatorImpl implements ServerLocatorInternal, Discovery
             throw new ActiveMQIllegalStateException();
          try {
             state = STATE.INITIALIZED;
-            latch = new CountDownLatch(1);
+            System.out.println("CountUp on " + System.identityHashCode(ServerLocatorImpl.this));
+            latch.setCount(1);
 
             setThreadPools();
 
@@ -1304,8 +1306,8 @@ public final class ServerLocatorImpl implements ServerLocatorInternal, Discovery
 
          state = STATE.CLOSING;
       }
-      if (latch != null)
-         latch.countDown();
+
+      latch.countDown();
 
       synchronized (connectingFactories) {
          for (ClientSessionFactoryInternal csf : connectingFactories) {
@@ -1695,6 +1697,11 @@ public final class ServerLocatorImpl implements ServerLocatorInternal, Discovery
                   break;
                }
 
+               System.out.println("Waiting " + config.retryInterval + " on " + System.identityHashCode(ServerLocatorImpl.this));
+               if (config.retryInterval > 100) {
+                  new Exception("WHATT??? it was " + config.retryInterval).printStackTrace();
+                  System.exit(-1);
+               }
                if (latch.await(config.retryInterval, TimeUnit.MILLISECONDS))
                   return null;
             }
@@ -1810,7 +1817,7 @@ public final class ServerLocatorImpl implements ServerLocatorInternal, Discovery
    private void assertOpen() {
       synchronized (stateGuard) {
          if (state != null && state != STATE.INITIALIZED) {
-            throw new IllegalStateException("Server locator is closed (maybe it was garbage collected)");
+            throw new IllegalStateException("Server locator is closed (maybe it was garbage collected) on " + System.identityHashCode(ServerLocatorImpl.this));
          }
       }
    }
