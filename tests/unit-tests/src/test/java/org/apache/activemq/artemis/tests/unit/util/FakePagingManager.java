@@ -183,6 +183,16 @@ public final class FakePagingManager implements PagingManager {
    }
 
    @Override
+   public void readLock() {
+
+   }
+
+   @Override
+   public void readUnlock() {
+
+   }
+
+   @Override
    public void injectMonitor(FileStoreMonitor monitor) throws Exception {
 
    }

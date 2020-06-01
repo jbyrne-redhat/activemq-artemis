@@ -444,7 +444,7 @@ public final class PagingManagerImpl implements PagingManager {
    }
 
    @Override
-   public synchronized void stop() throws Exception {
+   public void stop() throws Exception {
       if (!started) {
          return;
       }
@@ -455,7 +455,7 @@ public final class PagingManagerImpl implements PagingManager {
          this.scheduledComponent = null;
       }
 
-      lock();
+      readLock();
       try {
 
          for (PagingStore store : stores.values()) {
@@ -464,7 +464,7 @@ public final class PagingManagerImpl implements PagingManager {
 
          pagingStoreFactory.stop();
       } finally {
-         unlock();
+         readUnlock();
       }
    }
 
@@ -501,4 +501,14 @@ public final class PagingManagerImpl implements PagingManager {
       syncLock.writeLock().lock();
    }
 
+
+   @Override
+   public void readLock() {
+      syncLock.readLock().lock();
+   }
+
+   @Override
+   public void readUnlock() {
+      syncLock.readLock().unlock();
+   }
 }

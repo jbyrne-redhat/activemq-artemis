@@ -499,12 +499,15 @@ public class PagingStoreImpl implements PagingStore {
 
    @Override
    public void stopPaging() {
+
+      pagingManager.readLock();
       lock.writeLock().lock();
       try {
          paging = false;
          this.cursorProvider.onPageModeCleared();
       } finally {
          lock.writeLock().unlock();
+         pagingManager.readUnlock();
       }
    }
 
