@@ -888,6 +888,21 @@
             </xsd:simpleType>
          </xsd:element>
 
+         <xsd:element name="critical-io-error-policy" default="LOG" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  Should the server log, be shutdown or halted upon critical IO failure.
+               </xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+               <xsd:restriction base="xsd:string">
+                  <xsd:enumeration value="LOG"/>
+                  <xsd:enumeration value="HALT"/>
+                  <xsd:enumeration value="SHUTDOWN"/>
+               </xsd:restriction>
+            </xsd:simpleType>
+         </xsd:element>
+
          <xsd:element name="page-sync-timeout" type="xsd:int" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
                <xsd:documentation>

@@ -20,6 +20,7 @@ package org.apache.activemq.artemis.utils.critical;
 import org.apache.activemq.artemis.utils.uri.BeanSupport;
 import org.apache.commons.beanutils.Converter;
 
+/** Notice CriticalAnalyzerPolicy is also used to determine shutdown on IO errors. */
 public enum CriticalAnalyzerPolicy {
    HALT, SHUTDOWN, LOG;
 
