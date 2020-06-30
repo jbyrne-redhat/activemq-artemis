@@ -299,7 +299,7 @@ public class RedeployTest extends ActiveMQTestBase {
 
       final ReusableLatch latch = new ReusableLatch(1);
       Runnable tick = latch::countDown;
-      server.getActiveMQServer().getReloadManager().setTick(tick);
+      server.getActiveMQServer().getReloadManager().setTick(() -> {new Exception("ran").printStackTrace();tick.run();});
 
       latch.await(10, TimeUnit.SECONDS);
    }
@@ -454,8 +454,20 @@ public class RedeployTest extends ActiveMQTestBase {
    public void testUndeployDivert() throws Exception {
 
       Path brokerXML = getTestDirfile().toPath().resolve("broker.xml");
+      for (int i = 0; i < 2; i++) {
+         System.out.println("brokerXML::" + brokerXML);
+         Thread.sleep(1000);
+      }
       URL baseConfig = RedeployTest.class.getClassLoader().getResource("reload-divert-undeploy-before.xml");
       URL newConfig = RedeployTest.class.getClassLoader().getResource("reload-divert-undeploy-after.xml");
+      for (int i = 0; i < 2; i++) {
+         System.out.println("===============================================================================================================================");
+         System.out.println("brokerXML::" + brokerXML);
+         System.out.println("baseConfig::" + baseConfig);
+         System.out.println("newconfig::" + newConfig);
+         System.out.println("===============================================================================================================================");
+         Thread.sleep(1000);
+      }
       Files.copy(baseConfig.openStream(), brokerXML, StandardCopyOption.REPLACE_EXISTING);
       EmbeddedActiveMQ embeddedActiveMQ = new EmbeddedActiveMQ();
       embeddedActiveMQ.setConfigResourcePath(brokerXML.toUri().toString());
@@ -489,6 +501,10 @@ public class RedeployTest extends ActiveMQTestBase {
                          .getBinding(new SimpleString("divert")) == null);
          divertBinding = (DivertBinding) embeddedActiveMQ.getActiveMQServer().getPostOffice()
                  .getBinding(new SimpleString("divert"));
+         if (divertBinding != null) {
+            System.out.println("DivertBinding is null = " + divertBinding);
+            System.exit(-1);
+         }
          assertNull(divertBinding);
 
          try (ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory();

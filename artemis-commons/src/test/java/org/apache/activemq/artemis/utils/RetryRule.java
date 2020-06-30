@@ -83,7 +83,7 @@ public class RetryRule implements MethodRule {
          public void evaluate() throws Throwable {
             int retries = getNumberOfRetries(method) + 1;
             for (int i = 0; i < retries; i++) {
-               logger.warn("LOOP " + i);
+               logger.warn("===============================================================================================================================\nLOOP " + i);
                base.evaluate();
             }
          }
