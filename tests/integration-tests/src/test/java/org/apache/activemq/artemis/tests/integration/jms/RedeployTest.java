@@ -299,7 +299,7 @@ public class RedeployTest extends ActiveMQTestBase {
 
       final ReusableLatch latch = new ReusableLatch(1);
       Runnable tick = latch::countDown;
-      server.getActiveMQServer().getReloadManager().setTick(() -> {new Exception("ran").printStackTrace();tick.run();});
+      server.getActiveMQServer().getReloadManager().setTick(tick);
 
       latch.await(10, TimeUnit.SECONDS);
    }

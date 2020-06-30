@@ -3996,14 +3996,24 @@ public class ActiveMQServerImpl implements ActiveMQServer {
                  .filter(binding -> binding instanceof DivertBinding)
                  .map(Binding::getUniqueName)
                  .collect(Collectors.toSet());
+
+         for (SimpleString name : divertsToRemove) {
+            logger.info("Diverts to remove, including " + name);
+         }
          for (DivertConfiguration divertConfig : configuration.getDivertConfigurations()) {
+            logger.info("Configuration has the following divert, no need to destroy it: " + divertConfig.getName());
             divertsToRemove.remove(SimpleString.toSimpleString(divertConfig.getName()));
             if (postOffice.getBinding(new SimpleString(divertConfig.getName())) == null) {
                deployDivert(divertConfig);
             }
          }
          for (final SimpleString divertName : divertsToRemove) {
-            destroyDivert(divertName);
+            logger.info("destroying divert " + divertName);
+            try {
+               destroyDivert(divertName);
+            } catch (Throwable e) {
+               logger.warn("Divert " + divertName + " could not be removed", e);
+            }
          }
 
          ActiveMQServerLogger.LOGGER.reloadingConfiguration("addresses");
