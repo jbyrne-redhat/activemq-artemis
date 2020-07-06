@@ -55,11 +55,20 @@ import org.apache.activemq.artemis.tests.unit.core.postoffice.impl.FakeQueue;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.tests.util.Wait;
 import org.apache.activemq.artemis.utils.ReusableLatch;
+import org.jboss.logging.Logger;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class RedeployTest extends ActiveMQTestBase {
 
+   @Before
+   public void cleanupTest() {
+      deleteDirectory(getTestDirfile());
+      getTestDirfile().mkdirs();
+   }
+
+   private static final Logger log = Logger.getLogger(RedeployTest.class);
    @Test
    /*
     * This tests that the broker doesnt fall over when it tries to delete any autocreated addresses/queues in a clustered environment
@@ -293,7 +302,7 @@ public class RedeployTest extends ActiveMQTestBase {
 
       Path brokerXML = getTestDirfile().toPath().resolve("broker.xml");
       Files.copy(configFile.openStream(), brokerXML, StandardCopyOption.REPLACE_EXISTING);
-
+      brokerXML.toFile().setLastModified(System.currentTimeMillis() + 1000);
       final ReusableLatch latch = new ReusableLatch(1);
       Runnable tick = latch::countDown;
       server.getActiveMQServer().getReloadManager().setTick(tick);
@@ -333,10 +342,13 @@ public class RedeployTest extends ActiveMQTestBase {
             assertNotNull(targetConsumer.receive(2000));
          }
 
+         Wait.waitFor(() -> embeddedActiveMQ.getActiveMQServer().getPostOffice()
+            .getBinding(new SimpleString("divert")) != null);
+
          deployBrokerConfig(embeddedActiveMQ, newConfig);
 
-         Wait.waitFor(() -> (embeddedActiveMQ.getActiveMQServer().getPostOffice()
-            .getBinding(new SimpleString("divert")) == null));
+         Wait.waitFor(() -> embeddedActiveMQ.getActiveMQServer().getPostOffice()
+                         .getBinding(new SimpleString("divert")) == null);
 
          divertBinding = (DivertBinding) embeddedActiveMQ.getActiveMQServer().getPostOffice()
                  .getBinding(new SimpleString("divert"));
