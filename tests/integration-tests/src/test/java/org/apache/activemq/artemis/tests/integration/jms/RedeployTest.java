@@ -17,16 +17,6 @@
 
 package org.apache.activemq.artemis.tests.integration.jms;
 
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSContext;
@@ -37,14 +27,21 @@ import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 import org.apache.activemq.artemis.core.postoffice.impl.DivertBinding;
-import org.apache.activemq.artemis.core.postoffice.impl.LocalQueueBinding;
 import org.apache.activemq.artemis.core.security.Role;
 import org.apache.activemq.artemis.core.server.cluster.impl.MessageLoadBalancingType;
 import org.apache.activemq.artemis.core.server.cluster.impl.RemoteQueueBindingImpl;
@@ -55,8 +52,8 @@ import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.apache.activemq.artemis.jms.client.ActiveMQDestination;
 import org.apache.activemq.artemis.tests.unit.core.postoffice.impl.FakeQueue;
-import org.apache.activemq.artemis.tests.util.Wait;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
+import org.apache.activemq.artemis.tests.util.Wait;
 import org.apache.activemq.artemis.utils.ReusableLatch;
 import org.junit.Assert;
 import org.junit.Test;
@@ -303,153 +300,6 @@ public class RedeployTest extends ActiveMQTestBase {
 
       latch.await(10, TimeUnit.SECONDS);
    }
-
-   private void doTestRemoveFilter(URL testConfiguration) throws Exception {
-
-      Path brokerXML = getTestDirfile().toPath().resolve("broker.xml");
-
-      URL baseConfig = RedeployTest.class.getClassLoader().getResource("reload-queue-filter.xml");
-
-      Files.copy(baseConfig.openStream(), brokerXML, StandardCopyOption.REPLACE_EXISTING);
-
-      EmbeddedActiveMQ embeddedActiveMQ = new EmbeddedActiveMQ();
-      embeddedActiveMQ.setConfigResourcePath(brokerXML.toUri().toString());
-      embeddedActiveMQ.start();
-
-      deployBrokerConfig(embeddedActiveMQ, baseConfig);
-
-      try {
-
-         try (ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory();
-              Connection connection = factory.createConnection();
-              Session session = connection.createSession(Session.AUTO_ACKNOWLEDGE)) {
-
-            connection.start();
-            Queue queue = session.createQueue("myFilterQueue");
-
-            // Test that the original filter has been set up
-            LocalQueueBinding queueBinding = (LocalQueueBinding) embeddedActiveMQ.getActiveMQServer().getPostOffice()
-                    .getBinding(new SimpleString("myFilterQueue"));
-            // The "x = 'x'" value is found in "reload-queue-filter.xml"
-            assertEquals("x = 'x'", queueBinding.getFilter().getFilterString().toString());
-
-            MessageProducer producer = session.createProducer(queue);
-
-            // Test that the original filter affects the flow
-            Message passingMessage = session.createMessage();
-            passingMessage.setStringProperty("x", "x");
-            producer.send(passingMessage);
-
-            Message filteredMessage = session.createMessage();
-            filteredMessage.setStringProperty("x", "y");
-            producer.send(filteredMessage);
-
-            MessageConsumer consumer = session.createConsumer(queue);
-            Message receivedMessage = consumer.receive(2000);
-            assertNotNull(receivedMessage);
-            assertEquals("x", receivedMessage.getStringProperty("x"));
-
-            assertNull(consumer.receive(2000));
-
-            consumer.close();
-         }
-
-         deployBrokerConfig(embeddedActiveMQ, testConfiguration);
-
-         try (ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory();
-              Connection connection = factory.createConnection();
-              Session session = connection.createSession(Session.AUTO_ACKNOWLEDGE)) {
-
-            connection.start();
-            Queue queue = session.createQueue("myFilterQueue");
-
-            // Test that the filter has been removed
-            LocalQueueBinding queueBinding = (LocalQueueBinding) embeddedActiveMQ.getActiveMQServer().getPostOffice()
-                    .getBinding(new SimpleString("myFilterQueue"));
-            assertNull(queueBinding.getFilter());
-
-            MessageProducer producer = session.createProducer(queue);
-
-            // Test that the original filter no longer affects the flow
-            Message message1 = session.createMessage();
-            message1.setStringProperty("x", "x");
-            producer.send(message1);
-
-            Message message2 = session.createMessage();
-            message2.setStringProperty("x", "y");
-            producer.send(message2);
-
-            MessageConsumer consumer = session.createConsumer(queue);
-            assertNotNull(consumer.receive(2000));
-            assertNotNull(consumer.receive(2000));
-
-            consumer.close();
-         }
-
-      } finally {
-         embeddedActiveMQ.stop();
-      }
-   }
-
-   @Test
-   public void testRedeployRemoveFilter() throws Exception {
-      doTestRemoveFilter(RedeployTest.class.getClassLoader().getResource("reload-queue-filter-updated-empty.xml"));
-      doTestRemoveFilter(RedeployTest.class.getClassLoader().getResource("reload-queue-filter-removed.xml"));
-   }
-
-   @Test
-   public void testRedeployQueueDefaults() throws Exception {
-
-      Path brokerXML = getTestDirfile().toPath().resolve("broker.xml");
-      URL baseConfig = RedeployTest.class.getClassLoader().getResource("reload-queue-defaults-before.xml");
-      URL newConfig = RedeployTest.class.getClassLoader().getResource("reload-queue-defaults-after.xml");
-      Files.copy(baseConfig.openStream(), brokerXML, StandardCopyOption.REPLACE_EXISTING);
-      EmbeddedActiveMQ embeddedActiveMQ = new EmbeddedActiveMQ();
-      embeddedActiveMQ.setConfigResourcePath(brokerXML.toUri().toString());
-      embeddedActiveMQ.start();
-
-      try {
-         LocalQueueBinding queueBinding = (LocalQueueBinding) embeddedActiveMQ.getActiveMQServer().getPostOffice()
-                 .getBinding(new SimpleString("myQueue"));
-         org.apache.activemq.artemis.core.server.Queue queue = queueBinding.getQueue();
-
-         assertNotEquals(queue.getMaxConsumers(), ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers());
-         assertNotEquals(queue.getRoutingType(), RoutingType.MULTICAST);
-         assertNotEquals(queue.isPurgeOnNoConsumers(), ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers());
-         assertNotEquals(queue.isEnabled(), ActiveMQDefaultConfiguration.getDefaultEnabled());
-         assertNotEquals(queue.isExclusive(), ActiveMQDefaultConfiguration.getDefaultExclusive());
-         assertNotEquals(queue.isGroupRebalance(), ActiveMQDefaultConfiguration.getDefaultGroupRebalance());
-         assertNotEquals(queue.getGroupBuckets(), ActiveMQDefaultConfiguration.getDefaultGroupBuckets());
-         assertNotEquals(queue.getGroupFirstKey(), ActiveMQDefaultConfiguration.getDefaultGroupFirstKey());
-         assertNotEquals(queue.isNonDestructive(), ActiveMQDefaultConfiguration.getDefaultNonDestructive());
-         assertNotEquals(queue.getConsumersBeforeDispatch(), ActiveMQDefaultConfiguration.getDefaultConsumersBeforeDispatch());
-         assertNotEquals(queue.getDelayBeforeDispatch(), ActiveMQDefaultConfiguration.getDefaultDelayBeforeDispatch());
-         assertNotEquals(queue.getFilter(), null);
-         assertNotEquals(queue.getUser(), "jdoe");
-         assertNotEquals(queue.getRingSize(), ActiveMQDefaultConfiguration.getDefaultRingSize());
-
-         deployBrokerConfig(embeddedActiveMQ, newConfig);
-
-         assertEquals(queue.getMaxConsumers(), ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers());
-         assertEquals(queue.getRoutingType(), RoutingType.MULTICAST);
-         assertEquals(queue.isPurgeOnNoConsumers(), ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers());
-         assertEquals(queue.isEnabled(), ActiveMQDefaultConfiguration.getDefaultEnabled());
-         assertEquals(queue.isExclusive(), ActiveMQDefaultConfiguration.getDefaultExclusive());
-         assertEquals(queue.isGroupRebalance(), ActiveMQDefaultConfiguration.getDefaultGroupRebalance());
-         assertEquals(queue.getGroupBuckets(), ActiveMQDefaultConfiguration.getDefaultGroupBuckets());
-         assertEquals(queue.getGroupFirstKey(), ActiveMQDefaultConfiguration.getDefaultGroupFirstKey());
-         assertEquals(queue.isNonDestructive(), ActiveMQDefaultConfiguration.getDefaultNonDestructive());
-         assertEquals(queue.getConsumersBeforeDispatch(), ActiveMQDefaultConfiguration.getDefaultConsumersBeforeDispatch());
-         assertEquals(queue.getDelayBeforeDispatch(), ActiveMQDefaultConfiguration.getDefaultDelayBeforeDispatch());
-         assertEquals(queue.getFilter(), null);
-         assertEquals(queue.getUser(), null);
-         assertEquals(queue.getRingSize(), ActiveMQDefaultConfiguration.getDefaultRingSize());
-
-      } finally {
-         embeddedActiveMQ.stop();
-      }
-   }
-
    @Test
    public void testUndeployDivert() throws Exception {
 
@@ -485,8 +335,9 @@ public class RedeployTest extends ActiveMQTestBase {
 
          deployBrokerConfig(embeddedActiveMQ, newConfig);
 
-         Wait.waitFor(() -> embeddedActiveMQ.getActiveMQServer().getPostOffice()
-                         .getBinding(new SimpleString("divert")) == null);
+         Wait.waitFor(() -> (embeddedActiveMQ.getActiveMQServer().getPostOffice()
+            .getBinding(new SimpleString("divert")) == null));
+
          divertBinding = (DivertBinding) embeddedActiveMQ.getActiveMQServer().getPostOffice()
                  .getBinding(new SimpleString("divert"));
          assertNull(divertBinding);
