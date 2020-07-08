@@ -472,6 +472,7 @@ public class JournalFilesRepository {
    }
 
    private void pushOpen() {
+//      new Exception("Scheduling pushOpen").printStackTrace(System.out);
       if (openFilesExecutor == null) {
          pushOpenRunnable.run();
       } else {
@@ -483,6 +484,7 @@ public class JournalFilesRepository {
     * Open a file and place it into the openedFiles queue
     */
    public synchronized void pushOpenedFile() throws Exception {
+//      System.out.println("PushOpen");
       JournalFile nextOpenedFile = takeFile(true, true, true, false);
 
       if (logger.isTraceEnabled()) {

@@ -840,7 +840,7 @@ public class JournalImpl extends JournalBase implements TestableJournal, Journal
          throw ActiveMQJournalBundle.BUNDLE.recordLargerThanStoreMax(addRecordEncodeSize, maxRecordSize);
       }
 
-      final SimpleFuture<Boolean> result = newSyncAndCallbackResult(sync, callback);
+      final SimpleFuture<Boolean> result = newSyncAndCallbackResult(true, callback);
       appendExecutor.execute(new Runnable() {
          @Override
          public void run() {
@@ -1064,7 +1064,8 @@ public class JournalImpl extends JournalBase implements TestableJournal, Journal
    }
 
    private static SimpleFuture newSyncAndCallbackResult(boolean sync, IOCompletion callback) {
-      return (sync && callback == null) ? new SimpleFutureImpl<>() : SimpleFuture.dumb();
+      //return (sync && callback == null) ? new SimpleFutureImpl<>() : SimpleFuture.dumb();
+      return new SimpleFutureImpl<>();
    }
 
    @Override
