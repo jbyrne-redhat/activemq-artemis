@@ -32,14 +32,16 @@ under the License.
 
       <cluster-password>secret</cluster-password>
 
-      <ha-policy>
-         <replication>
-            <master>
-               <!--we need this for auto failback-->
-               <check-for-live-server>true</check-for-live-server>
-            </master>
-         </replication>
-      </ha-policy>
+    <ha-policy>
+      <replication>
+        <master>
+          <!--we need this for auto failback-->
+          <check-for-live-server>true</check-for-live-server>
+          <group-name>execution</group-name>
+          <cluster-name>execution</cluster-name>
+        </master>
+      </replication>
+    </ha-policy>
 
       <connectors>
          <connector name="netty-connector">tcp://localhost:61616</connector>

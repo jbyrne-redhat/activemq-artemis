@@ -32,15 +32,16 @@ under the License.
 
       <cluster-password>secret</cluster-password>
 
-      <ha-policy>
-         <replication>
-            <slave>
-               <allow-failback>true</allow-failback>
-               <!-- not needed but tells the backup not to restart after failback as there will be > 0 backups saved -->
-               <max-saved-replicated-journals-size>0</max-saved-replicated-journals-size>
-            </slave>
-         </replication>
-      </ha-policy>
+
+    <ha-policy>
+      <replication>
+        <slave>
+          <allow-failback>true</allow-failback>
+          <group-name>execution</group-name>
+          <cluster-name>execution</cluster-name>
+        </slave>
+      </replication>
+    </ha-policy>
 
       <!-- Connectors -->
       <connectors>
