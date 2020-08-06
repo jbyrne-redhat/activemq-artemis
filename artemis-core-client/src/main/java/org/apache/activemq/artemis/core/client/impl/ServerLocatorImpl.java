@@ -1555,7 +1555,7 @@ public final class ServerLocatorImpl implements ServerLocatorInternal, Discovery
          if (ha && topology.getMember(entry.getNodeID()) == null) {
             TopologyMemberImpl member = new TopologyMemberImpl(entry.getNodeID(), null, null, entry.getConnector(), null);
             // on this case we set it as zero as any update coming from server should be accepted
-            topology.updateMember(0, entry.getNodeID(), member);
+            topology.directUpdateMember(0, entry.getNodeID(), member);
          }
       }
 

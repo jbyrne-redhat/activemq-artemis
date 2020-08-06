@@ -182,7 +182,6 @@ public final class Topology {
          return newMember;
       }
    }
-
    /**
     * @param uniqueEventID an unique identifier for when the change was made. We will use current
     *                      time millis for starts, and a ++ of that number for shutdown.
@@ -192,19 +191,22 @@ public final class Topology {
     */
    public boolean updateMember(final long uniqueEventID, final String nodeId, final TopologyMemberImpl memberInput) {
 
-      Long deleteTme = getMapDelete().get(nodeId);
-      if (deleteTme != null && uniqueEventID != 0 && uniqueEventID < deleteTme) {
-         logger.debug("Update uniqueEvent=" + uniqueEventID +
-                         ", nodeId=" +
-                         nodeId +
-                         ", memberInput=" +
-                         memberInput +
-                         " being rejected as there was a delete done after that");
+      if (manager != null && !manager.updateMember(uniqueEventID, nodeId, memberInput)) {
+         logger.debugf("TopologyManager rejected the update towards %s", memberInput);
          return false;
       }
 
-      if (manager != null && !manager.updateMember(uniqueEventID, nodeId, memberInput)) {
-         logger.debugf("TopologyManager rejected the update towards %s", memberInput);
+      return directUpdateMember(uniqueEventID, nodeId, memberInput);
+   }
+
+
+   /** this is to be used by UDP discovery.
+    *  updates on the topology through discovery must ignore the clusterConnection topology manager.
+    *  */
+   public boolean directUpdateMember(final long uniqueEventID, final String nodeId, final TopologyMemberImpl memberInput) {
+      Long deleteTme = getMapDelete().get(nodeId);
+      if (deleteTme != null && uniqueEventID != 0 && uniqueEventID < deleteTme) {
+         logger.debug("Update uniqueEvent=" + uniqueEventID + ", nodeId=" + nodeId + ", memberInput=" + memberInput + " being rejected as there was a delete done after that");
          return false;
       }
 

@@ -175,8 +175,6 @@ public final class ClusterConnectionImpl implements ClusterConnection, AfterConn
 
    private final String storeAndForwardPrefix;
 
-   private boolean splitBrainDetection;
-
    public ClusterConnectionImpl(final ClusterManager manager,
                                 final TransportConfiguration[] staticTranspConfigs,
                                 final TransportConfiguration connector,
@@ -520,7 +518,7 @@ public final class ClusterConnectionImpl implements ClusterConnection, AfterConn
     */
    @Override
    public boolean updateMember(long uniqueEventID, String nodeId, TopologyMemberImpl memberInput) {
-      if (splitBrainDetection && nodeId.equals(nodeManager.getNodeId().toString())) {
+      if (nodeId.equals(nodeManager.getNodeId().toString())) {
          TopologyMemberImpl member = topology.getMember(nodeId);
          if (member != null) {
             if (member.getLive() != null && memberInput.getLive() != null && !member.getLive().isSameParams(connector)) {
@@ -530,16 +528,6 @@ public final class ClusterConnectionImpl implements ClusterConnection, AfterConn
          memberInput.setLive(connector);
       }
       return true;
-   }
-
-   @Override
-   public void setSplitBrainDetection(boolean splitBrainDetection) {
-      this.splitBrainDetection = splitBrainDetection;
-   }
-
-   @Override
-   public boolean isSplitBrainDetection() {
-      return splitBrainDetection;
    }
 
    @Override
