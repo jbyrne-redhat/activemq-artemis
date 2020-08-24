@@ -45,6 +45,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.TransportConfiguration;
 import org.apache.activemq.artemis.api.core.UDPBroadcastEndpointFactory;
 import org.apache.activemq.artemis.api.core.client.ActiveMQClient;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.BridgeConfiguration;
 import org.apache.activemq.artemis.core.config.ClusterConnectionConfiguration;
 import org.apache.activemq.artemis.core.config.Configuration;
@@ -57,6 +58,9 @@ import org.apache.activemq.artemis.core.config.MetricsConfiguration;
 import org.apache.activemq.artemis.core.config.ScaleDownConfiguration;
 import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPMirrorConnectionElement;
 import org.apache.activemq.artemis.core.config.federation.FederationAddressPolicyConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationDownstreamConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationPolicySet;
@@ -96,6 +100,7 @@ import org.apache.activemq.artemis.utils.PasswordMaskingUtil;
 import org.apache.activemq.artemis.utils.XMLConfigurationUtil;
 import org.apache.activemq.artemis.utils.XMLUtil;
 import org.apache.activemq.artemis.utils.critical.CriticalAnalyzerPolicy;
+import org.jboss.logging.Logger;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -105,6 +110,8 @@ import org.w3c.dom.NodeList;
  * Parses an XML document according to the {@literal artemis-configuration.xsd} schema.
  */
 public final class FileConfigurationParser extends XMLConfigurationUtil {
+
+   private static final Logger logger = Logger.getLogger(FileConfigurationParser.class);
 
    // Security Parsing
    public static final String SECURITY_ELEMENT_NAME = "security-setting";
@@ -582,6 +589,21 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
          Element ccNode = (Element) ccNodesURI.item(i);
 
          parseClusterConnectionConfigurationURI(ccNode, config);
+      }
+
+
+      NodeList ccAMQPConnections = e.getElementsByTagName("amqp-connections");
+
+      if (ccAMQPConnections != null) {
+         NodeList ccAMQConnectionsURI = e.getElementsByTagName("amqp-connection");
+
+         if (ccAMQConnectionsURI != null) {
+            for (int i = 0; i < ccAMQConnectionsURI.getLength(); i++) {
+               Element ccNode = (Element) ccAMQConnectionsURI.item(i);
+
+               parseConnectionElements(ccNode, config);
+            }
+         }
       }
 
       NodeList dvNodes = e.getElementsByTagName("divert");
@@ -1846,7 +1868,64 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
 
       ClusterConnectionConfiguration config = mainConfig.addClusterConfiguration(name, uri);
 
-      System.out.println("Adding cluster connection :: " + config);
+      if (logger.isDebugEnabled()) {
+         logger.debug("Adding cluster connection :: " + config);
+      }
+   }
+
+   private void parseConnectionElements(final Element e,
+                                        final Configuration mainConfig) throws Exception {
+      String name = e.getAttribute("name");
+
+      String uri = e.getAttribute("uri");
+
+      int retryInterval = getAttributeInteger(e, "retry-interval", 5000, Validators.GT_ZERO);
+      int reconnectAttemps = getAttributeInteger(e, "reconnect-attempts", -1, Validators.MINUS_ONE_OR_GT_ZERO);
+      String user = getAttributeValue(e, "user");
+      String password = getAttributeValue(e, "password");
+
+      getInteger(e, "local-bind-port", -1, Validators.MINUS_ONE_OR_GT_ZERO);
+
+      AMQPConnectConfiguration config = new AMQPConnectConfiguration(name, uri);
+      config.parseURI();
+      config.setRetryInterval(retryInterval).setReconnectAttempts(reconnectAttemps).setUser(user).setPassword(password);
+
+      mainConfig.addAMQPConnection(config);
+
+
+      NodeList senderList = e.getChildNodes();
+      for (int i = 0; i < senderList.getLength(); i++) {
+         if (senderList.item(i).getNodeType() == Node.ELEMENT_NODE) {
+            Element e2 = (Element)senderList.item(i);
+            AMQPConnectionAddressType nodeType = AMQPConnectionAddressType.valueOf(e2.getTagName());
+            AMQPConnectionElement connectionElement;
+
+            if (nodeType == AMQPConnectionAddressType.mirror) {
+               boolean messageAcks = getBooleanAttribute(e2, "message-acknowledgements", true);
+               boolean queueCreation = getBooleanAttribute(e2,"queue-creation", true);
+               boolean queueRemoval = getBooleanAttribute(e2, "queue-removal", true);
+               String sourceMirrorAddress = getAttributeValue(e2, "source-mirror-address");
+               String targetMirrorAddress = getAttributeValue(e2, "target-mirror-address");
+               AMQPMirrorConnectionElement amqpMirrorConnectionElement = new AMQPMirrorConnectionElement();
+               amqpMirrorConnectionElement.setMessageAcknowledgements(messageAcks).setQueueCreation(queueCreation).setQueueRemoval(queueRemoval).
+                  setSourceMirrorAddress(sourceMirrorAddress).setTargetMirrorAddress(targetMirrorAddress);
+               connectionElement = amqpMirrorConnectionElement;
+               connectionElement.setType(AMQPConnectionAddressType.mirror);
+            } else {
+               String match = getAttributeValue(e2, "match");
+               String queue = getAttributeValue(e2, "queue-name");
+               connectionElement = new AMQPConnectionElement();
+               connectionElement.setMatchAddress(SimpleString.toSimpleString(match)).setType(nodeType);
+               connectionElement.setQueueName(SimpleString.toSimpleString(queue));
+            }
+
+            config.addElement(connectionElement);
+         }
+      }
+
+      if (logger.isDebugEnabled()) {
+         logger.debug("Adding AMQP connection :: " + config);
+      }
    }
 
    private void parseClusterConnectionConfiguration(final Element e, final Configuration mainConfig) throws Exception {

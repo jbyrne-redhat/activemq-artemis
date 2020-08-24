@@ -36,6 +36,7 @@ import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.persistence.CoreMessageObjectPools;
 import org.apache.activemq.artemis.core.persistence.Persister;
+import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.protocol.amqp.converter.AMQPMessageIdHelper;
 import org.apache.activemq.artemis.protocol.amqp.converter.AMQPMessageSupport;
 import org.apache.activemq.artemis.protocol.amqp.converter.AmqpCoreConverter;
@@ -206,6 +207,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
    protected final CoreMessageObjectPools coreMessageObjectPools;
    protected Set<Object> rejectedConsumers;
    protected DeliveryAnnotations deliveryAnnotationsForSendBuffer;
+   protected DeliveryAnnotations deliveryAnnotations;
 
    // These are properties set at the broker level and carried only internally by broker storage.
    protected volatile TypedProperties extraProperties;
@@ -307,6 +309,12 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return scanForMessageSection(headerPosition, Header.class);
    }
 
+
+   /** Returns the current already scanned header. */
+   public final Header getCurrentHeader() {
+      return header;
+   }
+
    protected void ensureScanning() {
       ensureDataIsValid();
       ensureMessageDataScanned();
@@ -319,8 +327,13 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     * @return a copy of the {@link DeliveryAnnotations} present in the message or null if non present.
     */
    public final DeliveryAnnotations getDeliveryAnnotations() {
-      ensureScanning();
-      return scanForMessageSection(deliveryAnnotationsPosition, DeliveryAnnotations.class);
+
+      if (deliveryAnnotations != null) {
+         return deliveryAnnotations;
+      } else {
+         ensureScanning();
+         return scanForMessageSection(deliveryAnnotationsPosition, DeliveryAnnotations.class);
+      }
    }
 
    /**
@@ -332,8 +345,10 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     *
     *     http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-annotations
     *
+    * @deprecated use MessageReference.setProtocolData(deliveryAnnotations)
     * @param deliveryAnnotations delivery annotations used in the sendBuffer() method
     */
+   @Deprecated
    public final void setDeliveryAnnotationsForSendBuffer(DeliveryAnnotations deliveryAnnotations) {
       this.deliveryAnnotationsForSendBuffer = deliveryAnnotations;
    }
@@ -451,7 +466,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
    }
 
    @SuppressWarnings("unchecked")
-   protected Map<String, Object> getApplicationPropertiesMap(boolean createIfAbsent) {
+   public Map<String, Object> getApplicationPropertiesMap(boolean createIfAbsent) {
       ApplicationProperties appMap = lazyDecodeApplicationProperties();
       Map<String, Object> map = null;
 
@@ -472,7 +487,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
    }
 
    @SuppressWarnings("unchecked")
-   protected Map<Symbol, Object> getMessageAnnotationsMap(boolean createIfAbsent) {
+   public Map<Symbol, Object> getMessageAnnotationsMap(boolean createIfAbsent) {
       Map<Symbol, Object> map = null;
 
       if (messageAnnotations != null) {
@@ -642,9 +657,17 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
             } else if (DeliveryAnnotations.class.equals(constructor.getTypeClass())) {
                // Don't decode these as they are not used by the broker at all and are
                // discarded on send, mark for lazy decode if ever needed.
-               constructor.skipValue();
-               deliveryAnnotationsPosition = constructorPos;
-               encodedDeliveryAnnotationsSize = data.position() - constructorPos;
+               try {
+                  deliveryAnnotationsPosition = constructorPos;
+                  this.deliveryAnnotations = (DeliveryAnnotations) constructor.readValue();
+                  encodedDeliveryAnnotationsSize = data.position() - constructorPos;
+               } catch (Exception e) {
+                  // mal formed delivery annotation, we will just skip it then
+                  logger.debug(e.getMessage(), e);
+                  data.position(constructorPos);
+                  constructor.skipValue();
+                  encodedDeliveryAnnotationsSize = data.position() - constructorPos;
+               }
             } else if (MessageAnnotations.class.equals(constructor.getTypeClass())) {
                messageAnnotationsPosition = constructorPos;
                messageAnnotations = (MessageAnnotations) constructor.readValue();
@@ -687,13 +710,13 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     * this method is not currently used by the AMQP protocol head and will not be
     * called for out-bound sends.
     *
-    * @see #getSendBuffer(int) for the actual method used for message sends.
+    * @see #getSendBuffer(int, MessageReference) for the actual method used for message sends.
     */
    @Override
    public final void sendBuffer(ByteBuf buffer, int deliveryCount) {
       ensureDataIsValid();
       NettyWritable writable = new NettyWritable(buffer);
-      writable.put(getSendBuffer(deliveryCount));
+      writable.put(getSendBuffer(deliveryCount, null));
    }
 
    /**
@@ -709,14 +732,23 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     *
     * @return a Netty ByteBuf containing the encoded bytes of this Message instance.
     */
-   public ReadableBuffer getSendBuffer(int deliveryCount) {
+   public ReadableBuffer getSendBuffer(int deliveryCount, MessageReference reference) {
       ensureDataIsValid();
 
+      DeliveryAnnotations deliveryAnnotations;
+
+      if (reference != null && reference.getProtocolData() != null && reference.getProtocolData() instanceof DeliveryAnnotations) {
+         deliveryAnnotations = (DeliveryAnnotations) reference.getProtocolData();
+      } else {
+         deliveryAnnotations = null;
+      }
+
       if (deliveryCount > 1) {
-         return createCopyWithNewDeliveryCount(deliveryCount);
+         return createCopyWithNewDeliveryCount(deliveryCount, deliveryAnnotations);
       } else if (deliveryAnnotationsPosition != VALUE_NOT_PRESENT
+         || deliveryAnnotations != null
          || (deliveryAnnotationsForSendBuffer != null && !deliveryAnnotationsForSendBuffer.getValue().isEmpty())) {
-         return createCopyWithSkippedOrExplicitlySetDeliveryAnnotations();
+         return createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(deliveryAnnotations);
       } else {
          // Common case message has no delivery annotations, no delivery annotations for the send buffer were set
          // and this is the first delivery so no re-encoding or section skipping needed.
@@ -724,7 +756,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       }
    }
 
-   protected ReadableBuffer createCopyWithSkippedOrExplicitlySetDeliveryAnnotations() {
+   protected ReadableBuffer createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(DeliveryAnnotations deliveryAnnotations) {
       // The original message had delivery annotations, or delivery annotations for the send buffer are set.
       // That means we must copy into a new buffer skipping the original delivery annotations section
       // (not meant to survive beyond this hop) and including the delivery annotations for the send buffer if set.
@@ -732,7 +764,9 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
 
       final ByteBuf result = PooledByteBufAllocator.DEFAULT.heapBuffer(getEncodeSize());
       result.writeBytes(duplicate.limit(encodedHeaderSize).byteBuffer());
-      writeDeliveryAnnotationsForSendBuffer(result);
+
+      // TODO to get the delivery annotations from the reference
+      writeDeliveryAnnotationsForSendBuffer(result, deliveryAnnotations);
       duplicate.clear();
       // skip existing delivery annotations of the original message
       duplicate.position(encodedHeaderSize + encodedDeliveryAnnotationsSize);
@@ -741,7 +775,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return new NettyReadable(result);
    }
 
-   protected ReadableBuffer createCopyWithNewDeliveryCount(int deliveryCount) {
+   protected ReadableBuffer createCopyWithNewDeliveryCount(int deliveryCount, DeliveryAnnotations deliveryAnnotations) {
       assert deliveryCount > 1;
 
       final int amqpDeliveryCount = deliveryCount - 1;
@@ -764,7 +798,8 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       TLSEncode.getEncoder().writeObject(header);
       TLSEncode.getEncoder().setByteBuffer((WritableBuffer) null);
 
-      writeDeliveryAnnotationsForSendBuffer(result);
+      // TODO get dleivery annotations from the reference
+      writeDeliveryAnnotationsForSendBuffer(result, deliveryAnnotations);
       // skip existing delivery annotations of the original message
       getData().position(encodedHeaderSize + encodedDeliveryAnnotationsSize);
       result.writeBytes(getData().byteBuffer());
@@ -773,10 +808,11 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return new NettyReadable(result);
    }
 
-   protected void writeDeliveryAnnotationsForSendBuffer(ByteBuf result) {
-      if (deliveryAnnotationsForSendBuffer != null && !deliveryAnnotationsForSendBuffer.getValue().isEmpty()) {
+   protected void writeDeliveryAnnotationsForSendBuffer(ByteBuf result, DeliveryAnnotations deliveryAnnotations) {
+      DeliveryAnnotations daToUse = deliveryAnnotations != null ? deliveryAnnotations : deliveryAnnotationsForSendBuffer;
+      if (daToUse != null && !daToUse.getValue().isEmpty()) {
          TLSEncode.getEncoder().setByteBuffer(new NettyWritable(result));
-         TLSEncode.getEncoder().writeObject(deliveryAnnotationsForSendBuffer);
+         TLSEncode.getEncoder().writeObject(daToUse);
          TLSEncode.getEncoder().setByteBuffer((WritableBuffer) null);
       }
    }
@@ -1638,7 +1674,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
 
    @Override
    public String toString() {
-      return "AMQPMessage [durable=" + isDurable() +
+      return this.getClass().getSimpleName() + "( [durable=" + isDurable() +
          ", messageID=" + getMessageID() +
          ", address=" + getAddress() +
          ", size=" + getEncodeSize() +

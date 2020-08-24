@@ -36,6 +36,10 @@ public interface RoutingContext {
    */
    boolean isReusable();
 
+   /** If the routing is from RemoteControl, we don't redo remotecontrol
+    *  to avoid*/
+   boolean isRemoteControl();
+
    int getPreviousBindingsVersion();
 
    SimpleString getPreviousAddress();

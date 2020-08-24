@@ -18,6 +18,8 @@ package org.apache.activemq.artemis.utils.collections;
 
 import java.lang.reflect.Array;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -28,6 +30,9 @@ import java.util.Objects;
  * This class is not thread safe.
  */
 public class LinkedListImpl<E> implements LinkedList<E> {
+
+   // TODO: use an object placement for fast delete messages with an id from the linkes list
+   Map<Object, Node<E>> objectPlacement;
 
    private static final int INITIAL_ITERATOR_ARRAY_SIZE = 10;
 
@@ -46,13 +51,59 @@ public class LinkedListImpl<E> implements LinkedList<E> {
 
    private final Comparator<E> comparator;
 
+   private IDSupplier<E> idSupplier;
+
+   private Map<Object, Node<E>> nodeMap;
+
    public LinkedListImpl() {
-      this(null);
+      this(null, null);
    }
 
+
    public LinkedListImpl(Comparator<E> comparator) {
+      this(comparator, null);
+   }
+
+   @Override
+   public void clearID() {
+      idSupplier = null;
+      nodeMap.clear(); // just a little hand to GC
+      nodeMap = null;
+   }
+
+   @Override
+   public void setIDSupplier(IDSupplier<E> supplier) {
+      this.idSupplier = supplier;
+      nodeMap = new HashMap<>();
+
+      Iterator iterator = (Iterator)iterator();
+      try {
+         while (iterator.hasNext()) {
+            E value = iterator.next();
+            Node<E> position = iterator.last;
+            putID(value, position);
+         }
+      } finally {
+         iterator.close();
+      }
+   }
+
+   private void putID(E value, Node<E> position) {
+      Object id = idSupplier.getID(value);
+      if (id != null) {
+         nodeMap.put(id, position);
+      }
+   }
+
+   public LinkedListImpl(Comparator<E> comparator, IDSupplier<E> supplier) {
       iters = createIteratorArray(INITIAL_ITERATOR_ARRAY_SIZE);
       this.comparator = comparator;
+      this.idSupplier = supplier;
+      if (idSupplier != null) {
+         this.nodeMap = new HashMap<>();
+      } else {
+         this.nodeMap = null;
+      }
    }
 
    @Override
@@ -72,7 +123,38 @@ public class LinkedListImpl<E> implements LinkedList<E> {
          node.next.prev = node;
       }
 
+      itemAdded(node, e);
+
       size++;
+   }
+
+   public E removeWithID(Object id) {
+      if (nodeMap == null) {
+         return null;
+      }
+
+      Node<E> node = nodeMap.get(id);
+      if (node == null) {
+         return null;
+      }
+
+      removeAfter(node.prev);
+      return node.val();
+   }
+
+   private void itemAdded(Node node, E item) {
+      if (nodeMap != null) {
+         putID(item, node);
+      }
+   }
+
+   private void itemRemoved(Node node) {
+      if (nodeMap != null) {
+         Object id = idSupplier.getID((E)node.val());
+         if (id != null) {
+            nodeMap.remove(id);
+         }
+      }
    }
 
    @Override
@@ -87,6 +169,8 @@ public class LinkedListImpl<E> implements LinkedList<E> {
          tail.next = node;
 
          tail = node;
+
+         itemAdded(node, e);
 
          size++;
       }
@@ -143,6 +227,7 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       newNode.prev = node;
       newNode.next = nextNode;
       nextNode.prev = newNode;
+      itemAdded(node, e);
       size++;
    }
 
@@ -173,6 +258,11 @@ public class LinkedListImpl<E> implements LinkedList<E> {
    @Override
    public int size() {
       return size;
+   }
+
+   /** for tests */
+   public int nodeMapSize() {
+      return nodeMap == null ? 0 : nodeMap.size();
    }
 
    @Override
@@ -215,6 +305,8 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       if (toRemove.next != null) {
          toRemove.next.prev = node;
       }
+
+      itemRemoved(toRemove);
 
       if (toRemove == tail) {
          tail = node;

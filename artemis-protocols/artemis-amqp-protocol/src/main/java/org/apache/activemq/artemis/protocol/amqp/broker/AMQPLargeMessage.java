@@ -34,6 +34,7 @@ import org.apache.activemq.artemis.core.persistence.impl.journal.LargeBody;
 import org.apache.activemq.artemis.core.persistence.impl.journal.LargeServerMessageImpl;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
 import org.apache.activemq.artemis.core.server.LargeServerMessage;
+import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.protocol.amqp.util.TLSEncode;
 import org.apache.activemq.artemis.utils.collections.TypedProperties;
 import org.apache.qpid.proton.amqp.messaging.Header;
@@ -153,6 +154,11 @@ public class AMQPLargeMessage extends AMQPMessage implements LargeServerMessage 
       internalReleaseBuffer(2);
    }
 
+   /** during large message deliver, we need this calculation to place a new delivery annotation */
+   public int getPositionAfterDeliveryAnnotations() {
+      return encodedHeaderSize + encodedDeliveryAnnotationsSize;
+   }
+
    private void internalReleaseBuffer(int releases) {
       synchronized (largeBody) {
          for (int i = 0; i < releases; i++) {
@@ -268,7 +274,7 @@ public class AMQPLargeMessage extends AMQPMessage implements LargeServerMessage 
    }
 
    @Override
-   public ReadableBuffer getSendBuffer(int deliveryCount) {
+   public ReadableBuffer getSendBuffer(int deliveryCount, MessageReference reference) {
       return getData().rewind();
    }
 

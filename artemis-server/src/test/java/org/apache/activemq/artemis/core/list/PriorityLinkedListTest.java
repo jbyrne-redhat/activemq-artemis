@@ -16,6 +16,11 @@
  */
 package org.apache.activemq.artemis.core.list;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Objects;
+
+import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.apache.activemq.artemis.utils.collections.PriorityLinkedListImpl;
 import org.junit.Assert;
@@ -870,6 +875,49 @@ public final class PriorityLinkedListTest extends Assert {
       iter.remove();
    }
 
+
+   @Test
+   public void testRemoveWithID() {
+
+      for (int i = 0; i < 3000; i++) {
+         list.addHead(new Wibble("" + i), i % 10);
+      }
+
+      list.installIDSupplier(new IDSupplier<Wibble>() {
+         @Override
+         public Object getID(Wibble source) {
+            return source.s1;
+         }
+      });
+
+      // remove every 3rd
+      for (int i = 0; i < 3000; i += 3) {
+         Assert.assertEquals(new Wibble("" + i), list.removeWithID("" + i));
+      }
+
+      Assert.assertEquals(2000, list.size());
+
+      Iterator<Wibble> iterator = list.iterator();
+
+      HashSet<String> values = new HashSet<>();
+      while (iterator.hasNext()) {
+         values.add(iterator.next().s1);
+      }
+
+      Assert.assertEquals(2000, values.size());
+
+
+      for (int i = 0; i < 3000; i += 3) {
+         if (i % 3 == 0) {
+            Assert.assertFalse(values.contains("" + i));
+         } else {
+            Assert.assertTrue(values.contains("" + i));
+         }
+      }
+
+
+   }
+
    static class Wibble {
 
       String s1;
@@ -881,6 +929,21 @@ public final class PriorityLinkedListTest extends Assert {
       @Override
       public String toString() {
          return s1;
+      }
+
+      @Override
+      public boolean equals(Object o) {
+         if (this == o)
+            return true;
+         if (o == null || getClass() != o.getClass())
+            return false;
+         Wibble wibble = (Wibble) o;
+         return Objects.equals(s1, wibble.s1);
+      }
+
+      @Override
+      public int hashCode() {
+         return Objects.hash(s1);
       }
    }
 

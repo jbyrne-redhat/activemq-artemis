@@ -132,7 +132,7 @@ public class CoreAmqpConverter {
       ServerJMSMessage message = ServerJMSMessage.wrapCoreMessage(coreMessage);
       message.decode();
 
-      long messageFormat = 0;
+      final long messageFormat = 0;
       Header header = null;
       final Properties properties = new Properties();
       Map<Symbol, Object> daMap = null;
