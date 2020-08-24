@@ -35,7 +35,7 @@ import org.mockito.Mockito;
 import java.util.HashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-public class AMQPConnectionContextTest {
+public class AMQPBridgeConnectionContextTest {
 
    @Test
    public void testLeakAfterClose() throws Exception {

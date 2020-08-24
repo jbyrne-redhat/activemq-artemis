@@ -62,6 +62,10 @@ public class AMQPSessionContext extends ProtonInitializable {
 
    protected Map<Object, ProtonServerSenderContext> serverSenders = new ConcurrentHashMap<>();
 
+   public AMQPSessionCallback getSessionSPI() {
+      return sessionSPI;
+   }
+
    @Override
    public void initialise() throws Exception {
       if (!isInitialized()) {
@@ -164,9 +168,13 @@ public class AMQPSessionContext extends ProtonInitializable {
    }
 
    public void addSender(Sender sender) throws Exception {
+      addSender(sender, null);
+   }
+
+   public void addSender(Sender sender, SenderInitializer senderInitializer) throws Exception {
       // TODO: Remove this check when we have support for global link names
       boolean outgoing = (sender.getContext() != null && sender.getContext().equals(true));
-      ProtonServerSenderContext protonSender = outgoing ? new ProtonClientSenderContext(connection, sender, this, sessionSPI) : new ProtonServerSenderContext(connection, sender, this, sessionSPI);
+      ProtonServerSenderContext protonSender = outgoing ? new ProtonClientSenderContext(connection, sender, this, sessionSPI) : new ProtonServerSenderContext(connection, sender, this, sessionSPI, senderInitializer);
 
       try {
          protonSender.initialise();

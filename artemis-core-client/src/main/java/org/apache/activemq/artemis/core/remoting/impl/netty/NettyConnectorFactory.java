@@ -36,7 +36,7 @@ public class NettyConnectorFactory implements ConnectorFactory {
                                     final Executor threadPool,
                                     final ScheduledExecutorService scheduledThreadPool,
                                     final ClientProtocolManager protocolManager) {
-      return new NettyConnector(configuration, handler, listener, closeExecutor, threadPool, scheduledThreadPool);
+      return new NettyConnector(configuration, handler, listener, closeExecutor, threadPool, scheduledThreadPool, protocolManager);
    }
 
    @Override
