@@ -55,3 +55,13 @@ If you wish to generate the report for CCV dependencies, you may run it with the
     $ mvn -Powasp verify
 
 The output will be under ./target/dependency-check-report.html **for each** sub-module.
+
+
+TODOs on this BRANCH:
+
+- Connection to AMQP (done)
+- SASL and authorization
+- Matching addresses
+- Transfer on Queues
+
+

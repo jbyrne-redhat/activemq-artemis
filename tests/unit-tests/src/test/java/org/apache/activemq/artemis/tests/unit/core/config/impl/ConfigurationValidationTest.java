@@ -16,6 +16,7 @@
  */
 package org.apache.activemq.artemis.tests.unit.core.config.impl;
 
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.FileDeploymentManager;
 import org.apache.activemq.artemis.core.config.impl.FileConfiguration;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
@@ -63,6 +64,25 @@ public class ConfigurationValidationTest extends ActiveMQTestBase {
       deploymentManager.readConfiguration();
 
       Assert.assertEquals(true, fc.isPersistDeliveryCountBeforeDelivery());
+   }
+
+   @Test
+   public void testAMQPConnectParsing() throws Exception {
+      FileConfiguration fc = new FileConfiguration();
+      FileDeploymentManager deploymentManager = new FileDeploymentManager("ConfigurationTest-full-config.xml");
+      deploymentManager.addDeployable(fc);
+      deploymentManager.readConfiguration();
+
+      Assert.assertEquals(2, fc.getAMQPConnection().size());
+
+      AMQPConnectConfiguration amqpConnectConfiguration = fc.getAMQPConnection().get(0);
+      Assert.assertEquals("test1", amqpConnectConfiguration.getName());
+      Assert.assertEquals("tcp://test1:111", amqpConnectConfiguration.getUri());
+
+      amqpConnectConfiguration = fc.getAMQPConnection().get(1);
+      Assert.assertEquals("test2", amqpConnectConfiguration.getName());
+      Assert.assertEquals("tcp://test2:222", amqpConnectConfiguration.getUri());
+
    }
 
    @Test

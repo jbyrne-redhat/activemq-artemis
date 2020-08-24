@@ -56,6 +56,7 @@ import org.apache.qpid.proton.amqp.transaction.Coordinator;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
 import org.apache.qpid.proton.engine.Connection;
 import org.apache.qpid.proton.engine.Delivery;
+import org.apache.qpid.proton.engine.EndpointState;
 import org.apache.qpid.proton.engine.Link;
 import org.apache.qpid.proton.engine.Receiver;
 import org.apache.qpid.proton.engine.Sender;
@@ -92,6 +93,9 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
 
    private final boolean useCoreSubscriptionNaming;
 
+   /** Outgoing means created by the AMQP Bridge */
+   private final boolean bridgeConnection;
+
    private final ScheduleOperator scheduleOp = new ScheduleOperator(new ScheduleRunnable());
    private final AtomicReference<Future<?>> scheduledFutureRef = new AtomicReference(VOID_FUTURE);
 
@@ -106,8 +110,24 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
                                 boolean isIncomingConnection,
                                 ClientSASLFactory saslClientFactory,
                                 Map<Symbol, Object> connectionProperties) {
+      this(protocolManager, connectionSP, containerId, idleTimeout, maxFrameSize, channelMax, useCoreSubscriptionNaming, scheduledPool, isIncomingConnection, saslClientFactory, connectionProperties, false);
+
+   }
+   public AMQPConnectionContext(ProtonProtocolManager protocolManager,
+                                AMQPConnectionCallback connectionSP,
+                                String containerId,
+                                int idleTimeout,
+                                int maxFrameSize,
+                                int channelMax,
+                                boolean useCoreSubscriptionNaming,
+                                ScheduledExecutorService scheduledPool,
+                                boolean isIncomingConnection,
+                                ClientSASLFactory saslClientFactory,
+                                Map<Symbol, Object> connectionProperties,
+                                boolean bridgeConnection) {
 
       this.protocolManager = protocolManager;
+      this.bridgeConnection = bridgeConnection;
       this.connectionCallback = connectionSP;
       this.useCoreSubscriptionNaming = useCoreSubscriptionNaming;
       this.containerId = (containerId != null) ? containerId : UUID.randomUUID().toString();
@@ -184,6 +204,10 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
       handler.inputBuffer(buffer);
    }
 
+   public ProtonHandler getHandler() {
+      return handler;
+   }
+
    public void destroy() {
       handler.runLater(() -> connectionCallback.close());
    }
@@ -217,7 +241,7 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
       handler.close(errorCondition, this);
    }
 
-   protected AMQPSessionContext getSessionExtension(Session realSession) throws ActiveMQAMQPException {
+   public AMQPSessionContext getSessionExtension(Session realSession) throws ActiveMQAMQPException {
       AMQPSessionContext sessionExtension = sessions.get(realSession);
       if (sessionExtension == null) {
          // how this is possible? Log a warn here
@@ -270,6 +294,10 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
    protected void remoteLinkOpened(Link link) throws Exception {
 
       AMQPSessionContext protonSession = getSessionExtension(link.getSession());
+
+      if (link.getLocalState() ==  EndpointState.ACTIVE) { // if already active it's probably from the AMQP bridge and hence we just ignore it
+         return;
+      }
 
       link.setSource(link.getRemoteSource());
       link.setTarget(link.getRemoteTarget());
@@ -509,7 +537,11 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
 
    @Override
    public void onLocalOpen(Session session) throws Exception {
-      getSessionExtension(session);
+      AMQPSessionContext sessionContext = getSessionExtension(session);
+
+      if (bridgeConnection) {
+         sessionContext.initialise();
+      }
    }
 
    @Override

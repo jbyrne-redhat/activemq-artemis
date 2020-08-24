@@ -61,7 +61,7 @@ import static org.apache.activemq.transport.amqp.AmqpSupport.TEMP_TOPIC_CAPABILI
  * Test support class for tests that will be using the AMQP Proton wrapper client. This is to
  * make it easier to migrate tests from ActiveMQ5
  */
-public class AmqpClientTestSupport extends AmqpTestSupport {
+public abstract class AmqpClientTestSupport extends AmqpTestSupport {
 
    protected static final Symbol SHARED = Symbol.getSymbol("shared");
    protected static final Symbol GLOBAL = Symbol.getSymbol("global");
@@ -154,6 +154,10 @@ public class AmqpClientTestSupport extends AmqpTestSupport {
    }
 
    protected ActiveMQServer createServer(int port) throws Exception {
+      return createServer(port, true);
+   }
+
+   protected ActiveMQServer createServer(int port, boolean start) throws Exception {
 
       final ActiveMQServer server = this.createServer(true, true);
 
@@ -179,10 +183,13 @@ public class AmqpClientTestSupport extends AmqpTestSupport {
       // Add extra configuration
       addConfiguration(server);
 
-      server.start();
+      if (start) {
+         server.start();
 
-      // Prepare all addresses and queues for client tests.
-      createAddressAndQueues(server);
+         // Prepare all addresses and queues for client tests.
+         createAddressAndQueues(server);
+      }
+
 
       return server;
    }

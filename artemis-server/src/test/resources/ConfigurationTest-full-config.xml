@@ -371,6 +371,10 @@
             <discovery-group-ref discovery-group-name="dg1"/>
          </cluster-connection>
       </cluster-connections>
+      <amqp-connections>
+         <amqp-connection-uri name="test1" uri="tcp://test1:111"></amqp-connection-uri>
+         <amqp-connection-uri name="test2" uri="tcp://test2:222"/>
+      </amqp-connections>
       <grouping-handler name="gh1">
          <type>LOCAL</type>
          <address>jms</address>

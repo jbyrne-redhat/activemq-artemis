@@ -287,6 +287,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
    private final List<ProtocolManagerFactory> protocolManagerFactories = new ArrayList<>();
 
+   private final List<ActiveMQComponent> protocolServices = new ArrayList<>();
+
    private volatile ManagementService managementService;
 
    private volatile ConnectorsService connectorsService;
@@ -1098,6 +1100,10 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          }
          stopComponent(federationManager);
          stopComponent(clusterManager);
+
+         for (ActiveMQComponent component : this.protocolServices) {
+            stopComponent(component);
+         }
 
          if (remotingService != null) {
             remotingService.pauseAcceptors();
@@ -3044,6 +3050,9 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             federationManager.start();
          }
 
+         // TODO this needs to be asynchronous
+         startProtocolServices();
+
          if (nodeManager.getNodeId() == null) {
             throw ActiveMQMessageBundle.BUNDLE.nodeIdNull();
          }
@@ -3060,6 +3069,19 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          } catch (Exception e) {
             ActiveMQServerLogger.LOGGER.unableToInjectMonitor(e);
          }
+      }
+   }
+
+   private void startProtocolServices() throws Exception {
+
+      remotingService.loadProtocolServices(protocolServices);
+
+      for (ProtocolManagerFactory protocolManagerFactory : protocolManagerFactories) {
+         protocolManagerFactory.loadProtocolServices(this, protocolServices);
+      }
+
+      for (ActiveMQComponent protocolComponent : protocolServices) {
+         protocolComponent.start();
       }
    }
 

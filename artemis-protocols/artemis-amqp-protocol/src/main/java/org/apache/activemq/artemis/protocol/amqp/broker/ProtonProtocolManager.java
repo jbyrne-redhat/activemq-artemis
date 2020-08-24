@@ -33,6 +33,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.management.Notification;
 import org.apache.activemq.artemis.core.server.management.NotificationListener;
 import org.apache.activemq.artemis.jms.client.ActiveMQDestination;
+import org.apache.activemq.artemis.protocol.amqp.client.ProtonClientProtocolManager;
 import org.apache.activemq.artemis.protocol.amqp.proton.AMQPConnectionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.AMQPConstants;
 import org.apache.activemq.artemis.protocol.amqp.proton.AmqpSupport;
@@ -173,8 +174,31 @@ public class ProtonProtocolManager extends AbstractProtocolManager<AMQPMessage, 
       return this;
    }
 
+   /** for outgoing */
+   public ProtonClientProtocolManager createClientManager() {
+      ProtonClientProtocolManager clientOutgoing = new ProtonClientProtocolManager(factory, server);
+      return clientOutgoing;
+   }
+
    @Override
    public ConnectionEntry createConnectionEntry(Acceptor acceptorUsed, Connection remotingConnection) {
+      return internalConnectionEntry(remotingConnection, false);
+   }
+
+   /** This method is not part of the ProtocolManager interface because it only makes sense on AMQP.
+    *  More specifically on AMQP Bridges */
+   public ConnectionEntry createOutgoingConnectionEntry(Connection remotingConnection) {
+      return internalConnectionEntry(remotingConnection, true);
+   }
+
+   /**
+    * AMQP is an agnostic protocol, client and server.
+    * This method is used also by the AMQPConenctionBridge where there is no acceptor in place.
+    * So, this method is to be used by the AMQPConnectionBridge
+    * @param remotingConnection
+    * @return
+    */
+   private ConnectionEntry internalConnectionEntry(Connection remotingConnection, boolean outgoing) {
       AMQPConnectionCallback connectionCallback = new AMQPConnectionCallback(this, remotingConnection, server.getExecutorFactory().getExecutor(), server);
       long ttl = ActiveMQClient.DEFAULT_CONNECTION_TTL;
 
@@ -192,18 +216,18 @@ public class ProtonProtocolManager extends AbstractProtocolManager<AMQPMessage, 
 
       String id = server.getConfiguration().getName();
       boolean useCoreSubscriptionNaming = server.getConfiguration().isAmqpUseCoreSubscriptionNaming();
-      AMQPConnectionContext amqpConnection = new AMQPConnectionContext(this, connectionCallback, id, (int) ttl, getMaxFrameSize(), AMQPConstants.Connection.DEFAULT_CHANNEL_MAX, useCoreSubscriptionNaming, server.getScheduledPool(), true, null, null);
+      AMQPConnectionContext amqpConnection = new AMQPConnectionContext(this, connectionCallback, id, (int) ttl, getMaxFrameSize(), AMQPConstants.Connection.DEFAULT_CHANNEL_MAX, useCoreSubscriptionNaming, server.getScheduledPool(), true, null, null, outgoing);
 
       Executor executor = server.getExecutorFactory().getExecutor();
 
-      ActiveMQProtonRemotingConnection delegate = new ActiveMQProtonRemotingConnection(this, amqpConnection, remotingConnection, executor);
-      delegate.addFailureListener(connectionCallback);
-      delegate.addCloseListener(connectionCallback);
+      ActiveMQProtonRemotingConnection protonRemotingConnection = new ActiveMQProtonRemotingConnection(this, amqpConnection, remotingConnection, executor);
+      protonRemotingConnection.addFailureListener(connectionCallback);
+      protonRemotingConnection.addCloseListener(connectionCallback);
 
-      connectionCallback.setProtonConnectionDelegate(delegate);
+      connectionCallback.setProtonConnectionDelegate(protonRemotingConnection);
 
       // connection entry only understands -1 otherwise we would see disconnects for no reason
-      ConnectionEntry entry = new ConnectionEntry(delegate, executor, System.currentTimeMillis(), ttl <= 0 ? -1 : ttl);
+      ConnectionEntry entry = new ConnectionEntry(protonRemotingConnection, executor, System.currentTimeMillis(), ttl <= 0 ? -1 : ttl);
 
       return entry;
    }
