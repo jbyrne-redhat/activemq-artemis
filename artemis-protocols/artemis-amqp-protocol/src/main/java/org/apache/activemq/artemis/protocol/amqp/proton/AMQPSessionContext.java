@@ -22,8 +22,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.activemq.artemis.api.core.ActiveMQSecurityException;
+import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ServerProducer;
 import org.apache.activemq.artemis.core.server.impl.ServerProducerImpl;
+import org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlTarget;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.client.ProtonClientSenderContext;
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPException;
@@ -46,7 +48,7 @@ public class AMQPSessionContext extends ProtonInitializable {
 
    protected final Session session;
 
-   protected Map<Receiver, ProtonServerReceiverContext> receivers = new ConcurrentHashMap<>();
+   protected Map<Receiver, ProtonAbstractReceiver> receivers = new ConcurrentHashMap<>();
 
    protected Map<Sender, ProtonServerSenderContext> senders = new ConcurrentHashMap<>();
 
@@ -54,10 +56,13 @@ public class AMQPSessionContext extends ProtonInitializable {
 
    protected final AmqpTransferTagGenerator tagCache = new AmqpTransferTagGenerator();
 
-   public AMQPSessionContext(AMQPSessionCallback sessionSPI, AMQPConnectionContext connection, Session session) {
+   protected final ActiveMQServer server;
+
+   public AMQPSessionContext(AMQPSessionCallback sessionSPI, AMQPConnectionContext connection, Session session, ActiveMQServer server) {
       this.connection = connection;
       this.sessionSPI = sessionSPI;
       this.session = session;
+      this.server = server;
    }
 
    protected Map<Object, ProtonServerSenderContext> serverSenders = new ConcurrentHashMap<>();
@@ -67,9 +72,9 @@ public class AMQPSessionContext extends ProtonInitializable {
    }
 
    @Override
-   public void initialise() throws Exception {
+   public void initialize() throws Exception {
       if (!isInitialized()) {
-         super.initialise();
+         super.initialize();
 
          if (sessionSPI != null) {
             try {
@@ -115,10 +120,10 @@ public class AMQPSessionContext extends ProtonInitializable {
       }
 
       // Making a copy to avoid ConcurrentModificationException during the iteration
-      Set<ProtonServerReceiverContext> receiversCopy = new HashSet<>();
+      Set<ProtonAbstractReceiver> receiversCopy = new HashSet<>();
       receiversCopy.addAll(receivers.values());
 
-      for (ProtonServerReceiverContext protonProducer : receiversCopy) {
+      for (ProtonAbstractReceiver protonProducer : receiversCopy) {
          try {
             protonProducer.close(false);
          } catch (Exception e) {
@@ -177,7 +182,7 @@ public class AMQPSessionContext extends ProtonInitializable {
       ProtonServerSenderContext protonSender = outgoing ? new ProtonClientSenderContext(connection, sender, this, sessionSPI) : new ProtonServerSenderContext(connection, sender, this, sessionSPI, senderInitializer);
 
       try {
-         protonSender.initialise();
+         protonSender.initialize();
          senders.put(sender, protonSender);
          serverSenders.put(protonSender.getBrokerConsumer(), protonSender);
          sender.setContext(protonSender);
@@ -208,10 +213,33 @@ public class AMQPSessionContext extends ProtonInitializable {
       }
    }
 
+   public void addReplicaTarget(Receiver receiver) throws Exception {
+      try {
+         AMQPRemoteControlTarget protonReceiver = new AMQPRemoteControlTarget(sessionSPI, connection, this, receiver, server);
+         protonReceiver.initialize();
+         receivers.put(receiver, protonReceiver);
+         ServerProducer serverProducer = new ServerProducerImpl(receiver.getName(), "AMQP", receiver.getTarget().getAddress());
+         sessionSPI.addProducer(serverProducer);
+         receiver.setContext(protonReceiver);
+         connection.runNow(() -> {
+            receiver.open();
+            connection.flush();
+         });
+      } catch (ActiveMQAMQPException e) {
+         receivers.remove(receiver);
+         receiver.setTarget(null);
+         receiver.setCondition(new ErrorCondition(e.getAmqpError(), e.getMessage()));
+         connection.runNow(() -> {
+            receiver.close();
+            connection.flush();
+         });
+      }
+   }
+
    public void addReceiver(Receiver receiver) throws Exception {
       try {
          ProtonServerReceiverContext protonReceiver = new ProtonServerReceiverContext(sessionSPI, connection, this, receiver);
-         protonReceiver.initialise();
+         protonReceiver.initialize();
          receivers.put(receiver, protonReceiver);
          ServerProducer serverProducer = new ServerProducerImpl(receiver.getName(), "AMQP", receiver.getTarget().getAddress());
          sessionSPI.addProducer(serverProducer);

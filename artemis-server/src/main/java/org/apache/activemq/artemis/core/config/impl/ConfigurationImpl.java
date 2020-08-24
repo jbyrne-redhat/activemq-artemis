@@ -357,12 +357,25 @@ public class ConfigurationImpl implements Configuration, Serializable {
 
    private String temporaryQueueNamespace = ActiveMQDefaultConfiguration.getDefaultTemporaryQueueNamespace();
 
+   private SimpleString remoteControlAddress;
+
    /**
     * Parent folder for all data folders.
     */
    private File artemisInstance;
 
    // Public -------------------------------------------------------------------------
+
+   @Override
+   public ConfigurationImpl setRemoteControlAddress(SimpleString address) {
+      this.remoteControlAddress = address;
+      return this;
+   }
+
+   @Override
+   public SimpleString getRemoteControlAddress() {
+      return remoteControlAddress;
+   }
 
    @Override
    public Configuration setSystemPropertyPrefix(String systemPropertyPrefix) {

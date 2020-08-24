@@ -236,8 +236,8 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
     */
    @SuppressWarnings("unchecked")
    @Override
-   public void initialise() throws Exception {
-      super.initialise();
+   public void initialize() throws Exception {
+      super.initialize();
 
       if (initializer == null) {
          initializer = new DefaultInitializer(sender, sessionSPI);

@@ -300,6 +300,8 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
 
    private static final String ENABLE_METRICS = "enable-metrics";
 
+   private static final String REMOTE_CONTROL_ADDRESS = "remote-control-address";
+
    private static final String PAGE_STORE_NAME = "page-store-name";
 
    // Attributes ----------------------------------------------------
@@ -398,6 +400,8 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       config.setPersistIDCache(getBoolean(e, "persist-id-cache", config.isPersistIDCache()));
 
       config.setManagementAddress(new SimpleString(getString(e, "management-address", config.getManagementAddress().toString(), Validators.NOT_NULL_OR_EMPTY)));
+
+      config.setRemoteControlAddress(new SimpleString(getString(e, "remote-control-address", config.getManagementAddress().toString(), Validators.NO_CHECK)));
 
       config.setManagementNotificationAddress(new SimpleString(getString(e, "management-notification-address", config.getManagementNotificationAddress().toString(), Validators.NOT_NULL_OR_EMPTY)));
 

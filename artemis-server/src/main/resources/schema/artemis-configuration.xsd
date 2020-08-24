@@ -181,6 +181,16 @@
             </xsd:annotation>
          </xsd:element>
 
+         <xsd:element name="remote-control-address" type="xsd:string" maxOccurs="1"
+                      minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  The name of the address used to remote control replicas and DR sites.
+                  If null it means there is no remote control functionality and the broker is standalone.
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
          <xsd:element name="management-notification-address" type="xsd:string" default="activemq.notifications"
                       maxOccurs="1" minOccurs="0">
             <xsd:annotation>

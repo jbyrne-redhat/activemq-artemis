@@ -66,6 +66,10 @@ public interface Configuration {
     */
    Configuration setName(String name);
 
+   Configuration setRemoteControlAddress(SimpleString address);
+
+   SimpleString getRemoteControlAddress();
+
 
    /**
     * We use Bean-utils to pass in System.properties that start with {@link #setSystemPropertyPrefix(String)}.

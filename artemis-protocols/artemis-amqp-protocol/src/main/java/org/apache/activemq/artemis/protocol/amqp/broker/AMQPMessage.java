@@ -451,7 +451,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
    }
 
    @SuppressWarnings("unchecked")
-   protected Map<String, Object> getApplicationPropertiesMap(boolean createIfAbsent) {
+   public Map<String, Object> getApplicationPropertiesMap(boolean createIfAbsent) {
       ApplicationProperties appMap = lazyDecodeApplicationProperties();
       Map<String, Object> map = null;
 
@@ -472,7 +472,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
    }
 
    @SuppressWarnings("unchecked")
-   protected Map<Symbol, Object> getMessageAnnotationsMap(boolean createIfAbsent) {
+   public Map<Symbol, Object> getMessageAnnotationsMap(boolean createIfAbsent) {
       Map<Symbol, Object> map = null;
 
       if (messageAnnotations != null) {

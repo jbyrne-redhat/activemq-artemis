@@ -68,6 +68,7 @@ import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
 import org.apache.activemq.artemis.core.server.management.Notification;
 import org.apache.activemq.artemis.core.server.management.NotificationListener;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepositoryChangeListener;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
@@ -150,6 +151,8 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
 
    private final ActiveMQServer server;
 
+   private RemoteControl remoteControlSource;
+
    public PostOfficeImpl(final ActiveMQServer server,
                          final StorageManager storageManager,
                          final PagingManager pagingManager,
@@ -226,6 +229,17 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
    @Override
    public boolean isStarted() {
       return started;
+   }
+
+   @Override
+   public RemoteControl getRemoteControlSource() {
+      return remoteControlSource;
+   }
+
+   @Override
+   public PostOfficeImpl setRemoteControlSource(RemoteControl remoteControlSource) {
+      this.remoteControlSource = remoteControlSource;
+      return this;
    }
 
    // NotificationListener implementation -------------------------------------
@@ -455,6 +469,10 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
       synchronized (this) {
          if (server.hasBrokerAddressPlugins()) {
             server.callBrokerAddressPlugins(plugin -> plugin.beforeAddAddress(addressInfo, reload));
+         }
+
+         if (remoteControlSource != null) {
+            remoteControlSource.addAddress(addressInfo);
          }
 
          boolean result;
@@ -777,6 +795,8 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
             server.callBrokerAddressPlugins(plugin -> plugin.beforeRemoveAddress(address));
          }
 
+
+
          final Collection<Binding> bindingsForAddress = getDirectBindings(address);
          if (force) {
             for (Binding binding : bindingsForAddress) {
@@ -790,6 +810,11 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
          }
          managementService.unregisterAddress(address);
          final AddressInfo addressInfo = addressManager.removeAddressInfo(address);
+
+         if (remoteControlSource != null && addressInfo != null) {
+            remoteControlSource.deleteAddress(addressInfo);
+         }
+
          removeRetroactiveResources(address);
          if (server.hasBrokerAddressPlugins()) {
             server.callBrokerAddressPlugins(plugin -> plugin.afterRemoveAddress(address, addressInfo));
@@ -1450,6 +1475,11 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
 
       Transaction tx = context.getTransaction();
 
+      if (remoteControlSource != null && !context.isRemoteControl()) {
+         // we check for isRemoteControl as to avoid recursive loop from there
+         remoteControlSource.sendMessage(message, context, refs);
+      }
+
       Long deliveryTime = null;
       if (message.hasScheduledDeliveryTime()) {
          deliveryTime = message.getScheduledDeliveryTime();
@@ -1548,6 +1578,9 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
             @Override
             public void done() {
                context.processReferences(refs, direct);
+               if (remoteControlSource != null) {
+                  remoteControlSource.routingDone(refs, direct);
+               }
             }
          });
       }
