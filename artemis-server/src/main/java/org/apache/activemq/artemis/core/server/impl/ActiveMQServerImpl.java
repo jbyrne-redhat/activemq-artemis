@@ -172,6 +172,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugi
 import org.apache.activemq.artemis.core.server.reload.ReloadCallback;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadManagerImpl;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.server.transformer.Transformer;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.impl.AddressFullMessagePolicy;
@@ -289,7 +290,11 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
    private final List<ProtocolManagerFactory> protocolManagerFactories = new ArrayList<>();
 
+   private final List<ActiveMQComponent> protocolServices = new ArrayList<>();
+
    private volatile ManagementService managementService;
+
+   private volatile RemoteControl remoteControlService;
 
    private volatile ConnectorsService connectorsService;
 
@@ -1177,6 +1182,10 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          stopComponent(federationManager);
          stopComponent(clusterManager);
 
+         for (ActiveMQComponent component : this.protocolServices) {
+            stopComponent(component);
+         }
+
          final RemotingService remotingService = this.remotingService;
          if (remotingService != null) {
             remotingService.pauseAcceptors();
@@ -1289,6 +1298,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             ActiveMQServerLogger.LOGGER.errorStoppingComponent(t, managementService.getClass().getName());
          }
       }
+
+      installRemoteControl(null);
 
       pagingManager = null;
       securityStore = null;
@@ -2277,10 +2288,6 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
          Queue queue = (Queue) binding.getBindable();
 
-         if (hasBrokerQueuePlugins()) {
-            callBrokerQueuePlugins(plugin -> plugin.beforeDestroyQueue(queue, session, checkConsumerCount, removeConsumers, autoDeleteAddress));
-         }
-
          if (session != null) {
             // make sure the user has privileges to delete this queue
             securityStore.check(address, queueName, queue.isDurable() ? CheckType.DELETE_DURABLE_QUEUE : CheckType.DELETE_NON_DURABLE_QUEUE, session);
@@ -2297,6 +2304,14 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             if (queue.getMessageCount() > queue.getAutoDeleteMessageCount()) {
                throw ActiveMQMessageBundle.BUNDLE.cannotDeleteQueueWithMessages(queue.getName(), queueName, messageCount);
             }
+         }
+
+         if (hasBrokerQueuePlugins()) {
+            callBrokerQueuePlugins(plugin -> plugin.beforeDestroyQueue(queue, session, checkConsumerCount, removeConsumers, autoDeleteAddress));
+         }
+
+         if (remoteControlService != null) {
+            remoteControlService.deleteQueue(queue.getAddress(), queue.getName());
          }
 
          queue.deleteQueue(removeConsumers);
@@ -3057,6 +3072,32 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       return true;
    }
 
+   @Override
+   public void installRemoteControl(RemoteControl remoteControl) {
+      logger.debug("Remote control is being installed");
+      if (postOffice != null) {
+         postOffice.setRemoteControlSource(remoteControl);
+      }
+      this.remoteControlService = remoteControl;
+   }
+
+
+   @Override
+   public void scanAddresses(RemoteControl remoteControl) throws Exception {
+      logger.debug("Scanning addresses to send on remote control");
+      postOffice.scanAddresses(remoteControl);
+   }
+
+   @Override
+   public RemoteControl getRemoteControl() {
+      return this.remoteControlService;
+   }
+
+   @Override
+   public void removeRemoteControl() {
+      postOffice.setRemoteControlSource(null);
+   }
+
    /*
     * Load the data, and start remoting service so clients can connect
     */
@@ -3135,6 +3176,9 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             federationManager.start();
          }
 
+         // TODO this needs to be asynchronous
+         startProtocolServices();
+
          if (nodeManager.getNodeId() == null) {
             throw ActiveMQMessageBundle.BUNDLE.nodeIdNull();
          }
@@ -3151,6 +3195,19 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          } catch (Exception e) {
             ActiveMQServerLogger.LOGGER.unableToInjectMonitor(e);
          }
+      }
+   }
+
+   private void startProtocolServices() throws Exception {
+
+      remotingService.loadProtocolServices(protocolServices);
+
+      for (ProtocolManagerFactory protocolManagerFactory : protocolManagerFactories) {
+         protocolManagerFactory.loadProtocolServices(this, protocolServices);
+      }
+
+      for (ActiveMQComponent protocolComponent : protocolServices) {
+         protocolComponent.start();
       }
    }
 
@@ -3612,6 +3669,10 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
       if (hasBrokerQueuePlugins()) {
          callBrokerQueuePlugins(plugin -> plugin.beforeCreateQueue(queueConfiguration));
+      }
+
+      if (remoteControlService != null) {
+         remoteControlService.createQueue(queueConfiguration);
       }
 
       queueConfiguration.setId(storageManager.generateID());

@@ -225,6 +225,7 @@ public class GroupFirstMessageReference implements MessageReference {
 
    @Override
    public void setOwner(PagingStore owner) {
+      new Exception("Owner - " + owner).printStackTrace();
       this.owner = owner;
    }
 }

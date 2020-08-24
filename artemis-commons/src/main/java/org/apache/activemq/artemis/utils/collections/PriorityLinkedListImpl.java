@@ -96,6 +96,38 @@ public class PriorityLinkedListImpl<T> implements PriorityLinkedList<T> {
    }
 
    @Override
+   public void installIDSupplier(IDSupplier<T> supplier) {
+      for (LinkedList<T> list : levels) {
+         list.setIDSupplier(supplier);
+      }
+   }
+
+   @Override
+   public T removeWithID(Object id) {
+      // we start at 4 just as an optimization, since most times we only use level 4 as the level on messages
+      if (levels.length > 4) {
+         for (int l = 4; l < levels.length; l++) {
+            T removed = levels[l].removeWithID(id);
+            if (removed != null) {
+               exclusiveIncrementSize(-1);
+               return removed;
+            }
+         }
+      }
+
+      for (int l = Math.min(3, levels.length); l >= 0; l--) {
+         T removed = levels[l].removeWithID(id);
+         if (removed != null) {
+            exclusiveIncrementSize(-1);
+            return removed;
+         }
+      }
+
+      return null;
+   }
+
+
+   @Override
    public T poll() {
       T t = null;
 

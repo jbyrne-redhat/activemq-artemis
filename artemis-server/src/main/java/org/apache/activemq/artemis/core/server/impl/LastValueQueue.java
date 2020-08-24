@@ -546,6 +546,7 @@ public class LastValueQueue extends QueueImpl {
 
       @Override
       public void setOwner(PagingStore owner) {
+
          ref.setOwner(owner);
       }
    }

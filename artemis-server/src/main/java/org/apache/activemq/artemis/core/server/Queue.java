@@ -35,6 +35,7 @@ import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.ReferenceCounter;
+import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.apache.activemq.artemis.utils.critical.CriticalComponent;
 
@@ -72,6 +73,8 @@ public interface Queue extends Bindable,CriticalComponent {
 
    void refDown(MessageReference messageReference);
 
+   /** Remove item with ID */
+   MessageReference removeWithSuppliedID(Object id, IDSupplier<MessageReference> idSupplier);
 
    /**
     * The queue definition could be durable, but the messages could eventually be considered non durable.
@@ -163,6 +166,13 @@ public interface Queue extends Bindable,CriticalComponent {
    void setRingSize(long ringSize);
 
    long getRingSize();
+
+   default boolean isRemoteControl() {
+      return false;
+   }
+
+   default void setRemoteControl(boolean remoteControl) {
+   }
 
     /**
     * This will set a reference counter for every consumer present on the queue.

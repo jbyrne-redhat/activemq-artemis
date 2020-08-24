@@ -29,4 +29,8 @@ public interface LinkedList<E> {
    void clear();
 
    int size();
+
+   void clearID();
+
+   void setIDSupplier(IDSupplier<E> idSupplier);
 }

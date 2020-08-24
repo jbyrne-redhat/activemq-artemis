@@ -1612,6 +1612,7 @@ public class AMQPMessageTest {
       try {
          message = new AMQPStandardMessage(0, readable, null, null);
       } catch (Exception decodeError) {
+         decodeError.printStackTrace();
          fail("Should not have encountered an exception on partial decode: " + decodeError.getMessage());
       }
 
@@ -1795,7 +1796,7 @@ public class AMQPMessageTest {
    public void testGetSendBuffer() {
       AMQPStandardMessage message = new AMQPStandardMessage(0, encodedProtonMessage, null, null);
 
-      ReadableBuffer buffer = message.getSendBuffer(1);
+      ReadableBuffer buffer = message.getSendBuffer(1, null);
       assertNotNull(buffer);
       assertTrue(buffer.hasArray());
 
@@ -1810,7 +1811,7 @@ public class AMQPMessageTest {
    public void testGetSendBufferAddsDeliveryCountOnlyToSendMessage() {
       AMQPStandardMessage message = new AMQPStandardMessage(0, encodedProtonMessage, null, null);
 
-      ReadableBuffer buffer = message.getSendBuffer(7);
+      ReadableBuffer buffer = message.getSendBuffer(7, null);
       assertNotNull(buffer);
       message.reencode(); // Ensures Header is current if accidentally updated
 
@@ -1829,7 +1830,7 @@ public class AMQPMessageTest {
       MessageImpl protonMessage = (MessageImpl) Proton.message();
       AMQPStandardMessage message = new AMQPStandardMessage(0, encodeMessage(protonMessage), null, null);
 
-      ReadableBuffer buffer = message.getSendBuffer(7);
+      ReadableBuffer buffer = message.getSendBuffer(7, null);
       assertNotNull(buffer);
       message.reencode(); // Ensures Header is current if accidentally updated
 
@@ -1851,7 +1852,7 @@ public class AMQPMessageTest {
       protonMessage.setDeliveryAnnotations(deliveryAnnotations);
       AMQPStandardMessage message = new AMQPStandardMessage(0, encodeMessage(protonMessage), null, null);
 
-      ReadableBuffer buffer = message.getSendBuffer(1);
+      ReadableBuffer buffer = message.getSendBuffer(1, null);
       assertNotNull(buffer);
 
       AMQPStandardMessage copy = new AMQPStandardMessage(0, buffer, null, null);
@@ -1869,7 +1870,7 @@ public class AMQPMessageTest {
       protonMessage.setDeliveryAnnotations(deliveryAnnotations);
       AMQPStandardMessage message = new AMQPStandardMessage(0, encodeMessage(protonMessage), null, null);
 
-      ReadableBuffer buffer = message.getSendBuffer(7);
+      ReadableBuffer buffer = message.getSendBuffer(7, null);
       assertNotNull(buffer);
       message.reencode(); // Ensures Header is current if accidentally updated
 
@@ -2036,14 +2037,14 @@ public class AMQPMessageTest {
 
       AMQPStandardMessage decoded = encodeAndDecodeMessage(protonMessage);
 
-      ReadableBuffer sendBuffer = decoded.getSendBuffer(1);
+      ReadableBuffer sendBuffer = decoded.getSendBuffer(1, null);
       assertEquals(decoded.getEncodeSize(), sendBuffer.capacity());
       AMQPStandardMessage msgFromSendBuffer = new AMQPStandardMessage(0, sendBuffer, null, null);
       assertEquals("someNiceLocal", msgFromSendBuffer.getAddress());
       assertNull(msgFromSendBuffer.getDeliveryAnnotations());
 
       // again with higher deliveryCount
-      ReadableBuffer sendBuffer2 = decoded.getSendBuffer(5);
+      ReadableBuffer sendBuffer2 = decoded.getSendBuffer(5, null);
       assertEquals(decoded.getEncodeSize(), sendBuffer2.capacity());
       AMQPStandardMessage msgFromSendBuffer2 = new AMQPStandardMessage(0, sendBuffer2, null, null);
       assertEquals("someNiceLocal", msgFromSendBuffer2.getAddress());
@@ -2069,7 +2070,7 @@ public class AMQPMessageTest {
       newDeliveryAnnotations.getValue().put(Symbol.getSymbol(annotationKey), annotationValue);
       decoded.setDeliveryAnnotationsForSendBuffer(newDeliveryAnnotations);
 
-      ReadableBuffer sendBuffer = decoded.getSendBuffer(1);
+      ReadableBuffer sendBuffer = decoded.getSendBuffer(1, null);
       assertEquals(decoded.getEncodeSize(), sendBuffer.capacity());
       AMQPStandardMessage msgFromSendBuffer = new AMQPStandardMessage(0, sendBuffer, null, null);
       assertEquals("someNiceLocal", msgFromSendBuffer.getAddress());
@@ -2084,7 +2085,7 @@ public class AMQPMessageTest {
       newDeliveryAnnotations2.getValue().put(Symbol.getSymbol(annotationKey2), annotationValue2);
       decoded.setDeliveryAnnotationsForSendBuffer(newDeliveryAnnotations2);
 
-      ReadableBuffer sendBuffer2 = decoded.getSendBuffer(5);
+      ReadableBuffer sendBuffer2 = decoded.getSendBuffer(5, null);
       assertEquals(decoded.getEncodeSize(), sendBuffer2.capacity());
       AMQPStandardMessage msgFromSendBuffer2 = new AMQPStandardMessage(0, sendBuffer2, null, null);
       assertEquals("someNiceLocal", msgFromSendBuffer2.getAddress());

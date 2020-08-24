@@ -33,6 +33,10 @@ public interface PriorityLinkedList<T> {
 
    void clear();
 
+   void installIDSupplier(IDSupplier<T> supplier);
+
+   T removeWithID(Object id);
+
    /**
     * Returns the size of this list.<br>
     * It is safe to be called concurrently.

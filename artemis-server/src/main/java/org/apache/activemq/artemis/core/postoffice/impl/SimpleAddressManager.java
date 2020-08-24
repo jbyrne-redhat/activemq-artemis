@@ -41,6 +41,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQMessageBundle;
 import org.apache.activemq.artemis.core.server.cluster.impl.MessageLoadBalancingType;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.metrics.MetricsManager;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.CompositeAddress;
 import org.jboss.logging.Logger;
@@ -360,5 +361,23 @@ public class SimpleAddressManager implements AddressManager {
    @Override
    public void updateMessageLoadBalancingTypeForAddress(SimpleString  address, MessageLoadBalancingType messageLoadBalancingType) throws Exception {
       getBindingsForRoutingAddress(CompositeAddress.extractAddressName(address)).setMessageLoadBalancingType(messageLoadBalancingType);
+   }
+
+   @Override
+   public void scanAddresses(RemoteControl remoteControl) throws Exception {
+      remoteControl.startAddressScan();
+      for (AddressInfo info : addressInfoMap.values()) {
+         remoteControl.addAddress(info);
+         Bindings bindings = mappings.get(info.getName());
+         if (bindings != null) {
+            for (Binding binding : bindings.getBindings()) {
+               if (binding instanceof LocalQueueBinding) {
+                  LocalQueueBinding localQueueBinding = (LocalQueueBinding)binding;
+                  remoteControl.createQueue(localQueueBinding.getQueue().getQueueConfiguration());
+               }
+            }
+         }
+      }
+      remoteControl.endAddressScan();
    }
 }
