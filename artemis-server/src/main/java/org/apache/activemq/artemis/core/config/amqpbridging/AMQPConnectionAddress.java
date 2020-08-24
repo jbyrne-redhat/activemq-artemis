@@ -20,7 +20,7 @@ package org.apache.activemq.artemis.core.config.amqpbridging;
  * We will start small, with a matching address for all the addresses
  * each
  */
-public class AMQPConnectionAddressPolicy {
+public class AMQPConnectionAddress {
    String matchAddress;
    String outboundQueueSuffix;
    boolean inbound;
@@ -32,7 +32,7 @@ public class AMQPConnectionAddressPolicy {
       return matchAddress;
    }
 
-   public AMQPConnectionAddressPolicy setMatchAddress(String matchAddress) {
+   public AMQPConnectionAddress setMatchAddress(String matchAddress) {
       this.matchAddress = matchAddress;
       return this;
    }
@@ -41,7 +41,7 @@ public class AMQPConnectionAddressPolicy {
       return outboundQueueSuffix;
    }
 
-   public AMQPConnectionAddressPolicy setOutboundQueueSuffix(String outboundQueueSuffix) {
+   public AMQPConnectionAddress setOutboundQueueSuffix(String outboundQueueSuffix) {
       this.outboundQueueSuffix = outboundQueueSuffix;
       return this;
    }
@@ -50,7 +50,7 @@ public class AMQPConnectionAddressPolicy {
       return inbound;
    }
 
-   public AMQPConnectionAddressPolicy setInbound(boolean inbound) {
+   public AMQPConnectionAddress setInbound(boolean inbound) {
       this.inbound = inbound;
       return this;
    }
@@ -59,7 +59,7 @@ public class AMQPConnectionAddressPolicy {
       return outbound;
    }
 
-   public AMQPConnectionAddressPolicy setOutbound(boolean outbound) {
+   public AMQPConnectionAddress setOutbound(boolean outbound) {
       this.outbound = outbound;
       return this;
    }

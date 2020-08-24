@@ -33,6 +33,7 @@
       <journal-lock-acquisition-timeout>123</journal-lock-acquisition-timeout>
       <wild-card-routing-enabled>true</wild-card-routing-enabled>
       <management-address>Giraffe</management-address>
+      <remote-control-address>LazyRemote</remote-control-address>
       <management-notification-address>Whatever</management-notification-address>
       <cluster-user>Frog</cluster-user>
       <cluster-password>32a10275cf4ab4e9</cluster-password>

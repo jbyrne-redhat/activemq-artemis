@@ -171,6 +171,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugi
 import org.apache.activemq.artemis.core.server.reload.ReloadCallback;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadManagerImpl;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.server.transformer.Transformer;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.impl.AddressFullMessagePolicy;
@@ -290,6 +291,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    private final List<ActiveMQComponent> protocolServices = new ArrayList<>();
 
    private volatile ManagementService managementService;
+
+   private volatile RemoteControl remoteControlService;
 
    private volatile ConnectorsService connectorsService;
 
@@ -2196,10 +2199,6 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
          Queue queue = (Queue) binding.getBindable();
 
-         if (hasBrokerQueuePlugins()) {
-            callBrokerQueuePlugins(plugin -> plugin.beforeDestroyQueue(queue, session, checkConsumerCount, removeConsumers, autoDeleteAddress));
-         }
-
          if (session != null) {
             // make sure the user has privileges to delete this queue
             securityStore.check(address, queueName, queue.isDurable() ? CheckType.DELETE_DURABLE_QUEUE : CheckType.DELETE_NON_DURABLE_QUEUE, session);
@@ -2216,6 +2215,14 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             if (queue.getMessageCount() > queue.getAutoDeleteMessageCount()) {
                throw ActiveMQMessageBundle.BUNDLE.cannotDeleteQueueWithMessages(queue.getName(), queueName, messageCount);
             }
+         }
+
+         if (hasBrokerQueuePlugins()) {
+            callBrokerQueuePlugins(plugin -> plugin.beforeDestroyQueue(queue, session, checkConsumerCount, removeConsumers, autoDeleteAddress));
+         }
+
+         if (remoteControlService != null) {
+            remoteControlService.deleteQueue(queue.getAddress(), queue.getName());
          }
 
          queue.deleteQueue(removeConsumers);
@@ -2878,6 +2885,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          memoryManager.start();
       }
 
+
       // Create the hard-wired components
 
       callPreActiveCallbacks();
@@ -2974,6 +2982,18 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       }
 
       return true;
+   }
+
+   @Override
+   public void installRemoteControl(RemoteControl remoteControl) {
+      // TODO: Send already existent queues
+      postOffice.setRemoteControlSource(remoteControl);
+      this.remoteControlService = remoteControl;
+   }
+
+   @Override
+   public void removeRemoteControl() {
+      postOffice.setRemoteControlSource(null);
    }
 
    /*
@@ -3533,6 +3553,10 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
       if (hasBrokerQueuePlugins()) {
          callBrokerQueuePlugins(plugin -> plugin.beforeCreateQueue(queueConfiguration));
+      }
+
+      if (remoteControlService != null) {
+         remoteControlService.createQueue(queueConfiguration);
       }
 
       queueConfiguration.setId(storageManager.generateID());

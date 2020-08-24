@@ -355,12 +355,25 @@ public class ConfigurationImpl implements Configuration, Serializable {
 
    private int pageSyncTimeout = ActiveMQDefaultConfiguration.getDefaultJournalBufferTimeoutNio();
 
+   private SimpleString remoteControlAddress;
+
    /**
     * Parent folder for all data folders.
     */
    private File artemisInstance;
 
    // Public -------------------------------------------------------------------------
+
+   @Override
+   public ConfigurationImpl setRemoteControlAddress(SimpleString address) {
+      this.remoteControlAddress = address;
+      return this;
+   }
+
+   @Override
+   public SimpleString getRemoteControlAddress() {
+      return remoteControlAddress;
+   }
 
    @Override
    public Configuration setSystemPropertyPrefix(String systemPropertyPrefix) {

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.activemq.artemis.tests.integration.amqp.bridge;
+package org.apache.activemq.artemis.tests.integration.amqp.connect;
 
 
 import javax.jms.Connection;
@@ -32,7 +32,7 @@ import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.config.CoreAddressConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressPolicy;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddress;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.tests.integration.amqp.AmqpClientTestSupport;
@@ -67,7 +67,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addAddressPolicy(new AMQPConnectionAddressPolicy().setMatchAddress("TEST").setOutbound(true).setInbound(false));
+      amqpConnection.addAddress(new AMQPConnectionAddress().setMatchAddress("TEST").setOutbound(true).setInbound(false));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
       server_2.getConfiguration().addQueueConfiguration(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
@@ -127,7 +127,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addAddressPolicy(new AMQPConnectionAddressPolicy().setMatchAddress("TEST").setOutbound(false).setInbound(true));
+      amqpConnection.addAddress(new AMQPConnectionAddress().setMatchAddress("TEST").setOutbound(false).setInbound(true));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
       server_2.getConfiguration().addQueueConfiguration(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));

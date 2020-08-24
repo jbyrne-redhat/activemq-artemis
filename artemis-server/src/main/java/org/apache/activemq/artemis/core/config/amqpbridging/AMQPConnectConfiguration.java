@@ -30,25 +30,36 @@ public class AMQPConnectConfiguration implements Serializable {
    String uri;
    List<TransportConfiguration> transportConfigurations;
 
-   List<AMQPConnectionAddressPolicy> addressPolicies;
+   List<AMQPConnectionAddress> connectionAddresses;
+
+   AMQPReplica replica;
 
    public AMQPConnectConfiguration(String name, String uri) {
       this.name = name;
       this.uri = uri;
    }
 
-   public AMQPConnectConfiguration addAddressPolicy(AMQPConnectionAddressPolicy amqpConnectionAddressPolicy) {
-      if (addressPolicies == null) {
-         addressPolicies = new ArrayList<>();
+   public AMQPConnectConfiguration addAddress(AMQPConnectionAddress amqpConnectionAddress) {
+      if (connectionAddresses == null) {
+         connectionAddresses = new ArrayList<>();
       }
 
-      addressPolicies.add(amqpConnectionAddressPolicy);
+      connectionAddresses.add(amqpConnectionAddress);
 
       return this;
    }
 
-   public List<AMQPConnectionAddressPolicy> getAddressPolicies() {
-      return addressPolicies;
+   public AMQPReplica getReplica() {
+      return replica;
+   }
+
+   public AMQPConnectConfiguration setReplica(AMQPReplica replica) {
+      this.replica = replica;
+      return this;
+   }
+
+   public List<AMQPConnectionAddress> getConnectionAddresses() {
+      return connectionAddresses;
    }
 
    public void parseURI() throws Exception {

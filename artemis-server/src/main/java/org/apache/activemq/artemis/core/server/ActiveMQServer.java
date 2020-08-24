@@ -68,6 +68,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerResourcePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugin;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.core.transaction.ResourceManager;
@@ -133,6 +134,10 @@ public interface ActiveMQServer extends ServiceComponent {
    void addActivationParam(String key, Object val);
 
    Configuration getConfiguration();
+
+   void installRemoteControl(RemoteControl remoteControl);
+
+   void removeRemoteControl();
 
    ServiceRegistry getServiceRegistry();
 

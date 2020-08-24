@@ -34,6 +34,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoop;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnection;
 import org.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants;
+import org.apache.activemq.artemis.protocol.amqp.bridge.AMQPBridgeConnection;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPConnectionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ProtonProtocolManager;
@@ -80,7 +81,7 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
 
    protected final ProtonHandler handler;
 
-   protected AMQPConnectionCallback connectionCallback;
+   public AMQPConnectionCallback connectionCallback;
    private final String containerId;
    private final boolean isIncomingConnection;
    private final ClientSASLFactory saslClientFactory;
@@ -187,7 +188,7 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
 
    protected AMQPSessionContext newSessionExtension(Session realSession) throws ActiveMQAMQPException {
       AMQPSessionCallback sessionSPI = connectionCallback.createSessionCallback(this);
-      AMQPSessionContext protonSession = new AMQPSessionContext(sessionSPI, this, realSession);
+      AMQPSessionContext protonSession = new AMQPSessionContext(sessionSPI, this, realSession, protocolManager.getServer());
 
       return protonSession;
    }
@@ -307,12 +308,28 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
             Coordinator coordinator = (Coordinator) link.getRemoteTarget();
             protonSession.addTransactionHandler(coordinator, receiver);
          } else {
-            protonSession.addReceiver(receiver);
+            if (isReplicaTarget(receiver)) {
+               protonSession.addReplicaTarget(receiver);
+            } else {
+               protonSession.addReceiver(receiver);
+            }
          }
       } else {
          Sender sender = (Sender) link;
          protonSession.addSender(sender);
       }
+   }
+
+   private boolean isReplicaTarget(Link link) {
+      if (link.getRemoteDesiredCapabilities() != null) {
+         for (Symbol symbol : link.getRemoteDesiredCapabilities()) {
+            if (symbol.equals(AMQPBridgeConnection.REPLICA_TARGET_SYMBOL)) {
+               return true;
+            }
+         }
+      }
+
+      return false;
    }
 
    public Symbol[] getConnectionCapabilitiesOffered() {
@@ -450,7 +467,7 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
          connection.setOfferedCapabilities(getConnectionCapabilitiesOffered());
          connection.open();
       }
-      initialise();
+      initialize();
 
       /*
        * This can be null which is in effect an empty map, also we really don't need to check this for in bound connections
@@ -540,14 +557,14 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
       AMQPSessionContext sessionContext = getSessionExtension(session);
 
       if (bridgeConnection) {
-         sessionContext.initialise();
+         sessionContext.initialize();
       }
    }
 
    @Override
    public void onRemoteOpen(Session session) throws Exception {
       handler.requireHandler();
-      getSessionExtension(session).initialise();
+      getSessionExtension(session).initialize();
       session.open();
    }
 

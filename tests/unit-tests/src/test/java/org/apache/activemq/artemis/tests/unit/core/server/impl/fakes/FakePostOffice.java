@@ -42,6 +42,7 @@ import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.cluster.impl.MessageLoadBalancingType;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.impl.MessageReferenceImpl;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 
 public class FakePostOffice implements PostOffice {
@@ -137,6 +138,16 @@ public class FakePostOffice implements PostOffice {
 
    @Override
    public AddressInfo removeAddressInfo(SimpleString address, boolean force) throws Exception {
+      return null;
+   }
+
+   @Override
+   public RemoteControl getRemoteControlSource() {
+      return null;
+   }
+
+   @Override
+   public PostOffice setRemoteControlSource(RemoteControl remoteControlSource) {
       return null;
    }
 
