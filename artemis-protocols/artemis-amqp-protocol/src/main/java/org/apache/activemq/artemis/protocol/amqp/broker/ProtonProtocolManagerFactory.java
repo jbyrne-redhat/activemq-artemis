@@ -85,9 +85,5 @@ public class ProtonProtocolManagerFactory extends AbstractProtocolManagerFactory
          services.add(bridgeService);
       }
 
-      if (server.getConfiguration().getRemoteControlAddress() != null) {
-         services.add(new AMQPRemoteControlSource(server.getConfiguration().getRemoteControlAddress(), server));
-      }
-
    }
 }

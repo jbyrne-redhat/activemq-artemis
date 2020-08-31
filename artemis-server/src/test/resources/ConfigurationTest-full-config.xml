@@ -33,7 +33,6 @@
       <journal-lock-acquisition-timeout>123</journal-lock-acquisition-timeout>
       <wild-card-routing-enabled>true</wild-card-routing-enabled>
       <management-address>Giraffe</management-address>
-      <remote-control-address>LazyRemote</remote-control-address>
       <management-notification-address>Whatever</management-notification-address>
       <cluster-user>Frog</cluster-user>
       <cluster-password>32a10275cf4ab4e9</cluster-password>
@@ -373,8 +372,14 @@
          </cluster-connection>
       </cluster-connections>
       <amqp-connections>
-         <amqp-connection-uri name="test1" uri="tcp://test1:111"></amqp-connection-uri>
-         <amqp-connection-uri name="test2" uri="tcp://test2:222"/>
+         <amqp-connection uri="tcp://test1:111" name="test1">
+            <address match="TEST" push="false" pull="false" interconnect="true"/>
+            <address match="TEST2" push="false" pull="false" interconnect="true"/>
+            <replica address="REPLICA" subscription="SUBSCRIPTION" push="true"/>
+         </amqp-connection>
+         <amqp-connection uri="tcp://test2:222" name="test2">
+            <address match="TEST"/>
+         </amqp-connection>
       </amqp-connections>
       <grouping-handler name="gh1">
          <type>LOCAL</type>

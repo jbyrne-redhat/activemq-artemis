@@ -58,6 +58,8 @@ import org.apache.activemq.artemis.core.config.MetricsConfiguration;
 import org.apache.activemq.artemis.core.config.ScaleDownConfiguration;
 import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddress;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.config.federation.FederationAddressPolicyConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationDownstreamConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationPolicySet;
@@ -593,7 +595,7 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       NodeList ccAMQPConnections = e.getElementsByTagName("amqp-connections");
 
       if (ccAMQPConnections != null) {
-         NodeList ccAMQConnectionsURI = e.getElementsByTagName("amqp-connection-uri");
+         NodeList ccAMQConnectionsURI = e.getElementsByTagName("amqp-connection");
 
          if (ccAMQConnectionsURI != null) {
             for (int i = 0; i < ccAMQConnectionsURI.getLength(); i++) {
@@ -1870,6 +1872,35 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       config.parseURI();
 
       mainConfig.addAMQPConnection(config);
+
+      NodeList addressesList = e.getElementsByTagName("address");
+
+      for (int i = 0; i < addressesList.getLength(); i++) {
+         Element e2 = (Element)addressesList.item(i);
+
+         String match = e2.getAttribute("match");
+         String push = e2.getAttribute("push");
+         String pull = e2.getAttribute("pull");
+         String interconenct = e.getAttribute("interconnect");
+
+         AMQPConnectionAddress address = new AMQPConnectionAddress().setMatchAddress(match).setOutbound(Boolean.valueOf(push)).setInbound(Boolean.valueOf(pull));
+
+         config.addAddress(address);
+      }
+
+
+      addressesList = e.getElementsByTagName("replica");
+
+      for (int i = 0; i < addressesList.getLength(); i++) {
+         Element e2 = (Element)addressesList.item(i);
+
+         String address = e2.getAttribute("address");
+         String subscription = e2.getAttribute("subscription");
+         boolean pushing = Boolean.valueOf(e2.getAttribute("push"));
+
+         AMQPReplica replica = new AMQPReplica(SimpleString.toSimpleString(address), SimpleString.toSimpleString(subscription), pushing);
+         config.setReplica(replica);
+      }
 
       if (logger.isDebugEnabled()) {
          logger.debug("Adding AMQP connection :: " + config);
