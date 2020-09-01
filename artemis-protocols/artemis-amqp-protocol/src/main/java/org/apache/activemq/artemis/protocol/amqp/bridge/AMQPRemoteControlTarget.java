@@ -66,6 +66,9 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
       incrementSettle();
 
 
+      System.out.println("*******************************************************************************************************************************\n" +
+                         "Received " + message + "\n" +
+                         "*******************************************************************************************************************************");
       try {
          String eventType = (String)annotationsMap.get(AMQPRemoteControlSource.EVENT_TYPE);
          if (eventType != null) {
