@@ -134,7 +134,23 @@
          <xsd:element name="security-invalidation-interval" type="xsd:long" default="10000" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
                <xsd:documentation>
-                  how long (in ms) to wait before invalidating the security cache
+                  how long (in ms) to wait before invalidating an entry in the authentication or authorization cache
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="authentication-cache-size" type="xsd:long" default="1000" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  how large to make the authentication cache
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="authorization-cache-size" type="xsd:long" default="1000" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  how large to make the authorization cache
                </xsd:documentation>
             </xsd:annotation>
          </xsd:element>
@@ -396,6 +412,14 @@
             </xsd:annotation>
          </xsd:element>
 
+         <xsd:element name="reject-empty-validated-user" type="xsd:boolean" default="false" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  true means that the server will not allow any message that doesn't have a validated user, in JMS this is JMSXUserID
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
          <xsd:element name="connectors" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
                <xsd:documentation>
@@ -578,6 +602,14 @@
             </xsd:annotation>
          </xsd:element>
 
+         <xsd:element name="amqp-connections" type="amqpConnectType" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  a list of AMQP Connection
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
          <xsd:element name="grouping-handler" type="groupingHandlerType" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
                <xsd:documentation>
@@ -670,6 +702,16 @@
                <xsd:documentation>
                   The timeout (in nanoseconds) used to flush internal buffers on the journal. The exact default value
                   depend on whether the journal is ASYNCIO or NIO.
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+
+         <xsd:element name="journal-device-block-size" type="xsd:long" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  The size in bytes used by the device. This is usually translated as fstat/st_blksize
+                  And this is a way to bypass the value returned as st_blksize.
                </xsd:documentation>
             </xsd:annotation>
          </xsd:element>
@@ -871,6 +913,15 @@
             </xsd:simpleType>
          </xsd:element>
 
+         <xsd:element name="page-sync-timeout" type="xsd:int" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  The timeout (in nanoseconds) used to sync pages. The exact default value
+                  depend on whether the journal is ASYNCIO or NIO.
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
          <xsd:element name="security-settings" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
                <xsd:documentation>
@@ -1025,7 +1076,7 @@
             <xsd:complexType>
                <xsd:annotation>
                   <xsd:documentation>
-                     a metrics plugin
+                     DEPRECATED: use metrics instead. A metrics plugin
                   </xsd:documentation>
                </xsd:annotation>
                <xsd:sequence>
@@ -1044,6 +1095,69 @@
                      </xsd:documentation>
                   </xsd:annotation>
                </xsd:attribute>
+               <xsd:attributeGroup ref="xml:specialAttrs"/>
+            </xsd:complexType>
+         </xsd:element>
+
+         <xsd:element name="metrics" maxOccurs="1" minOccurs="0">
+            <xsd:complexType>
+               <xsd:annotation>
+                  <xsd:documentation>
+                     metrics configuration
+                  </xsd:documentation>
+               </xsd:annotation>
+               <xsd:all>
+                  <xsd:element name="jvm-memory" type="xsd:boolean" default="true" maxOccurs="1" minOccurs="0">
+                     <xsd:annotation>
+                        <xsd:documentation>
+                           whether or not to report JVM memory metrics
+                        </xsd:documentation>
+                     </xsd:annotation>
+                  </xsd:element>
+
+                  <xsd:element name="jvm-threads" type="xsd:boolean" default="false" maxOccurs="1" minOccurs="0">
+                     <xsd:annotation>
+                        <xsd:documentation>
+                           whether or not to report JVM thread metrics
+                        </xsd:documentation>
+                     </xsd:annotation>
+                  </xsd:element>
+
+                  <xsd:element name="jvm-gc" type="xsd:boolean" default="false" maxOccurs="1" minOccurs="0">
+                     <xsd:annotation>
+                        <xsd:documentation>
+                           whether or not to report JVM GC metrics
+                        </xsd:documentation>
+                     </xsd:annotation>
+                  </xsd:element>
+
+                  <xsd:element name="plugin" maxOccurs="1" minOccurs="0">
+                     <xsd:complexType>
+                        <xsd:annotation>
+                           <xsd:documentation>
+                              a metrics plugin
+                           </xsd:documentation>
+                        </xsd:annotation>
+                        <xsd:sequence>
+                           <xsd:element ref="property" maxOccurs="unbounded" minOccurs="0">
+                              <xsd:annotation>
+                                 <xsd:documentation>
+                                    properties to configure a plugin
+                                 </xsd:documentation>
+                              </xsd:annotation>
+                           </xsd:element>
+                        </xsd:sequence>
+                        <xsd:attribute name="class-name" type="xsd:string" use="required">
+                           <xsd:annotation>
+                              <xsd:documentation>
+                                 the name of the metrics plugin class to instantiate
+                              </xsd:documentation>
+                           </xsd:annotation>
+                        </xsd:attribute>
+                        <xsd:attributeGroup ref="xml:specialAttrs"/>
+                     </xsd:complexType>
+                  </xsd:element>
+               </xsd:all>
                <xsd:attributeGroup ref="xml:specialAttrs"/>
             </xsd:complexType>
          </xsd:element>
@@ -1563,13 +1677,11 @@
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
 
-
-
-
    <!-- FEDERATION CONFIGURATION -->
    <xsd:complexType name="federationType">
       <xsd:sequence>
          <xsd:element name="upstream" type="upstreamType" minOccurs="0" maxOccurs="unbounded" />
+         <xsd:element name="downstream" type="downstreamType" minOccurs="0" maxOccurs="unbounded" />
          <xsd:element name="policy-set" type="policySetType" minOccurs="0" maxOccurs="unbounded" />
          <xsd:element name="queue-policy" type="queuePolicyType" minOccurs="0" maxOccurs="unbounded" />
          <xsd:element name="address-policy" type="addressPolicyType" minOccurs="0" maxOccurs="unbounded" />
@@ -1581,9 +1693,30 @@
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
 
-
+   <xsd:complexType name="downstreamType">
+      <xsd:complexContent>
+         <xsd:extension base="streamType">
+            <xsd:sequence>
+               <xsd:element name="upstream-connector-ref" type="xsd:string" maxOccurs="1" minOccurs="1">
+                  <xsd:annotation>
+                     <xsd:documentation>
+                        Name of the transport connector reference to use for the new upstream connection
+                        back to this broker.
+                     </xsd:documentation>
+                  </xsd:annotation>
+               </xsd:element>
+            </xsd:sequence>
+         </xsd:extension>
+      </xsd:complexContent>
+   </xsd:complexType>
 
    <xsd:complexType name="upstreamType">
+      <xsd:complexContent>
+         <xsd:extension base="streamType"/>
+      </xsd:complexContent>
+   </xsd:complexType>
+
+   <xsd:complexType name="streamType">
       <xsd:sequence>
 
          <xsd:element name="ha" type="xsd:boolean" default="false" maxOccurs="1" minOccurs="0">
@@ -1598,6 +1731,88 @@
             <xsd:annotation>
                <xsd:documentation>
                   whether this connection supports fail-over
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="share-connection" type="xsd:boolean" default="false" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  if there is a downstream and upstream connection configured for the same broker then
+                  the same connection will be shared as long as both stream configs set this flag to true
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="connection-ttl" type="xsd:long" default="60000" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  how long to keep a connection alive in the absence of any data arriving from the client
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="call-timeout" type="xsd:long" default="30000" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  How long to wait for a reply
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="retry-interval" type="xsd:long" default="500" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  period (in ms) between successive retries
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="retry-interval-multiplier" type="xsd:double" default="1" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  multiplier to apply to the retry-interval
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="max-retry-interval" type="xsd:long" default="2000" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  Maximum value for retry-interval
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="initial-connect-attempts" type="xsd:int" default="-1" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  How many attempts should be made to connect initially
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="reconnect-attempts" type="xsd:int" default="-1" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  How many attempts should be made to reconnect after failure
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="check-period" type="xsd:long" default="30000" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  The period (in milliseconds) used to check if the federation connection has failed to receive pings from
+                  another server
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+
+         <xsd:element name="call-failover-timeout" type="xsd:long" default="-1" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  How long to wait for a reply if in the middle of a fail-over. -1 means wait forever.
                </xsd:documentation>
             </xsd:annotation>
          </xsd:element>
@@ -1781,6 +1996,72 @@
       </xsd:sequence>
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
+
+   <xsd:complexType name="amqpConnectType">
+      <xsd:sequence maxOccurs="unbounded">
+         <xsd:element name="amqp-connection" type="amqp-connectionUriType"/>
+      </xsd:sequence>
+   </xsd:complexType>
+
+   <xsd:complexType name="amqp-connectionUriType">
+      <xsd:sequence>
+         <xsd:element name="address" type="amqp-address-match-type" minOccurs="0" maxOccurs="unbounded"/>
+         <xsd:element name="replica" type="amqp-replica-type" minOccurs="0" maxOccurs="1"/>
+      </xsd:sequence>
+      <xsd:attribute name="uri" type="xsd:string" use="required">
+         <xsd:annotation>
+            <xsd:documentation>
+               uri of the amqp connection
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attribute name="name" type="xsd:string" use="required">
+         <xsd:annotation>
+            <xsd:documentation>
+               name of the amqp connection
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attributeGroup ref="xml:specialAttrs"/>
+   </xsd:complexType>
+
+   <xsd:complexType name="amqp-address-match-type">
+      <xsd:attribute name="match" type="xsd:string" use="required">
+         <xsd:annotation>
+            <xsd:documentation>
+               address expression to match addresses
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attribute name="push" type="xsd:boolean"/>
+      <xsd:attribute name="pull" type="xsd:boolean"/>
+      <xsd:attribute name="interconnect" type="xsd:boolean"/>
+   </xsd:complexType>
+
+   <xsd:complexType name="amqp-replica-type">
+      <xsd:attribute name="address" type="xsd:string" use="required">
+         <xsd:annotation>
+            <xsd:documentation>
+               Name of the address used for replication
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attribute name="subscription" type="xsd:string" use="required">
+         <xsd:annotation>
+            <xsd:documentation>
+               Name of the subscription used to store and forward
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attribute name="push" type="xsd:boolean" use="required">
+         <xsd:annotation>
+            <xsd:documentation>
+               is it pushing data, otherwise is pulling
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+   </xsd:complexType>
+
 
    <xsd:complexType name="cluster-connectionUriType">
       <xsd:attribute name="address" type="xsd:string" use="required">
@@ -2157,6 +2438,22 @@
             <xsd:annotation>
                <xsd:documentation>
                   The JDBC Connection URL e.g. jdbc:mysql://localhost:3306/
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+         <xsd:element name="jdbc-user" type="xsd:string" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+               <xsd:documentation>
+                  The JDBC User to use for connecting to the database, NB this will only work with drivers where support
+                  DriverManager.getConnection(String url, String user, String password). This can be encrypted.
+               </xsd:documentation>
+            </xsd:annotation>
+         </xsd:element>
+         <xsd:element name="jdbc-password" type="xsd:string" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+               <xsd:documentation>
+                  The JDBC Password to use for connecting to the database, NB this will only work with drivers where support
+                  DriverManager.getConnection(String url, String user, String password). This can be encrypted.
                </xsd:documentation>
             </xsd:annotation>
          </xsd:element>
@@ -2930,7 +3227,7 @@
                <xsd:annotation>
                   <xsd:documentation>
                      whether or not to automatically create the dead-letter-address and/or a corresponding queue
-                     on that address when any matching queue is created
+                     on that address when a message found to be undeliverable
                   </xsd:documentation>
                </xsd:annotation>
             </xsd:element>
@@ -3320,7 +3617,8 @@
             <xsd:element name="auto-delete-queues-message-count" type="xsd:long" default="0" maxOccurs="1" minOccurs="0">
                <xsd:annotation>
                   <xsd:documentation>
-                     the message count the queue must be at or below before it can be evaluated to be auto deleted, 0 waits until empty queue (default) and -1 disables this check.                  </xsd:documentation>
+                     the message count the queue must be at or below before it can be evaluated to be auto deleted, 0 waits until empty queue (default) and -1 disables this check.
+                  </xsd:documentation>
                </xsd:annotation>
             </xsd:element>
 
@@ -3444,6 +3742,14 @@
                <xsd:annotation>
                   <xsd:documentation>
                      the number of messages to preserve for future queues created on the matching address
+                  </xsd:documentation>
+               </xsd:annotation>
+            </xsd:element>
+
+            <xsd:element name="enable-metrics" type="xsd:boolean" default="true" maxOccurs="1" minOccurs="0">
+               <xsd:annotation>
+                  <xsd:documentation>
+                     whether or not to enable metrics for metrics plugins on the matching address
                   </xsd:documentation>
                </xsd:annotation>
             </xsd:element>
@@ -3619,13 +3925,6 @@
          <xsd:annotation>
             <xsd:documentation>
                The address name to match incoming message addresses
-            </xsd:documentation>
-         </xsd:annotation>
-      </xsd:attribute>
-      <xsd:attribute name="retroactive-message-count" type="xsd:string" use="optional" default="0">
-         <xsd:annotation>
-            <xsd:documentation>
-               The number of messages to preserve for future queues created on this address
             </xsd:documentation>
          </xsd:annotation>
       </xsd:attribute>
