@@ -173,8 +173,6 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
          }
       }
       Assert.assertNull(consumer.receiveNoWait());
-
-
    }
 
    @Test
