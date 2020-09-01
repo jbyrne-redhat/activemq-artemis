@@ -551,6 +551,8 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
          LargeBodyReader context = message.getLargeBodyReader();
          try {
 
+            // TODO: locate the MessageAnntations here and send a replacement from messageReference if needed
+
             context.open();
             try {
                context.position(position);
@@ -629,7 +631,7 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
 
    private void deliverStandard(MessageReference messageReference, AMQPMessage message) {
       // Let the Message decide how to present the message bytes
-      ReadableBuffer sendBuffer = message.getSendBuffer(messageReference.getDeliveryCount());
+      ReadableBuffer sendBuffer = message.getSendBuffer(messageReference.getDeliveryCount(), messageReference);
       // we only need a tag if we are going to settle later
       byte[] tag = preSettle ? new byte[0] : protonSession.getTag();
 

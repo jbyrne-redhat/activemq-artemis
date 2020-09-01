@@ -36,6 +36,7 @@ import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.persistence.CoreMessageObjectPools;
 import org.apache.activemq.artemis.core.persistence.Persister;
+import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.protocol.amqp.converter.AMQPMessageIdHelper;
 import org.apache.activemq.artemis.protocol.amqp.converter.AMQPMessageSupport;
 import org.apache.activemq.artemis.protocol.amqp.converter.AmqpCoreConverter;
@@ -332,8 +333,10 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     *
     *     http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-annotations
     *
+    * @deprecated use MessageReference.setProtocolData(deliveryAnnotations)
     * @param deliveryAnnotations delivery annotations used in the sendBuffer() method
     */
+   @Deprecated
    public final void setDeliveryAnnotationsForSendBuffer(DeliveryAnnotations deliveryAnnotations) {
       this.deliveryAnnotationsForSendBuffer = deliveryAnnotations;
    }
@@ -687,13 +690,13 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     * this method is not currently used by the AMQP protocol head and will not be
     * called for out-bound sends.
     *
-    * @see #getSendBuffer(int) for the actual method used for message sends.
+    * @see #getSendBuffer(int, MessageReference) for the actual method used for message sends.
     */
    @Override
    public final void sendBuffer(ByteBuf buffer, int deliveryCount) {
       ensureDataIsValid();
       NettyWritable writable = new NettyWritable(buffer);
-      writable.put(getSendBuffer(deliveryCount));
+      writable.put(getSendBuffer(deliveryCount, null));
    }
 
    /**
@@ -709,14 +712,14 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     *
     * @return a Netty ByteBuf containing the encoded bytes of this Message instance.
     */
-   public ReadableBuffer getSendBuffer(int deliveryCount) {
+   public ReadableBuffer getSendBuffer(int deliveryCount, MessageReference reference) {
       ensureDataIsValid();
 
       if (deliveryCount > 1) {
-         return createCopyWithNewDeliveryCount(deliveryCount);
+         return createCopyWithNewDeliveryCount(deliveryCount, reference);
       } else if (deliveryAnnotationsPosition != VALUE_NOT_PRESENT
          || (deliveryAnnotationsForSendBuffer != null && !deliveryAnnotationsForSendBuffer.getValue().isEmpty())) {
-         return createCopyWithSkippedOrExplicitlySetDeliveryAnnotations();
+         return createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(reference);
       } else {
          // Common case message has no delivery annotations, no delivery annotations for the send buffer were set
          // and this is the first delivery so no re-encoding or section skipping needed.
@@ -724,7 +727,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       }
    }
 
-   protected ReadableBuffer createCopyWithSkippedOrExplicitlySetDeliveryAnnotations() {
+   protected ReadableBuffer createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(MessageReference reference) {
       // The original message had delivery annotations, or delivery annotations for the send buffer are set.
       // That means we must copy into a new buffer skipping the original delivery annotations section
       // (not meant to survive beyond this hop) and including the delivery annotations for the send buffer if set.
@@ -732,7 +735,9 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
 
       final ByteBuf result = PooledByteBufAllocator.DEFAULT.heapBuffer(getEncodeSize());
       result.writeBytes(duplicate.limit(encodedHeaderSize).byteBuffer());
-      writeDeliveryAnnotationsForSendBuffer(result);
+
+      // TODO to get the delivery annotations from the reference
+      writeDeliveryAnnotationsForSendBuffer(result, reference);
       duplicate.clear();
       // skip existing delivery annotations of the original message
       duplicate.position(encodedHeaderSize + encodedDeliveryAnnotationsSize);
@@ -741,7 +746,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return new NettyReadable(result);
    }
 
-   protected ReadableBuffer createCopyWithNewDeliveryCount(int deliveryCount) {
+   protected ReadableBuffer createCopyWithNewDeliveryCount(int deliveryCount, MessageReference reference) {
       assert deliveryCount > 1;
 
       final int amqpDeliveryCount = deliveryCount - 1;
@@ -764,7 +769,8 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       TLSEncode.getEncoder().writeObject(header);
       TLSEncode.getEncoder().setByteBuffer((WritableBuffer) null);
 
-      writeDeliveryAnnotationsForSendBuffer(result);
+      // TODO get dleivery annotations from the reference
+      writeDeliveryAnnotationsForSendBuffer(result, reference);
       // skip existing delivery annotations of the original message
       getData().position(encodedHeaderSize + encodedDeliveryAnnotationsSize);
       result.writeBytes(getData().byteBuffer());
@@ -773,7 +779,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return new NettyReadable(result);
    }
 
-   protected void writeDeliveryAnnotationsForSendBuffer(ByteBuf result) {
+   protected void writeDeliveryAnnotationsForSendBuffer(ByteBuf result, MessageReference reference) {
       if (deliveryAnnotationsForSendBuffer != null && !deliveryAnnotationsForSendBuffer.getValue().isEmpty()) {
          TLSEncode.getEncoder().setByteBuffer(new NettyWritable(result));
          TLSEncode.getEncoder().writeObject(deliveryAnnotationsForSendBuffer);
