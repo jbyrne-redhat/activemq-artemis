@@ -3040,6 +3040,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    @Override
    public void installRemoteControl(RemoteControl remoteControl) {
       // TODO: Send already existent queues
+      new Exception("Install remote control").printStackTrace();
       postOffice.setRemoteControlSource(remoteControl);
       this.remoteControlService = remoteControl;
    }

@@ -74,6 +74,7 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
    @Override
    public void start() throws Exception {
       if (!started) {
+         new Exception ("Starting remote control source").printStackTrace();
          server.installRemoteControl(this);
          started = true;
       }
@@ -188,6 +189,7 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
    }
 
    public static void route(ActiveMQServer server, Message message) throws Exception {
+      new Exception("Routing " + message).printStackTrace();
       message.setMessageID(server.getStorageManager().generateID());
       server.getPostOffice().route(message, new RemoteControlRouting(null) , false);
    }
