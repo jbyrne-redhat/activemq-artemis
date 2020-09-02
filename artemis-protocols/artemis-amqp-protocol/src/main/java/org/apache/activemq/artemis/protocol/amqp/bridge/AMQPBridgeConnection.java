@@ -97,6 +97,12 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
          int port = ConfigurationHelper.getIntProperty(TransportConstants.PORT_PROP_NAME, TransportConstants.DEFAULT_PORT, tpConfig.getParams());
          connection = bridgesConnector.createConnection(null, host, port);
 
+         if (connection == null) {
+            logger.warn("\n*******************************************************************************************************************************\n" +
+                        "AMQPBridgeConnect Cannot connect towards " + host + " :: " + port + "\n" +
+                        "*******************************************************************************************************************************");
+         }
+
          ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection);
          protonRemotingConnection = (ActiveMQProtonRemotingConnection) entry.connection;
          connection.getChannel().pipeline().addLast(new BridgeChannelHandler(bridgesConnector.getChannelGroup(), protonRemotingConnection.getAmqpConnection().getHandler()));
