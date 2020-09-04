@@ -67,6 +67,15 @@ public class AmqpReferenceDeliveryAnnotationTest extends AmqpClientTestSupport {
 
    @Test
    public void testReceiveAnnotations() throws Exception {
+      internalReceiveAnnotations(false);
+   }
+
+   @Test
+   public void testReceiveAnnotationsLargeMessage() throws Exception {
+      internalReceiveAnnotations(true);
+   }
+
+   public void internalReceiveAnnotations(boolean largeMessage) throws Exception {
 
       server.getConfiguration().registerBrokerPlugin(new ActiveMQServerMessagePlugin() {
 
@@ -86,13 +95,24 @@ public class AmqpReferenceDeliveryAnnotationTest extends AmqpClientTestSupport {
 
       AmqpMessage message = new AmqpMessage();
 
+      String body;
+      if (largeMessage) {
+         StringBuffer buffer = new StringBuffer();
+         for (int i = 0 ; i < 1024 * 1024; i++) {
+            buffer.append("*");
+         }
+         body = buffer.toString();
+      } else {
+         body = "test-message";
+      }
+
       message.setMessageId("msg" + 1);
-      message.setText("Test-Message");
+      message.setText(body);
       sender.send(message);
 
       message = new AmqpMessage();
       message.setMessageId("msg" + 2);
-      message.setText("Test-Message 2");
+      message.setText(body);
       sender.send(message);
       sender.close();
 

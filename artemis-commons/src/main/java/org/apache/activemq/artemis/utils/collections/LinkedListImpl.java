@@ -18,6 +18,7 @@ package org.apache.activemq.artemis.utils.collections;
 
 import java.lang.reflect.Array;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -28,6 +29,9 @@ import java.util.Objects;
  * This class is not thread safe.
  */
 public class LinkedListImpl<E> implements LinkedList<E> {
+
+   // TODO: use an object placement for fast delete messages with an id from the linkes list
+   Map<Object, Node<E>> objectPlacement;
 
    private static final int INITIAL_ITERATOR_ARRAY_SIZE = 10;
 

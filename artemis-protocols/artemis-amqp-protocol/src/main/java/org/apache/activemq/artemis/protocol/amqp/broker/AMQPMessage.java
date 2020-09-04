@@ -715,11 +715,20 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
    public ReadableBuffer getSendBuffer(int deliveryCount, MessageReference reference) {
       ensureDataIsValid();
 
+      DeliveryAnnotations deliveryAnnotations;
+
+      if (reference.getProtocolData() != null && reference.getProtocolData() instanceof DeliveryAnnotations) {
+         deliveryAnnotations = (DeliveryAnnotations) reference.getProtocolData();
+      } else {
+         deliveryAnnotations = null;
+      }
+
       if (deliveryCount > 1) {
-         return createCopyWithNewDeliveryCount(deliveryCount, reference);
+         return createCopyWithNewDeliveryCount(deliveryCount, deliveryAnnotations);
       } else if (deliveryAnnotationsPosition != VALUE_NOT_PRESENT
+         || deliveryAnnotations != null
          || (deliveryAnnotationsForSendBuffer != null && !deliveryAnnotationsForSendBuffer.getValue().isEmpty())) {
-         return createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(reference);
+         return createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(deliveryAnnotations);
       } else {
          // Common case message has no delivery annotations, no delivery annotations for the send buffer were set
          // and this is the first delivery so no re-encoding or section skipping needed.
@@ -727,7 +736,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       }
    }
 
-   protected ReadableBuffer createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(MessageReference reference) {
+   protected ReadableBuffer createCopyWithSkippedOrExplicitlySetDeliveryAnnotations(DeliveryAnnotations deliveryAnnotations) {
       // The original message had delivery annotations, or delivery annotations for the send buffer are set.
       // That means we must copy into a new buffer skipping the original delivery annotations section
       // (not meant to survive beyond this hop) and including the delivery annotations for the send buffer if set.
@@ -737,7 +746,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       result.writeBytes(duplicate.limit(encodedHeaderSize).byteBuffer());
 
       // TODO to get the delivery annotations from the reference
-      writeDeliveryAnnotationsForSendBuffer(result, reference);
+      writeDeliveryAnnotationsForSendBuffer(result, deliveryAnnotations);
       duplicate.clear();
       // skip existing delivery annotations of the original message
       duplicate.position(encodedHeaderSize + encodedDeliveryAnnotationsSize);
@@ -746,7 +755,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return new NettyReadable(result);
    }
 
-   protected ReadableBuffer createCopyWithNewDeliveryCount(int deliveryCount, MessageReference reference) {
+   protected ReadableBuffer createCopyWithNewDeliveryCount(int deliveryCount, DeliveryAnnotations deliveryAnnotations) {
       assert deliveryCount > 1;
 
       final int amqpDeliveryCount = deliveryCount - 1;
@@ -770,7 +779,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       TLSEncode.getEncoder().setByteBuffer((WritableBuffer) null);
 
       // TODO get dleivery annotations from the reference
-      writeDeliveryAnnotationsForSendBuffer(result, reference);
+      writeDeliveryAnnotationsForSendBuffer(result, deliveryAnnotations);
       // skip existing delivery annotations of the original message
       getData().position(encodedHeaderSize + encodedDeliveryAnnotationsSize);
       result.writeBytes(getData().byteBuffer());
@@ -779,10 +788,11 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return new NettyReadable(result);
    }
 
-   protected void writeDeliveryAnnotationsForSendBuffer(ByteBuf result, MessageReference reference) {
-      if (deliveryAnnotationsForSendBuffer != null && !deliveryAnnotationsForSendBuffer.getValue().isEmpty()) {
+   protected void writeDeliveryAnnotationsForSendBuffer(ByteBuf result, DeliveryAnnotations deliveryAnnotations) {
+      DeliveryAnnotations daToUse = deliveryAnnotations != null ? deliveryAnnotations : deliveryAnnotationsForSendBuffer;
+      if (daToUse != null && !daToUse.getValue().isEmpty()) {
          TLSEncode.getEncoder().setByteBuffer(new NettyWritable(result));
-         TLSEncode.getEncoder().writeObject(deliveryAnnotationsForSendBuffer);
+         TLSEncode.getEncoder().writeObject(daToUse);
          TLSEncode.getEncoder().setByteBuffer((WritableBuffer) null);
       }
    }
