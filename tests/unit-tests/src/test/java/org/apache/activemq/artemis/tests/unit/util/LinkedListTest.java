@@ -18,11 +18,13 @@ package org.apache.activemq.artemis.tests.unit.util;
 
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.tests.util.RandomUtil;
+import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.activemq.artemis.utils.collections.LinkedListImpl;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.junit.Assert;
@@ -109,8 +111,9 @@ public class LinkedListTest extends ActiveMQTestBase {
 
    private static final class ObservableNode extends LinkedListImpl.Node<ObservableNode> {
 
-      ObservableNode() {
-
+      public int id;
+      ObservableNode(int id) {
+         this.id = id;
       }
 
       public LinkedListImpl.Node<ObservableNode> publicNext() {
@@ -130,7 +133,7 @@ public class LinkedListTest extends ActiveMQTestBase {
 
       // Initial add
       for (int i = 0; i < 100; i++) {
-         final ObservableNode o = new ObservableNode();
+         final ObservableNode o = new ObservableNode(i);
          objs.addTail(o);
       }
 
@@ -139,7 +142,7 @@ public class LinkedListTest extends ActiveMQTestBase {
          for (int i = 0; i < 500; i++) {
 
             for (int add = 0; add < 1000; add++) {
-               final ObservableNode o = new ObservableNode();
+               final ObservableNode o = new ObservableNode(add);
                objs.addTail(o);
                assertNotNull("prev", o.publicPrev());
                assertNull("next", o.publicNext());
@@ -170,13 +173,87 @@ public class LinkedListTest extends ActiveMQTestBase {
 
    }
 
+
+   @Test
+   public void testAddAndRemoveWithIDs() {
+      internalAddWithID(true);
+   }
+
+   @Test
+   public void testAddAndRemoveWithIDsDeferredSupplier() {
+      internalAddWithID(false);
+   }
+
+   private void internalAddWithID(boolean deferSupplier) {
+      LinkedListImpl<ObservableNode> objs = new LinkedListImpl<>();
+
+      if (!deferSupplier) {
+         objs.setIdSupplier(new IDSupplier<ObservableNode>() {
+            @Override
+            public Object getID(ObservableNode source) {
+               return source.id;
+            }
+         });
+      }
+
+      // Initial add
+      for (int i = 0; i < 1000; i++) {
+         final ObservableNode o = new ObservableNode(i);
+         objs.addTail(o);
+      }
+
+      Assert.assertEquals(1000, objs.size());
+
+
+      if (deferSupplier) {
+         Assert.assertEquals(0, objs.nodeMapSize());
+         objs.setIdSupplier(new IDSupplier<ObservableNode>() {
+            @Override
+            public Object getID(ObservableNode source) {
+               return source.id;
+            }
+         });
+      }
+
+      Assert.assertEquals(1000, objs.nodeMapSize());
+
+
+      /** remove all even items */
+      for (int i = 0; i < 1000; i+=2) {
+         objs.removeWithID(i);
+      }
+
+      Assert.assertEquals(500, objs.size());
+      Assert.assertEquals(500, objs.nodeMapSize());
+
+      Iterator<ObservableNode> iterator = objs.iterator();
+
+      {
+         int i = 1;
+         while (iterator.hasNext()) {
+            ObservableNode value = iterator.next();
+            Assert.assertEquals(i, value.id);
+            i += 2;
+         }
+      }
+
+      for (int i = 1; i < 1000; i += 2) {
+         objs.removeWithID(i);
+      }
+
+      Assert.assertEquals(0, objs.nodeMapSize());
+      Assert.assertEquals(0, objs.size());
+
+
+   }
+
    @Test
    public void testAddHeadAndRemove() {
       LinkedListImpl<ObservableNode> objs = new LinkedListImpl<>();
 
       // Initial add
       for (int i = 0; i < 1001; i++) {
-         final ObservableNode o = new ObservableNode();
+         final ObservableNode o = new ObservableNode(i);
          objs.addHead(o);
       }
       assertEquals(1001, objs.size());
@@ -811,7 +888,7 @@ public class LinkedListTest extends ActiveMQTestBase {
       final int count = 100;
       final LinkedListImpl<ObservableNode> list = new LinkedListImpl<>();
       for (int i = 0; i < count; i++) {
-         final ObservableNode node = new ObservableNode();
+         final ObservableNode node = new ObservableNode(i);
          assertNull(node.publicPrev());
          assertNull(node.publicNext());
          list.addTail(node);
@@ -834,7 +911,7 @@ public class LinkedListTest extends ActiveMQTestBase {
       final ObservableNode[] nodes = new ObservableNode[count];
       final LinkedListImpl<ObservableNode> list = new LinkedListImpl<>();
       for (int i = 0; i < count; i++) {
-         final ObservableNode node = new ObservableNode();
+         final ObservableNode node = new ObservableNode(i);
          assertNull(node.publicPrev());
          assertNull(node.publicNext());
          nodes[i] = node;
