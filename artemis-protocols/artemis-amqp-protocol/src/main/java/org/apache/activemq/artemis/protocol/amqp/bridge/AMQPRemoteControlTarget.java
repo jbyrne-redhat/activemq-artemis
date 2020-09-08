@@ -24,8 +24,10 @@ import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
+import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
+import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
 import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPMessage;
@@ -45,6 +47,8 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
    private static final Logger logger = Logger.getLogger(AMQPRemoteControlTarget.class);
 
    final ActiveMQServer server;
+
+   final RoutingContextImpl routingContext = new RoutingContextImpl(null);
 
    public AMQPRemoteControlTarget(AMQPSessionCallback sessionSPI,
                                   AMQPConnectionContext connection,
@@ -92,7 +96,9 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
             if (message.getMessageID() <= 0) {
                message.setMessageID(server.getStorageManager().generateID());
             }
-            server.getPostOffice().route(message, false);
+
+            routingContext.clear();
+            server.getPostOffice().route(message, routingContext, false);
             flow();
          }
       } catch (Throwable e) {
@@ -172,4 +178,4 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
    public void sendMessage(Message message, RoutingContext context, List<MessageReference> refs) {
 
    }
-}
+ }

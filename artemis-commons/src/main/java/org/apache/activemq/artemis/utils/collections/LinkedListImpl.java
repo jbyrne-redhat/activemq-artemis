@@ -64,12 +64,13 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       this(comparator, null);
    }
 
-   public void clearIDMAp() {
+   public void clearID() {
       idSupplier = null;
+      nodeMap.clear(); // just a little hand to GC
       nodeMap = null;
    }
 
-   public void setIdSupplier(IDSupplier<E> supplier) {
+   public void setIDSupplier(IDSupplier<E> supplier) {
       this.idSupplier = supplier;
       nodeMap = new HashMap<>();
 
@@ -139,7 +140,7 @@ public class LinkedListImpl<E> implements LinkedList<E> {
 
    private void itemRemoved (Node node) {
       if (nodeMap != null) {
-         nodeMap.remove(idSupplier.getID((E)node));
+         nodeMap.remove(idSupplier.getID((E)node.val()));
       }
    }
 

@@ -104,6 +104,7 @@ import org.apache.activemq.artemis.utils.ReferenceCounter;
 import org.apache.activemq.artemis.utils.ReusableLatch;
 import org.apache.activemq.artemis.utils.actors.ArtemisExecutor;
 import org.apache.activemq.artemis.utils.collections.ConcurrentHashSet;
+import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.apache.activemq.artemis.utils.collections.PriorityLinkedList;
 import org.apache.activemq.artemis.utils.collections.PriorityLinkedListImpl;
@@ -187,6 +188,20 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    // This is where messages are stored
    private final PriorityLinkedList<MessageReference> messageReferences = new PriorityLinkedListImpl<>(QueueImpl.NUM_PRIORITIES, MessageReferenceImpl.getIDComparator());
+
+   private IDSupplier<MessageReference> idSupplier;
+
+   private void checkIDSupplier() {
+      if (idSupplier == null) {
+         idSupplier = new IDSupplier<MessageReference>() {
+            @Override
+            public Object getID(MessageReference source) {
+               return source.getMessageID();
+            }
+         };
+         messageReferences.installIDSupplier(idSupplier);
+      }
+   }
 
    // The quantity of pagedReferences on messageReferences priority list
    private final AtomicInteger pagedReferences = new AtomicInteger(0);
@@ -3180,6 +3195,13 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       } finally {
          depageLock.unlock();
       }
+   }
+
+   @Override
+   public void removeWithID(Object id) {
+      checkIDSupplier();
+      messageReferences.removeWithID(id);
+
    }
 
    private void internalAddRedistributor(final ArtemisExecutor executor) {

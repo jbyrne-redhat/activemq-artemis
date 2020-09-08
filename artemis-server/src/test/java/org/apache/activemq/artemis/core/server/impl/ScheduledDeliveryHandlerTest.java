@@ -848,6 +848,11 @@ public class ScheduledDeliveryHandlerTest extends Assert {
       }
 
       @Override
+      public void removeWithID(Object id) {
+
+      }
+
+      @Override
       public void refDown(Message message) {
 
       }

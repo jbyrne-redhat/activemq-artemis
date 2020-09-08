@@ -137,6 +137,11 @@ public class FakeQueue extends CriticalComponentImpl implements Queue {
    }
 
    @Override
+   public void removeWithID(Object id) {
+
+   }
+
+   @Override
    public void setExclusive(boolean value) {
       // no-op
    }

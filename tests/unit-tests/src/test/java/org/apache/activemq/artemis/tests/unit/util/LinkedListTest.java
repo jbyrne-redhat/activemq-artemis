@@ -188,7 +188,7 @@ public class LinkedListTest extends ActiveMQTestBase {
       LinkedListImpl<ObservableNode> objs = new LinkedListImpl<>();
 
       if (!deferSupplier) {
-         objs.setIdSupplier(new IDSupplier<ObservableNode>() {
+         objs.setIDSupplier(new IDSupplier<ObservableNode>() {
             @Override
             public Object getID(ObservableNode source) {
                return source.id;
@@ -207,7 +207,7 @@ public class LinkedListTest extends ActiveMQTestBase {
 
       if (deferSupplier) {
          Assert.assertEquals(0, objs.nodeMapSize());
-         objs.setIdSupplier(new IDSupplier<ObservableNode>() {
+         objs.setIDSupplier(new IDSupplier<ObservableNode>() {
             @Override
             public Object getID(ObservableNode source) {
                return source.id;
