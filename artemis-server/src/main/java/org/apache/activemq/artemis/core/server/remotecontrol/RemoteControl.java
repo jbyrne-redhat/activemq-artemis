@@ -23,6 +23,7 @@ import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.RoutingContext;
+import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 
 
@@ -37,4 +38,6 @@ public interface RemoteControl {
    void sendMessage(Message message, RoutingContext context, List<MessageReference> refs);
 
    void routingDone(List<MessageReference> refs, boolean direct);
+
+   void postAcknowledge(MessageReference ref, AckReason reason) throws Exception;
 }

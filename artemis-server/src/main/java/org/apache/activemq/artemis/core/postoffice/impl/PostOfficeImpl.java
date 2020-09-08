@@ -62,6 +62,7 @@ import org.apache.activemq.artemis.core.server.RouteContextList;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.cluster.impl.MessageLoadBalancingType;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
+import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.impl.QueueManagerImpl;
 import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
@@ -240,6 +241,13 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
    public PostOfficeImpl setRemoteControlSource(RemoteControl remoteControlSource) {
       this.remoteControlSource = remoteControlSource;
       return this;
+   }
+
+   @Override
+   public void postAcknowledge(MessageReference ref, AckReason reason) {
+      if (remoteControlSource != null) {
+            remoteControlSource.postAcknowledge(ref, reason);
+      }
    }
 
    // NotificationListener implementation -------------------------------------

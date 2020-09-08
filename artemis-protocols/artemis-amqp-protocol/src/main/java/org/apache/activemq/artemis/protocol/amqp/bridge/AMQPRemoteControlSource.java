@@ -34,6 +34,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
+import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
 import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
@@ -52,19 +53,21 @@ import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.codec.EncoderImpl;
 import org.apache.qpid.proton.codec.WritableBuffer;
 import org.jboss.logging.Logger;
+import sun.jvm.hotspot.debugger.cdbg.Sym;
 
 public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent {
 
    private static final Logger logger = Logger.getLogger(AMQPRemoteControlSource.class);
 
-   public static final Symbol EVENT_TYPE = Symbol.getSymbol("m_EVENT_TYPE");
+   public static final Symbol EVENT_TYPE = Symbol.getSymbol("ma.EVENT_TYPE");
+   public static final Symbol ADDRESS = Symbol.getSymbol("ma.ADDRESS");
+   public static final Symbol QUEUE = Symbol.getSymbol("ma.QUEUE");
+   public static final Symbol EVENT = Symbol.getSymbol("ma.EVENT");
    public static final String ADD_ADDRESS = "addAddress";
    public static final String DELETE_ADDRESS = "deleteAddress";
    public static final String CREATE_QUEUE = "createQueue";
    public static final String DELETE_QUEUE = "deleteQueue";
-   public static final String ADDRESS = "address";
-   public static final String QUEUE = "queue";
-   public static final String EVENT = "event";
+   public static final String POST_ACK = "postAck";
 
    final SimpleString sourceAddress;
    final ActiveMQServer server;
@@ -141,29 +144,34 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
       } catch (Throwable e) {
          logger.warn(e.getMessage(), e);
       }
+   }
+
+   @Override
+   public void postAcknowledge(MessageReference ref, AckReason reason) throws Exception {
+      new Exception("post ack").printStackTrace();
+
+      Message message = createMessage(sourceAddress.toString(), ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
+      route(server, message);
 
    }
 
-   public static Message createMessage(String to, SimpleString address, SimpleString queue, String event, String body) {
+   public static Message createMessage(String to, SimpleString address, SimpleString queue, String event, Object body) {
       Header header = new Header();
       header.setDurable(true);
 
       Map<Symbol, Object> annotations = new HashMap<>();
       annotations.put(EVENT_TYPE, event);
-      MessageAnnotations messageAnnotations = new MessageAnnotations(annotations);
-
-      HashMap<String, Object> apmap = new HashMap<>();
-      apmap.put(ADDRESS, address.toString());
+      annotations.put(ADDRESS, address.toString());
       if (queue != null) {
-         apmap.put(QUEUE, queue.toString());
+         annotations.put(QUEUE, queue.toString());
       }
-      apmap.put(EVENT, event);
-      ApplicationProperties applicationProperties = new ApplicationProperties(apmap);
+      annotations.put(EVENT, event);
+      MessageAnnotations messageAnnotations = new MessageAnnotations(annotations);
 
       Properties properties = new Properties();
       properties.setTo(to);
 
-      Section sectionBody = new AmqpValue(body);
+      Section sectionBody = body != null ? new AmqpValue(body) : null;
 
       ByteBuf buffer = PooledByteBufAllocator.DEFAULT.heapBuffer(1024);
 
@@ -173,8 +181,9 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
          encoder.writeObject(header);
          encoder.writeObject(messageAnnotations);
          encoder.writeObject(properties);
-         encoder.writeObject(applicationProperties);
-         encoder.writeObject(sectionBody);
+         if (sectionBody != null) {
+            encoder.writeObject(sectionBody);
+         }
 
          byte[] data = new byte[buffer.writerIndex()];
          buffer.readBytes(data);

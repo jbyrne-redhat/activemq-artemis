@@ -24,6 +24,9 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
@@ -36,6 +39,12 @@ import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.tests.util.CFUtil;
+import org.apache.activemq.transport.amqp.client.AmqpClient;
+import org.apache.activemq.transport.amqp.client.AmqpConnection;
+import org.apache.activemq.transport.amqp.client.AmqpMessage;
+import org.apache.activemq.transport.amqp.client.AmqpReceiver;
+import org.apache.activemq.transport.amqp.client.AmqpSession;
+import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -84,23 +93,21 @@ public class RemoteControlBasicTest extends ActiveMQTestBase {
       server.addAddressInfo(new AddressInfo("test").addRoutingType(RoutingType.ANYCAST));
       server.createQueue(new QueueConfiguration("test").setAddress("test").setRoutingType(RoutingType.ANYCAST));
 
-      Message message = AMQPRemoteControlSource.createMessage("test", SimpleString.toSimpleString("tt"), SimpleString.toSimpleString("ttt"), "test", "zzzz");
+      Message message = AMQPRemoteControlSource.createMessage("test", SimpleString.toSimpleString("ad1"), SimpleString.toSimpleString("qu1"), "test", "body-test");
       AMQPRemoteControlSource.route(server, message);
 
-      ConnectionFactory factory = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:61616");
-      Connection connection = factory.createConnection();
-      Session session = connection.createSession(Session.AUTO_ACKNOWLEDGE);
-      Queue queue = session.createQueue("test");
-      connection.start();
-      MessageConsumer consumer = session.createConsumer(queue);
-      TextMessage txtMessage = (TextMessage)consumer.receive(5000);
+      AmqpClient client = new AmqpClient(new URI("tcp://localhost:61616"), null, null);
+      AmqpConnection connection = client.connect();
+      AmqpSession session = connection.createSession();
+      AmqpReceiver receiver = session.createReceiver("test");
+      receiver.flow(1);
+      AmqpMessage amqpMessage = receiver.receive(5, TimeUnit.SECONDS);
 
-
-      Assert.assertEquals("zzzz", txtMessage.getText());
-      Assert.assertEquals("tt", txtMessage.getStringProperty("address"));
-      Assert.assertEquals("tt", txtMessage.getStringProperty("address"));
-      Assert.assertEquals("ttt", txtMessage.getStringProperty("queue"));
-      Assert.assertEquals("test", txtMessage.getStringProperty("event"));
+      AmqpValue value = (AmqpValue)amqpMessage.getWrappedMessage().getBody();
+      Assert.assertEquals("body-test", (String)value.getValue());
+      Assert.assertEquals("ad1",amqpMessage.getMessageAnnotation(AMQPRemoteControlSource.ADDRESS.toString()));
+      Assert.assertEquals("qu1", amqpMessage.getMessageAnnotation(AMQPRemoteControlSource.QUEUE.toString()));
+      Assert.assertEquals("test", amqpMessage.getMessageAnnotation(AMQPRemoteControlSource.EVENT_TYPE.toString()));
 
       connection.close();
 

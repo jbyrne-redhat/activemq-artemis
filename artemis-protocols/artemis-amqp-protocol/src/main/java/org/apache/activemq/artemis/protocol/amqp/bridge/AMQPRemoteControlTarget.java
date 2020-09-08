@@ -26,6 +26,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
+import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
 import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
@@ -87,9 +88,8 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
                QueueConfiguration queueConfiguration = parseQueue(message);
                createQueue(queueConfiguration);
             } else if (eventType.equals(AMQPRemoteControlSource.DELETE_QUEUE)) {
-               Map<String, Object> applicationProperties = message.getApplicationPropertiesMap(false);
-               String address = (String)applicationProperties.get(AMQPRemoteControlSource.ADDRESS);
-               String queueName = (String)applicationProperties.get(AMQPRemoteControlSource.QUEUE);
+               String address = (String)annotationsMap.get(AMQPRemoteControlSource.ADDRESS);
+               String queueName = (String)annotationsMap.get(AMQPRemoteControlSource.QUEUE);
                deleteQueue(SimpleString.toSimpleString(address), SimpleString.toSimpleString(queueName));
             }
          } else {
@@ -171,6 +171,11 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
 
    @Override
    public void routingDone(List<MessageReference> refs, boolean direct) {
+
+   }
+
+   @Override
+   public void postAcknowledge(MessageReference ref, AckReason reason) {
 
    }
 

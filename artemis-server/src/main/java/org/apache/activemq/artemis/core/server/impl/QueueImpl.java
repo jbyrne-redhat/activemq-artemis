@@ -88,6 +88,7 @@ import org.apache.activemq.artemis.core.server.cluster.RemoteQueueBinding;
 import org.apache.activemq.artemis.core.server.cluster.impl.Redistributor;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
 import org.apache.activemq.artemis.core.server.management.Notification;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepositoryChangeListener;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
@@ -3814,70 +3815,75 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    public void postAcknowledge(final MessageReference ref, AckReason reason) {
       QueueImpl queue = (QueueImpl) ref.getQueue();
 
-      queue.decDelivering(ref);
-      if (nonDestructive && reason == AckReason.NORMAL) {
-         // this is done to tell the difference between actual acks and just a closed consumer in the non-destructive use-case
-         ref.setInDelivery(false);
-         return;
-      }
-
-      if (reason == AckReason.EXPIRED) {
-         messagesExpired.incrementAndGet();
-      } else if (reason == AckReason.KILLED) {
-         messagesKilled.incrementAndGet();
-      } else if (reason == AckReason.REPLACED) {
-         messagesReplaced.incrementAndGet();
-      } else {
-         messagesAcknowledged.incrementAndGet();
-      }
-
-      if (ref.isPaged()) {
-         // nothing to be done
-         return;
-      }
-
-      Message message;
-
       try {
-         message = ref.getMessage();
-      } catch (Throwable e) {
-         ActiveMQServerLogger.LOGGER.unableToPerformPostAcknowledge(e);
-         message = null;
-      }
 
-      if (message == null || (nonDestructive && reason == AckReason.NORMAL))
-         return;
-
-      boolean durableRef = message.isDurable() && queue.isDurable();
-
-      if (durableRef) {
-         int count = queue.durableDown(message);
-
-         if (count == 0) {
-            // Note - we MUST store the delete after the preceding ack has been committed to storage, we cannot combine
-            // the last ack and delete into a single delete.
-            // This is because otherwise we could have a situation where the same message is being acked concurrently
-            // from two different queues on different sessions.
-            // One decrements the ref count, then the other stores a delete, the delete gets committed, but the first
-            // ack isn't committed, then the server crashes and on
-            // recovery the message is deleted even though the other ack never committed
-
-            // also note then when this happens as part of a transaction it is the tx commit of the ack that is
-            // important not this
-
-            // Also note that this delete shouldn't sync to disk, or else we would build up the executor's queue
-            // as we can't delete each messaging with sync=true while adding messages transactionally.
-            // There is a startup check to remove non referenced messages case these deletes fail
-            try {
-               if (!storageManager.deleteMessage(message.getMessageID())) {
-                  ActiveMQServerLogger.LOGGER.errorRemovingMessage(new Exception(), message.getMessageID());
-               }
-            } catch (Exception e) {
-               ActiveMQServerLogger.LOGGER.errorRemovingMessage(e, message.getMessageID());
-            }
+         queue.decDelivering(ref);
+         if (nonDestructive && reason == AckReason.NORMAL) {
+            // this is done to tell the difference between actual acks and just a closed consumer in the non-destructive use-case
+            ref.setInDelivery(false);
+            return;
          }
-      } else {
-         queue.refDown(message);
+
+         if (reason == AckReason.EXPIRED) {
+            messagesExpired.incrementAndGet();
+         } else if (reason == AckReason.KILLED) {
+            messagesKilled.incrementAndGet();
+         } else if (reason == AckReason.REPLACED) {
+            messagesReplaced.incrementAndGet();
+         } else {
+            messagesAcknowledged.incrementAndGet();
+         }
+
+         if (ref.isPaged()) {
+            // nothing to be done
+            return;
+         }
+
+         Message message;
+
+         try {
+            message = ref.getMessage();
+         } catch (Throwable e) {
+            ActiveMQServerLogger.LOGGER.unableToPerformPostAcknowledge(e);
+            message = null;
+         }
+
+         if (message == null || (nonDestructive && reason == AckReason.NORMAL))
+            return;
+
+         boolean durableRef = message.isDurable() && queue.isDurable();
+
+         if (durableRef) {
+            int count = queue.durableDown(message);
+
+            if (count == 0) {
+               // Note - we MUST store the delete after the preceding ack has been committed to storage, we cannot combine
+               // the last ack and delete into a single delete.
+               // This is because otherwise we could have a situation where the same message is being acked concurrently
+               // from two different queues on different sessions.
+               // One decrements the ref count, then the other stores a delete, the delete gets committed, but the first
+               // ack isn't committed, then the server crashes and on
+               // recovery the message is deleted even though the other ack never committed
+
+               // also note then when this happens as part of a transaction it is the tx commit of the ack that is
+               // important not this
+
+               // Also note that this delete shouldn't sync to disk, or else we would build up the executor's queue
+               // as we can't delete each messaging with sync=true while adding messages transactionally.
+               // There is a startup check to remove non referenced messages case these deletes fail
+               try {
+                  if (!storageManager.deleteMessage(message.getMessageID())) {
+                     ActiveMQServerLogger.LOGGER.errorRemovingMessage(new Exception(), message.getMessageID());
+                  }
+               } catch (Exception e) {
+                  ActiveMQServerLogger.LOGGER.errorRemovingMessage(e, message.getMessageID());
+               }
+            }
+         } else {
+            queue.refDown(message);
+         }
+      } finally {
+         postOffice.postAcknowledge(ref, reason);
       }
    }
 
