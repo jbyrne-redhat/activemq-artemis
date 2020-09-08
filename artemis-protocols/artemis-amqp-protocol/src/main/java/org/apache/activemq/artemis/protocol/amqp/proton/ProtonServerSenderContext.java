@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.ActiveMQExceptionType;
 import org.apache.activemq.artemis.api.core.ActiveMQSecurityException;
 import org.apache.activemq.artemis.api.core.Message;
@@ -52,6 +53,8 @@ import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPResource
 import org.apache.activemq.artemis.protocol.amqp.logger.ActiveMQAMQPProtocolMessageBundle;
 import org.apache.activemq.artemis.protocol.amqp.proton.transaction.ProtonTransactionImpl;
 import org.apache.activemq.artemis.protocol.amqp.util.NettyReadable;
+import org.apache.activemq.artemis.protocol.amqp.util.NettyWritable;
+import org.apache.activemq.artemis.protocol.amqp.util.TLSEncode;
 import org.apache.activemq.artemis.reader.MessageUtil;
 import org.apache.activemq.artemis.selector.filter.FilterException;
 import org.apache.activemq.artemis.selector.impl.SelectorParser;
@@ -60,6 +63,7 @@ import org.apache.activemq.artemis.utils.CompositeAddress;
 import org.apache.qpid.proton.amqp.DescribedType;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.Accepted;
+import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
 import org.apache.qpid.proton.amqp.messaging.Modified;
 import org.apache.qpid.proton.amqp.messaging.Outcome;
 import org.apache.qpid.proton.amqp.messaging.Source;
@@ -73,6 +77,7 @@ import org.apache.qpid.proton.amqp.transport.ErrorCondition;
 import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
 import org.apache.qpid.proton.amqp.transport.SenderSettleMode;
 import org.apache.qpid.proton.codec.ReadableBuffer;
+import org.apache.qpid.proton.codec.WritableBuffer;
 import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.EndpointState;
 import org.apache.qpid.proton.engine.Link;
@@ -542,17 +547,68 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
          connection.runNow(this::deliver);
       }
 
+
+      /*
+      protected ReadableBuffer createCopyWithNewDeliveryCount(int deliveryCount, DeliveryAnnotations deliveryAnnotations) {
+      assert deliveryCount > 1;
+
+      final int amqpDeliveryCount = deliveryCount - 1;
+
+      final ByteBuf result = PooledByteBufAllocator.DEFAULT.heapBuffer(getEncodeSize());
+
+      // If this is re-delivering the message then the header must be re-encoded
+      // otherwise we want to write the original header if present.  When a
+      // Header is present we need to copy it as we are updating the re-delivered
+      // message and not the stored version which we don't want to invalidate here.
+      Header header = this.header;
+      if (header == null) {
+         header = new Header();
+      } else {
+         header = new Header(header);
+      }
+
+      header.setDeliveryCount(UnsignedInteger.valueOf(amqpDeliveryCount));
+      TLSEncode.getEncoder().setByteBuffer(new NettyWritable(result));
+      TLSEncode.getEncoder().writeObject(header);
+      TLSEncode.getEncoder().setByteBuffer((WritableBuffer) null);
+
+      // TODO get dleivery annotations from the reference
+      writeDeliveryAnnotationsForSendBuffer(result, deliveryAnnotations);
+      // skip existing delivery annotations of the original message
+      getData().position(encodedHeaderSize + encodedDeliveryAnnotationsSize);
+      result.writeBytes(getData().byteBuffer());
+      getData().position(0);
+
+      return new NettyReadable(result);
+   }
+
+   protected void writeDeliveryAnnotationsForSendBuffer(ByteBuf result, DeliveryAnnotations deliveryAnnotations) {
+      DeliveryAnnotations daToUse = deliveryAnnotations != null ? deliveryAnnotations : deliveryAnnotationsForSendBuffer;
+      if (daToUse != null && !daToUse.getValue().isEmpty()) {
+         TLSEncode.getEncoder().setByteBuffer(new NettyWritable(result));
+         TLSEncode.getEncoder().writeObject(daToUse);
+         TLSEncode.getEncoder().setByteBuffer((WritableBuffer) null);
+      }
+   }
+       */
+
+
       void deliver() {
 
          // This is discounting some bytes due to Transfer payload
          int frameSize = protonSession.session.getConnection().getTransport().getOutboundFrameSizeLimit() - 50 - (delivery.getTag() != null ? delivery.getTag().length : 0);
 
+         DeliveryAnnotations deliveryAnnotationsToEncode;
+
+         if (reference.getProtocolData() != null && reference.getProtocolData() instanceof DeliveryAnnotations) {
+            deliveryAnnotationsToEncode = (DeliveryAnnotations)reference.getProtocolData();
+         } else {
+            deliveryAnnotationsToEncode = null;
+         }
+
          // Let the Message decide how to present the message bytes
          LargeBodyReader context = message.getLargeBodyReader();
          try {
-
-            // TODO: locate the MessageAnntations here and send a replacement from messageReference if needed
-
             context.open();
             try {
                context.position(position);
@@ -568,6 +624,12 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
                      return;
                   }
                   buf.clear();
+
+
+                  if (position == 0) {
+                     writeHeaderAndAnnotations(context, buf, deliveryAnnotationsToEncode);
+                  }
+
                   int size = context.readInto(buf);
 
                   sender.send(new ReadableBuffer.ByteBufferReader(buf));
@@ -604,6 +666,24 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
          } catch (Exception e) {
             log.warn(e.getMessage(), e);
             brokerConsumer.errorProcessing(e, reference);
+         }
+      }
+
+      private void writeHeaderAndAnnotations(LargeBodyReader context,
+                                             ByteBuffer buf,
+                                             DeliveryAnnotations deliveryAnnotationsToEncode) throws ActiveMQException {
+         TLSEncode.getEncoder().setByteBuffer(WritableBuffer.ByteBufferWrapper.wrap(buf));
+         try {
+            if (message.getCurrentHeader() != null) {
+               TLSEncode.getEncoder().writeObject(message.getCurrentHeader());
+            }
+            if (deliveryAnnotationsToEncode != null) {
+               TLSEncode.getEncoder().writeObject(deliveryAnnotationsToEncode);
+            }
+            context.position(message.getPositionAfterDeliveryAnnotations());
+            position = message.getPositionAfterDeliveryAnnotations();
+         } finally {
+            TLSEncode.getEncoder().setByteBuffer((WritableBuffer)null);
          }
       }
    }

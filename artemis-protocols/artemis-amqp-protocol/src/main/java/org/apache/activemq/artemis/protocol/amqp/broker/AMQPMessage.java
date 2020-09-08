@@ -308,6 +308,12 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
       return scanForMessageSection(headerPosition, Header.class);
    }
 
+
+   /** Returns the current already scanned header. */
+   public final Header getCurrentHeader() {
+      return header;
+   }
+
    protected void ensureScanning() {
       ensureDataIsValid();
       ensureMessageDataScanned();

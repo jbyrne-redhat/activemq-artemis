@@ -154,6 +154,11 @@ public class AMQPLargeMessage extends AMQPMessage implements LargeServerMessage 
       internalReleaseBuffer(2);
    }
 
+   /** during large message deliver, we need this calculation to place a new delivery annotation */
+   public int getPositionAfterDeliveryAnnotations() {
+      return encodedHeaderSize + encodedDeliveryAnnotationsSize;
+   }
+
    private void internalReleaseBuffer(int releases) {
       synchronized (largeBody) {
          for (int i = 0; i < releases; i++) {

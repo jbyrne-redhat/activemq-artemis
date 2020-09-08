@@ -16,43 +16,24 @@
  */
 package org.apache.activemq.artemis.tests.integration.amqp;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.DeliveryMode;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
-import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
-import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
-import org.apache.activemq.artemis.core.server.ServerSession;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerMessagePlugin;
-import org.apache.activemq.artemis.core.transaction.Transaction;
-import org.apache.activemq.artemis.protocol.amqp.proton.AmqpSupport;
-import org.apache.activemq.artemis.tests.util.CFUtil;
-import org.apache.activemq.artemis.tests.util.Wait;
+import org.apache.activemq.artemis.tests.util.RandomUtil;
 import org.apache.activemq.transport.amqp.client.AmqpClient;
 import org.apache.activemq.transport.amqp.client.AmqpConnection;
 import org.apache.activemq.transport.amqp.client.AmqpMessage;
 import org.apache.activemq.transport.amqp.client.AmqpReceiver;
 import org.apache.activemq.transport.amqp.client.AmqpSender;
 import org.apache.activemq.transport.amqp.client.AmqpSession;
-import org.apache.activemq.transport.amqp.client.AmqpValidator;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
-import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
-import org.apache.qpid.proton.amqp.transport.SenderSettleMode;
-import org.apache.qpid.proton.engine.Delivery;
-import org.apache.qpid.proton.engine.Sender;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -67,22 +48,34 @@ public class AmqpReferenceDeliveryAnnotationTest extends AmqpClientTestSupport {
 
    @Test
    public void testReceiveAnnotations() throws Exception {
-      internalReceiveAnnotations(false);
+      internalReceiveAnnotations(false, false);
    }
 
    @Test
    public void testReceiveAnnotationsLargeMessage() throws Exception {
-      internalReceiveAnnotations(true);
+      internalReceiveAnnotations(true, false);
    }
 
-   public void internalReceiveAnnotations(boolean largeMessage) throws Exception {
+   @Test
+   public void testReceiveAnnotationsReboot() throws Exception {
+      internalReceiveAnnotations(false, true);
+   }
+
+   @Test
+   public void testReceiveAnnotationsLargeMessageReboot() throws Exception {
+      internalReceiveAnnotations(true, true);
+   }
+
+   public void internalReceiveAnnotations(boolean largeMessage, boolean reboot) throws Exception {
+
+      final String uuid = RandomUtil.randomString();
 
       server.getConfiguration().registerBrokerPlugin(new ActiveMQServerMessagePlugin() {
 
          public void beforeDeliver(ServerConsumer consumer, MessageReference reference) throws ActiveMQException {
             Map<Symbol, Object> symbolObjectMap = new HashMap<>();
             DeliveryAnnotations deliveryAnnotations = new DeliveryAnnotations(symbolObjectMap);
-            symbolObjectMap.put(Symbol.getSymbol("HELLO"), "WORLD");
+            symbolObjectMap.put(Symbol.getSymbol("KEY"), uuid);
             reference.setProtocolData(deliveryAnnotations);
          }
       });
@@ -108,26 +101,37 @@ public class AmqpReferenceDeliveryAnnotationTest extends AmqpClientTestSupport {
 
       message.setMessageId("msg" + 1);
       message.setText(body);
+      message.setDurable(true);
       sender.send(message);
 
       message = new AmqpMessage();
       message.setMessageId("msg" + 2);
+      message.setDurable(true);
       message.setText(body);
       sender.send(message);
       sender.close();
+
+      if (reboot) {
+         connection.close();
+         server.stop();
+         server.start();
+         client = createAmqpClient();
+         connection = addConnection(client.connect());
+         session = connection.createSession();
+      }
 
       AmqpReceiver receiver = session.createReceiver(getQueueName());
       receiver.flow(2);
       AmqpMessage received = receiver.receive(10, TimeUnit.SECONDS);
       assertNotNull("Should have read message", received);
       assertEquals("msg1", received.getMessageId());
-      assertEquals("WORLD", received.getDeliveryAnnotation("HELLO"));
+      assertEquals(uuid, received.getDeliveryAnnotation("KEY"));
       received.accept();
 
       received = receiver.receive(10, TimeUnit.SECONDS);
       assertNotNull("Should have read message", received);
       assertEquals("msg2", received.getMessageId());
-      assertEquals("WORLD", received.getDeliveryAnnotation("HELLO"));
+      assertEquals(uuid, received.getDeliveryAnnotation("KEY"));
       received.accept();
 
       Assert.assertNull(receiver.receiveNoWait());
