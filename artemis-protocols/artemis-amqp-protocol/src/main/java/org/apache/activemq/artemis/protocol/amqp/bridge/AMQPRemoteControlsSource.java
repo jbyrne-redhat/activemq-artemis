@@ -16,7 +16,6 @@
  */
 package org.apache.activemq.artemis.protocol.amqp.bridge;
 
-import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +26,9 @@ import io.netty.buffer.PooledByteBufAllocator;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
-import org.apache.activemq.artemis.core.persistence.impl.journal.AbstractJournalStorageManager;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.Bindings;
 import org.apache.activemq.artemis.core.postoffice.impl.LocalQueueBinding;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationStartSyncMessage;
 import org.apache.activemq.artemis.core.server.ActiveMQComponent;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
@@ -57,9 +54,9 @@ import org.apache.qpid.proton.codec.EncoderImpl;
 import org.apache.qpid.proton.codec.WritableBuffer;
 import org.jboss.logging.Logger;
 
-public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent {
+public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponent {
 
-   private static final Logger logger = Logger.getLogger(AMQPRemoteControlSource.class);
+   private static final Logger logger = Logger.getLogger(AMQPRemoteControlsSource.class);
 
    public static final Symbol EVENT_TYPE = Symbol.getSymbol("ma.EVENT_TYPE");
    public static final Symbol ADDRESS = Symbol.getSymbol("ma.ADDRESS");
@@ -103,7 +100,7 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
       return started;
    }
 
-   public AMQPRemoteControlSource(SimpleString sourceAddress, ActiveMQServer server) {
+   public AMQPRemoteControlsSource(SimpleString sourceAddress, ActiveMQServer server) {
       this.sourceAddress = sourceAddress;
       this.server = server;
    }

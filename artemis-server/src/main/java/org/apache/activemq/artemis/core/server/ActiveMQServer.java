@@ -137,6 +137,8 @@ public interface ActiveMQServer extends ServiceComponent {
 
    void installRemoteControl(RemoteControl remoteControl);
 
+   RemoteControl getRemoteControl();
+
    void removeRemoteControl();
 
    ServiceRegistry getServiceRegistry();

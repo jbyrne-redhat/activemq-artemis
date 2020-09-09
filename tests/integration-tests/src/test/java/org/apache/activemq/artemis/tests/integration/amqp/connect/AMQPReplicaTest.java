@@ -26,15 +26,16 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
-import javax.jms.TextMessage;
 
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
+import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.tests.integration.amqp.AmqpClientTestSupport;
 import org.apache.activemq.artemis.tests.util.CFUtil;
 import org.apache.activemq.artemis.utils.Wait;
+import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -42,6 +43,7 @@ import org.junit.Test;
 public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    protected static final int AMQP_PORT_2 = 5673;
+   protected static final int AMQP_PORT_3 = 5674;
 
    ActiveMQServer server_2;
 
@@ -88,9 +90,9 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
 
       /** if (!push) { -- TODO configure this on the server, not here though!
-         AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT_2);
-         amqpConnection.setReplica(new AMQPReplica("REPLICA", "SERVER2", false));
-      } */
+       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT_2);
+       amqpConnection.setReplica(new AMQPReplica("REPLICA", "SERVER2", false));
+       } */
 
       server_2 = createServer(AMQP_PORT_2, false);
 
@@ -126,8 +128,98 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
          Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue::getMessageCount);
          consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true); // We consume on both servers as this is currently replicated
       }
+   }
 
 
+   @Test
+   public void testDualRegular() throws Exception {
+      dualReplica(false);
+   }
+
+   @Test
+   public void testDualRegularLarge() throws Exception {
+      dualReplica(true);
+   }
+
+   private void dualReplica(boolean largeMessage) throws Exception {
+      server.setIdentity("server_1");
+      //server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
+      //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
+
+      /** if (!push) { -- TODO configure this on the server, not here though!
+       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT_2);
+       amqpConnection.setReplica(new AMQPReplica("REPLICA", "SERVER2", false));
+       } */
+
+      ActiveMQServer server_3 = createServer(AMQP_PORT_3, false);
+      server_3.setIdentity("server_3");
+      server_3.start();
+      Wait.assertTrue(server_3::isStarted);
+
+      ConnectionFactory factory_3 = CFUtil.createConnectionFactory("amqp", "tcp://localhost:" + AMQP_PORT_3);
+      factory_3.createConnection().close();
+
+      server_2 = createServer(AMQP_PORT_2, false);
+
+      AMQPConnectConfiguration amqpConnection1 = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      amqpConnection1.setReplica(new AMQPReplica("REPLICA", "SUBSCRIPTION_ON_SERVER", true));
+      server_2.getConfiguration().addAMQPConnection(amqpConnection1);
+
+      AMQPConnectConfiguration amqpConnection3 = new AMQPConnectConfiguration("test2", "tcp://localhost:" + AMQP_PORT_3);
+      amqpConnection3.setReplica(new AMQPReplica("REPLICA3", "SUBSCRIPTION_ON_SERVER_3", true));
+      server_2.getConfiguration().addAMQPConnection(amqpConnection3);
+
+      int NUMBER_OF_MESSAGES = 200;
+
+      server_2.start();
+      Wait.assertTrue(server_2::isStarted);
+
+      ConnectionFactory factory = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + AMQP_PORT_2);
+      Connection connection = factory.createConnection();
+      Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+      MessageProducer producer = session.createProducer(session.createQueue("TEST"));
+      producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+      for (int i = 0; i < NUMBER_OF_MESSAGES; i++) {
+         Message message = session.createTextMessage(getText(largeMessage, i));
+         message.setIntProperty("i", i);
+         producer.send(message);
+      }
+
+      Queue queue_server_2 = server_2.locateQueue("TEST");
+      Queue queue_server_1 = server.locateQueue("TEST");
+      Queue queue_server_3 = server_3.locateQueue("TEST");
+      Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_2::getMessageCount);
+      Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_3::getMessageCount);
+      Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_1::getMessageCount);
+
+      consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES / 2 - 1, AMQP_PORT_2, false);
+
+      Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue_server_1::getMessageCount);
+      Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue_server_2::getMessageCount);
+      Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue_server_3::getMessageCount);
+
+      // Replica is async, so we need to wait acks to arrive before we finish consuming there
+      Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue_server_1::getMessageCount);
+
+
+      consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true); // We consume on both servers as this is currently replicated
+      consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT_3, true); // We consume on both servers as this is currently replicated
+      consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT_2, true); // We consume on both servers as this is currently replicated
+
+
+   }
+
+   /** this might be helpful for debugging */
+   private void printMessages(String printInfo, Queue queue) {
+      System.out.println("*******************************************************************************************************************************");
+      System.out.println(printInfo);
+      System.out.println();
+      LinkedListIterator<MessageReference> referencesIterator = queue.browserIterator();
+      while (referencesIterator.hasNext()) {
+         System.out.println("message " + referencesIterator.next().getMessage());
+      }
+      referencesIterator.close();
+      System.out.println("*******************************************************************************************************************************");
    }
 
    private void consumeMessages(boolean largeMessage, int START_ID, int LAST_ID, int port, boolean assertNull) throws JMSException {
@@ -140,9 +232,11 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       for (int i = START_ID; i <= LAST_ID; i++) {
          Message message = consumer.receive(3000);
          Assert.assertNotNull(message);
-         if (message instanceof TextMessage) {
+         System.out.println("i::" + message.getIntProperty("i"));
+         Assert.assertEquals(i, message.getIntProperty("i"));
+         /*if (message instanceof TextMessage) {
             Assert.assertEquals(getText(largeMessage, i), ((TextMessage)message).getText());
-         }
+         } */
       }
       if (assertNull) {
          Assert.assertNull(consumer.receiveNoWait());

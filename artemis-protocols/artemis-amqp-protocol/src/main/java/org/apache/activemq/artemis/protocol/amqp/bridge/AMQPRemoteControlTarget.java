@@ -45,15 +45,15 @@ import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.Receiver;
 import org.jboss.logging.Logger;
 
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.EVENT_TYPE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.POST_ACK;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.ADD_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.DELETE_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.CREATE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.DELETE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.INTERNAL_ID;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.EVENT_TYPE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.POST_ACK;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.ADD_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.DELETE_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.CREATE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.DELETE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.INTERNAL_ID;
 
 public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements RemoteControl {
 
@@ -86,7 +86,7 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
 
 
       System.out.println("*******************************************************************************************************************************\n" +
-                         "Received " + message + "\n" +
+                         server.getIdentity() + "::Received " + message + "\n" +
                          "*******************************************************************************************************************************");
       try {
          Object eventType = annotationsMap.get(EVENT_TYPE);

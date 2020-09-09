@@ -39,6 +39,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.Consumer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
+import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ActiveMQProtonRemotingConnection;
 import org.apache.activemq.artemis.protocol.amqp.broker.ProtonProtocolManager;
@@ -89,7 +90,7 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
       try {
          List<TransportConfiguration> configurationList = amqpConfiguration.getTransportConfigurations();
 
-         AMQPBridgeManager.ClientProtocolManagerWithAMQP protonFacade = new AMQPBridgeManager.ClientProtocolManagerWithAMQP(protonProtocolManager);
+         //AMQPBridgeManager.ClientProtocolManagerWithAMQP protonFacade = new AMQPBridgeManager.ClientProtocolManagerWithAMQP(protonProtocolManager);
 
          TransportConfiguration tpConfig = configurationList.get(0);
 
@@ -180,7 +181,25 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
 
       connectOutbound(queueBinding, REPLICA_TARGET_SYMBOL);
 
-      server.installRemoteControl(new AMQPRemoteControlSource(replicaConfig.getAddress(), server));
+      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(replicaConfig.getAddress(), server);
+
+      RemoteControl currentRemoteControl = server.getRemoteControl();
+
+      if (currentRemoteControl == null) {
+         server.installRemoteControl(newPartition);
+      } else {
+         // Replace a standard implementation by an aggregated supporting multiple targets
+         if (currentRemoteControl instanceof AMQPRemoteControlsSource) {
+            // replacing the simple remote control for an aggregator
+            AMQPRemoteControlsAggregation remoteAggregation = new AMQPRemoteControlsAggregation();
+            remoteAggregation.addPartition((AMQPRemoteControlsSource)currentRemoteControl);
+            currentRemoteControl = remoteAggregation;
+            server.installRemoteControl(remoteAggregation);
+         }
+         ((AMQPRemoteControlsAggregation)currentRemoteControl).addPartition(newPartition);
+      }
+
+      // TODO call server to send current copy of existent queues and addresses
    }
 
    private void connectInbound(ActiveMQProtonRemotingConnection protonRemotingConnection,

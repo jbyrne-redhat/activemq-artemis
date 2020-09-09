@@ -3046,6 +3046,11 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    }
 
    @Override
+   public RemoteControl getRemoteControl() {
+      return this.remoteControlService;
+   }
+
+   @Override
    public void removeRemoteControl() {
       postOffice.setRemoteControlSource(null);
    }
