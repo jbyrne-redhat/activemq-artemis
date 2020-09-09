@@ -63,11 +63,11 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
    public static final Symbol ADDRESS = Symbol.getSymbol("ma.ADDRESS");
    public static final Symbol QUEUE = Symbol.getSymbol("ma.QUEUE");
    public static final Symbol EVENT = Symbol.getSymbol("ma.EVENT");
-   public static final String ADD_ADDRESS = "addAddress";
-   public static final String DELETE_ADDRESS = "deleteAddress";
-   public static final String CREATE_QUEUE = "createQueue";
-   public static final String DELETE_QUEUE = "deleteQueue";
-   public static final String POST_ACK = "postAck";
+   public static final Symbol ADD_ADDRESS = Symbol.getSymbol("addAddress");
+   public static final Symbol DELETE_ADDRESS = Symbol.getSymbol("deleteAddress");
+   public static final Symbol CREATE_QUEUE = Symbol.getSymbol("createQueue");
+   public static final Symbol DELETE_QUEUE = Symbol.getSymbol("deleteQueue");
+   public static final Symbol POST_ACK = Symbol.getSymbol("postAck");
 
    final SimpleString sourceAddress;
    final ActiveMQServer server;
@@ -155,7 +155,7 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
 
    }
 
-   public static Message createMessage(String to, SimpleString address, SimpleString queue, String event, Object body) {
+   public static Message createMessage(String to, SimpleString address, SimpleString queue, Object event, Object body) {
       Header header = new Header();
       header.setDurable(true);
 

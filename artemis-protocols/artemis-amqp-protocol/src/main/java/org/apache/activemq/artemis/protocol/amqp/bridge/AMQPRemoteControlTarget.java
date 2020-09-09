@@ -75,7 +75,7 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
                          "Received " + message + "\n" +
                          "*******************************************************************************************************************************");
       try {
-         String eventType = (String)annotationsMap.get(AMQPRemoteControlSource.EVENT_TYPE);
+         Object eventType = annotationsMap.get(AMQPRemoteControlSource.EVENT_TYPE);
          if (eventType != null) {
             // I'm not using fancy switch with strings for JDK compatibility, just in case
             if (eventType.equals(AMQPRemoteControlSource.ADD_ADDRESS)) {

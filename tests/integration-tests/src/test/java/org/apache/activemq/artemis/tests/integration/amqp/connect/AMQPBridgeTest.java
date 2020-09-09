@@ -39,6 +39,7 @@ import org.apache.activemq.artemis.tests.integration.amqp.AmqpClientTestSupport;
 import org.apache.activemq.artemis.tests.util.CFUtil;
 import org.apache.activemq.artemis.utils.Wait;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class AMQPBridgeTest extends AmqpClientTestSupport {
@@ -175,6 +176,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       Assert.assertNull(consumer.receiveNoWait());
    }
 
+   @Ignore
    @Test
    public void testFailedConnection() throws Exception {
       // TODO implement this test properly

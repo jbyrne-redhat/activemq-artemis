@@ -246,7 +246,11 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) {
       if (remoteControlSource != null) {
+         try {
             remoteControlSource.postAcknowledge(ref, reason);
+         } catch (Exception e) {
+            logger.warn(e.getMessage(), e);
+         }
       }
    }
 
