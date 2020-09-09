@@ -152,18 +152,27 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
       };
 
    public void postAcknowledge(String address, String queue, long messageID) {
-      System.out.println("post acking " + address + ", queue = " + queue + ", messageID = " + messageID);
+      if (logger.isTraceEnabled()) {
+         logger.trace("post acking " + address + ", queue = " + queue + ", messageID = " + messageID);
+      }
 
       Queue targetQueue = server.locateQueue(queue);
       if (targetQueue != null) {
          MessageReference reference = targetQueue.removeWithSuppliedID(messageID, referenceIDSupplier);
          if (reference != null) {
+            if (logger.isDebugEnabled()) {
+               logger.debug("Acking reference " + reference);
+            }
             try {
                targetQueue.acknowledge(reference);
             } catch (Exception e) {
                // TODO anything else I can do here?
                // such as close the connection with error?
                logger.warn(e.getMessage(), e);
+            }
+         } else {
+            if (logger.isTraceEnabled()) {
+               logger.trace("There is no reference to ack on " + messageID);
             }
          }
       }
@@ -209,7 +218,11 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
    public void deleteAddress(AddressInfo addressInfo) throws Exception {
       System.out.println("*******************************************************************************************************************************");
       System.out.println("delete address " + addressInfo);
-      server.removeAddressInfo(addressInfo.getName(), null, true);
+      try {
+         server.removeAddressInfo(addressInfo.getName(), null, true);
+      } catch (Exception e) {
+         logger.warn(e.getMessage(), e);
+      }
    }
 
    @Override
