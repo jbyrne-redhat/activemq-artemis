@@ -192,14 +192,9 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private IDSupplier<MessageReference> idSupplier;
 
-   private void checkIDSupplier() {
-      if (idSupplier == null) {
-         idSupplier = new IDSupplier<MessageReference>() {
-            @Override
-            public Object getID(MessageReference source) {
-               return source.getMessageID();
-            }
-         };
+   private void checkIDSupplier(IDSupplier<MessageReference> idSupplier) {
+      if (this.idSupplier != idSupplier) {
+         this.idSupplier = idSupplier;
          messageReferences.installIDSupplier(idSupplier);
       }
    }
@@ -3199,10 +3194,9 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    }
 
    @Override
-   public void removeWithID(Object id) {
-      checkIDSupplier();
-      messageReferences.removeWithID(id);
-
+   public MessageReference removeWithSuppliedID(Object id, IDSupplier<MessageReference> idSupplier) {
+      checkIDSupplier(idSupplier);
+      return messageReferences.removeWithID(id);
    }
 
    private void internalAddRedistributor(final ArtemisExecutor executor) {

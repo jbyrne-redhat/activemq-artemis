@@ -103,25 +103,27 @@ public class PriorityLinkedListImpl<T> implements PriorityLinkedList<T> {
    }
 
 
-   public boolean removeWithID(Object id) {
+   public T removeWithID(Object id) {
       // we start at 4 just as an optimization, since most times we only use level 4 as the level on messages
       if (levels.length > 4) {
          for (int l = 4; l < levels.length; l++) {
-            if (levels[l].removeWithID(id)) {
+            T removed = levels[l].removeWithID(id);
+            if (removed != null) {
                exclusiveIncrementSize(-1);
-               return true;
+               return removed;
             }
          }
       }
 
       for (int l = Math.min(3, levels.length); l >= 0; l--) {
-         if (levels[l].removeWithID(id)) {
+         T removed = levels[l].removeWithID(id);
+         if (removed != null) {
             exclusiveIncrementSize(-1);
-            return true;
+            return removed;
          }
       }
 
-      return false;
+      return null;
    }
 
 

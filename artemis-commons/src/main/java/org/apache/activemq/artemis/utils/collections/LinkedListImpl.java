@@ -78,10 +78,18 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       try {
          while (iterator.hasNext()) {
             E value = iterator.next();
-            nodeMap.put(idSupplier.getID(value), iterator.last);
+            Node<E> position = iterator.last;
+            putID(value, position);
          }
       } finally {
          iterator.close();
+      }
+   }
+
+   private void putID(E value, Node<E> position) {
+      Object id = idSupplier.getID(value);
+      if (id != null) {
+         nodeMap.put(id, position);
       }
    }
 
@@ -118,29 +126,32 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       size++;
    }
 
-   public boolean removeWithID(Object id) {
+   public E removeWithID(Object id) {
       if (nodeMap == null) {
-         return false;
+         return null;
       }
 
       Node<E> node = nodeMap.get(id);
       if (node == null) {
-         return false;
+         return null;
       }
 
       removeAfter(node.prev);
-      return true;
+      return node.val();
    }
 
    private void itemAdded(Node node, E item) {
       if (nodeMap != null) {
-         nodeMap.put(idSupplier.getID(item), node);
+         putID(item, node);
       }
    }
 
    private void itemRemoved (Node node) {
       if (nodeMap != null) {
-         nodeMap.remove(idSupplier.getID((E)node.val()));
+         Object id = idSupplier.getID((E)node.val());
+         if (id != null) {
+            nodeMap.remove(id);
+         }
       }
    }
 

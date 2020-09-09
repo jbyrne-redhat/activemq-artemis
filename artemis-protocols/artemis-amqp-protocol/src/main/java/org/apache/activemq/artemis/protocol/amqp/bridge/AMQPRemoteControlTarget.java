@@ -24,6 +24,7 @@ import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
+import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
@@ -35,6 +36,7 @@ import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.proton.AMQPConnectionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.AMQPSessionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.ProtonAbstractReceiver;
+import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
@@ -54,6 +56,8 @@ import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControl
 import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.INTERNAL_ID;
 
 public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements RemoteControl {
+
+   public static final SimpleString INTERNAL_ID_EXTRA_PROPERTY = SimpleString.toSimpleString("x-opt-INTERNAL-ID");
 
    private static final Logger logger = Logger.getLogger(AMQPRemoteControlTarget.class);
 
@@ -115,8 +119,11 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
 
             DeliveryAnnotations deliveryAnnotations = message.getDeliveryAnnotations();
 
-            if (deliveryAnnotations != null && deliveryAnnotations.getValue().get(INTERNAL_ID) != null) {
-               new Exception("yay!!!").printStackTrace();
+            if (deliveryAnnotations != null) {
+               Long internalID = (Long)deliveryAnnotations.getValue().get(INTERNAL_ID);
+               if (internalID != null) {
+                  message.setBrokerProperty(INTERNAL_ID_EXTRA_PROPERTY, internalID);
+               }
             }
 
             routingContext.clear();
@@ -135,8 +142,32 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
       }
    }
 
+   private static IDSupplier<MessageReference> referenceIDSupplier =
+      new IDSupplier<MessageReference>() {
+         @Override
+         public Object getID(MessageReference source) {
+            Long id = (Long)source.getMessage().getBrokerProperty(INTERNAL_ID_EXTRA_PROPERTY);
+            return id;
+         }
+      };
+
    public void postAcknowledge(String address, String queue, long messageID) {
       System.out.println("post acking " + address + ", queue = " + queue + ", messageID = " + messageID);
+
+      Queue targetQueue = server.locateQueue(queue);
+      if (targetQueue != null) {
+         MessageReference reference = targetQueue.removeWithSuppliedID(messageID, referenceIDSupplier);
+         if (reference != null) {
+            try {
+               targetQueue.acknowledge(reference);
+            } catch (Exception e) {
+               // TODO anything else I can do here?
+               // such as close the connection with error?
+               logger.warn(e.getMessage(), e);
+            }
+         }
+      }
+
    }
 
    @Override

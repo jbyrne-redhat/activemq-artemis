@@ -18,6 +18,7 @@ package org.apache.activemq.artemis.core.list;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
 
 import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
@@ -891,7 +892,7 @@ public final class PriorityLinkedListTest extends Assert {
 
       // remove every 3rd
       for (int i = 0; i < 3000; i += 3) {
-         Assert.assertTrue(list.removeWithID("" + i));
+         Assert.assertEquals(new Wibble("" + i), list.removeWithID("" + i));
       }
 
       Assert.assertEquals(2000, list.size());
@@ -928,6 +929,21 @@ public final class PriorityLinkedListTest extends Assert {
       @Override
       public String toString() {
          return s1;
+      }
+
+      @Override
+      public boolean equals(Object o) {
+         if (this == o)
+            return true;
+         if (o == null || getClass() != o.getClass())
+            return false;
+         Wibble wibble = (Wibble) o;
+         return Objects.equals(s1, wibble.s1);
+      }
+
+      @Override
+      public int hashCode() {
+         return Objects.hash(s1);
       }
    }
 

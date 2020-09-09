@@ -35,6 +35,7 @@ import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.ReferenceCounter;
+import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.apache.activemq.artemis.utils.critical.CriticalComponent;
 
@@ -73,7 +74,7 @@ public interface Queue extends Bindable,CriticalComponent {
    void refDown(Message message);
 
    /** Remove item with ID */
-   void removeWithID(Object id);
+   MessageReference removeWithSuppliedID(Object id, IDSupplier<MessageReference> idSupplier);
 
    /**
     * The queue definition could be durable, but the messages could eventually be considered non durable.

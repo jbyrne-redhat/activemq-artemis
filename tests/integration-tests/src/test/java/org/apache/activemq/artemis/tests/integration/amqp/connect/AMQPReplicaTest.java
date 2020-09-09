@@ -120,24 +120,24 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
 
       if (acks) {
-         consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, AMQP_PORT_2, false);
+         consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES / 2 - 1, AMQP_PORT_2, false);
          Queue queue = server.locateQueue("TEST");
          // Replica is async, so we need to wait acks to arrive before we finish consuming there
-         /*Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue::getMessageCount);
-         consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, AMQP_PORT, true); // We consume on both servers as this is currently replicated */
+         Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue::getMessageCount);
+         consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true); // We consume on both servers as this is currently replicated
       }
 
 
    }
 
-   private void consumeMessages(boolean largeMessage, int NUMBER_OF_MESSAGES, int port, boolean assertNull) throws JMSException {
+   private void consumeMessages(boolean largeMessage, int START_ID, int LAST_ID, int port, boolean assertNull) throws JMSException {
       ConnectionFactory cf = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + port);
       Connection conn = cf.createConnection();
       Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
       conn.start();
 
       MessageConsumer consumer = sess.createConsumer(sess.createQueue("TEST"));
-      for (int i = 0; i < NUMBER_OF_MESSAGES; i++) {
+      for (int i = START_ID; i <= LAST_ID; i++) {
          Message message = consumer.receive(3000);
          Assert.assertNotNull(message);
          if (message instanceof TextMessage) {
