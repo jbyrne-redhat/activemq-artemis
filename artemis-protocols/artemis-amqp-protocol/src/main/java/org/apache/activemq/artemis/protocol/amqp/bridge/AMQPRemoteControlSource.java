@@ -16,6 +16,7 @@
  */
 package org.apache.activemq.artemis.protocol.amqp.bridge;
 
+import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,9 +27,11 @@ import io.netty.buffer.PooledByteBufAllocator;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.core.persistence.impl.journal.AbstractJournalStorageManager;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.Bindings;
 import org.apache.activemq.artemis.core.postoffice.impl.LocalQueueBinding;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationStartSyncMessage;
 import org.apache.activemq.artemis.core.server.ActiveMQComponent;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
@@ -45,7 +48,7 @@ import org.apache.activemq.artemis.protocol.amqp.util.NettyWritable;
 import org.apache.activemq.artemis.protocol.amqp.util.TLSEncode;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
-import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
+import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
 import org.apache.qpid.proton.amqp.messaging.Header;
 import org.apache.qpid.proton.amqp.messaging.MessageAnnotations;
 import org.apache.qpid.proton.amqp.messaging.Properties;
@@ -53,7 +56,6 @@ import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.codec.EncoderImpl;
 import org.apache.qpid.proton.codec.WritableBuffer;
 import org.jboss.logging.Logger;
-import sun.jvm.hotspot.debugger.cdbg.Sym;
 
 public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent {
 
@@ -62,12 +64,17 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
    public static final Symbol EVENT_TYPE = Symbol.getSymbol("ma.EVENT_TYPE");
    public static final Symbol ADDRESS = Symbol.getSymbol("ma.ADDRESS");
    public static final Symbol QUEUE = Symbol.getSymbol("ma.QUEUE");
-   public static final Symbol EVENT = Symbol.getSymbol("ma.EVENT");
+
+   // Events:
    public static final Symbol ADD_ADDRESS = Symbol.getSymbol("addAddress");
    public static final Symbol DELETE_ADDRESS = Symbol.getSymbol("deleteAddress");
    public static final Symbol CREATE_QUEUE = Symbol.getSymbol("createQueue");
    public static final Symbol DELETE_QUEUE = Symbol.getSymbol("deleteQueue");
    public static final Symbol POST_ACK = Symbol.getSymbol("postAck");
+
+   // Delivery annotation property used on remote control routing and Ack
+   public static final Symbol INTERNAL_ID = Symbol.getSymbol("ma.INTERNAL_ID");
+
 
    final SimpleString sourceAddress;
    final ActiveMQServer server;
@@ -136,6 +143,12 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
                LocalQueueBinding localQueueBinding = (LocalQueueBinding)binding;
                Queue transferQueue = localQueueBinding.getQueue();
                MessageReference ref = MessageReference.Factory.createReference(message, transferQueue);
+
+               Map<Symbol, Object> symbolObjectMap = new HashMap<>();
+               DeliveryAnnotations deliveryAnnotations = new DeliveryAnnotations(symbolObjectMap);
+               symbolObjectMap.put(INTERNAL_ID, message.getMessageID());
+               ref.setProtocolData(deliveryAnnotations);
+
                refs.add(ref);
                transferQueue.refUp(message);
             }
@@ -148,11 +161,8 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
 
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) throws Exception {
-      new Exception("post ack").printStackTrace();
-
       Message message = createMessage(sourceAddress.toString(), ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
       route(server, message);
-
    }
 
    public static Message createMessage(String to, SimpleString address, SimpleString queue, Object event, Object body) {
@@ -165,7 +175,6 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
       if (queue != null) {
          annotations.put(QUEUE, queue.toString());
       }
-      annotations.put(EVENT, event);
       MessageAnnotations messageAnnotations = new MessageAnnotations(annotations);
 
       Properties properties = new Properties();
@@ -198,7 +207,6 @@ public class AMQPRemoteControlSource implements RemoteControl, ActiveMQComponent
    }
 
    public static void route(ActiveMQServer server, Message message) throws Exception {
-      new Exception("Routing " + message).printStackTrace();
       message.setMessageID(server.getStorageManager().generateID());
       server.getPostOffice().route(message, new RemoteControlRouting(null) , false);
    }

@@ -24,7 +24,6 @@ import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
-import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
@@ -38,10 +37,21 @@ import org.apache.activemq.artemis.protocol.amqp.proton.AMQPSessionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.ProtonAbstractReceiver;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
+import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
 import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
 import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.Receiver;
 import org.jboss.logging.Logger;
+
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.EVENT_TYPE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.POST_ACK;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.ADD_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.DELETE_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.CREATE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.DELETE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlSource.INTERNAL_ID;
 
 public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements RemoteControl {
 
@@ -75,26 +85,38 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
                          "Received " + message + "\n" +
                          "*******************************************************************************************************************************");
       try {
-         Object eventType = annotationsMap.get(AMQPRemoteControlSource.EVENT_TYPE);
+         Object eventType = annotationsMap.get(EVENT_TYPE);
          if (eventType != null) {
             // I'm not using fancy switch with strings for JDK compatibility, just in case
-            if (eventType.equals(AMQPRemoteControlSource.ADD_ADDRESS)) {
+            if (eventType.equals(ADD_ADDRESS)) {
                AddressInfo addressInfo = parseAddress(message);
                addAddress(addressInfo);
-            }  else if (eventType.equals(AMQPRemoteControlSource.DELETE_ADDRESS)) {
+            }  else if (eventType.equals(DELETE_ADDRESS)) {
                AddressInfo addressInfo = parseAddress(message);
                deleteAddress(addressInfo);
-            } else if (eventType.equals(AMQPRemoteControlSource.CREATE_QUEUE)) {
+            } else if (eventType.equals(CREATE_QUEUE)) {
                QueueConfiguration queueConfiguration = parseQueue(message);
                createQueue(queueConfiguration);
-            } else if (eventType.equals(AMQPRemoteControlSource.DELETE_QUEUE)) {
-               String address = (String)annotationsMap.get(AMQPRemoteControlSource.ADDRESS);
-               String queueName = (String)annotationsMap.get(AMQPRemoteControlSource.QUEUE);
+            } else if (eventType.equals(DELETE_QUEUE)) {
+               String address = (String)annotationsMap.get(ADDRESS);
+               String queueName = (String)annotationsMap.get(QUEUE);
                deleteQueue(SimpleString.toSimpleString(address), SimpleString.toSimpleString(queueName));
+            } else if (eventType.equals(POST_ACK)) {
+               String address = (String)annotationsMap.get(ADDRESS);
+               String queueName = (String)annotationsMap.get(QUEUE);
+               AmqpValue value = (AmqpValue)message.getBody();
+               Long messageID = (Long)value.getValue();
+               postAcknowledge(address, queueName, messageID);
             }
          } else {
             if (message.getMessageID() <= 0) {
                message.setMessageID(server.getStorageManager().generateID());
+            }
+
+            DeliveryAnnotations deliveryAnnotations = message.getDeliveryAnnotations();
+
+            if (deliveryAnnotations != null && deliveryAnnotations.getValue().get(INTERNAL_ID) != null) {
+               new Exception("yay!!!").printStackTrace();
             }
 
             routingContext.clear();
@@ -111,6 +133,10 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
             logger.warn(e.getMessage(), e);
          }
       }
+   }
+
+   public void postAcknowledge(String address, String queue, long messageID) {
+      System.out.println("post acking " + address + ", queue = " + queue + ", messageID = " + messageID);
    }
 
    @Override

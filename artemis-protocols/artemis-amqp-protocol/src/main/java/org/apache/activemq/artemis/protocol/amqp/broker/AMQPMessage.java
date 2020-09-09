@@ -207,6 +207,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
    protected final CoreMessageObjectPools coreMessageObjectPools;
    protected Set<Object> rejectedConsumers;
    protected DeliveryAnnotations deliveryAnnotationsForSendBuffer;
+   protected DeliveryAnnotations deliveryAnnotations;
 
    // These are properties set at the broker level and carried only internally by broker storage.
    protected volatile TypedProperties extraProperties;
@@ -326,8 +327,13 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
     * @return a copy of the {@link DeliveryAnnotations} present in the message or null if non present.
     */
    public final DeliveryAnnotations getDeliveryAnnotations() {
-      ensureScanning();
-      return scanForMessageSection(deliveryAnnotationsPosition, DeliveryAnnotations.class);
+
+      if (deliveryAnnotations != null) {
+         return deliveryAnnotations;
+      } else {
+         ensureScanning();
+         return scanForMessageSection(deliveryAnnotationsPosition, DeliveryAnnotations.class);
+      }
    }
 
    /**
@@ -651,7 +657,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
             } else if (DeliveryAnnotations.class.equals(constructor.getTypeClass())) {
                // Don't decode these as they are not used by the broker at all and are
                // discarded on send, mark for lazy decode if ever needed.
-               constructor.skipValue();
+               this.deliveryAnnotations = (DeliveryAnnotations) constructor.readValue();
                deliveryAnnotationsPosition = constructorPos;
                encodedDeliveryAnnotationsSize = data.position() - constructorPos;
             } else if (MessageAnnotations.class.equals(constructor.getTypeClass())) {

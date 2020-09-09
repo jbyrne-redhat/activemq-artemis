@@ -31,6 +31,7 @@ import javax.jms.TextMessage;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
+import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.tests.integration.amqp.AmqpClientTestSupport;
 import org.apache.activemq.artemis.tests.util.CFUtil;
 import org.apache.activemq.artemis.utils.Wait;
@@ -60,13 +61,13 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    }
    @Test
-   public void testWithLargeMessage() throws Exception {
-      replicaTest(true, true);
+   public void testReplicaWithPushLargeMessages() throws Exception {
+      replicaTest(true, true, true);
    }
 
    @Test
    public void testReplicaWithPush() throws Exception {
-      replicaTest(true, false);
+      replicaTest(true, false, true);
    }
 
    private String getText(boolean large, int i) {
@@ -81,7 +82,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       }
    }
 
-   private void replicaTest(boolean push, boolean largeMessage) throws Exception {
+   private void replicaTest(boolean push, boolean largeMessage, boolean acks) throws Exception {
       server.setIdentity("targetServer");
       //server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
@@ -108,7 +109,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Connection connection = factory.createConnection();
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
       MessageProducer producer = session.createProducer(session.createQueue("TEST"));
-      producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+      producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
       for (int i = 0; i < NUMBER_OF_MESSAGES; i++) {
          Message message = session.createTextMessage(getText(largeMessage, i));
          message.setIntProperty("i", i);
@@ -117,12 +118,19 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
       // Now we need to stop the server, and make it activate
 
-      consumeMessages(largeMessage, NUMBER_OF_MESSAGES, AMQP_PORT);
-      consumeMessages(largeMessage, NUMBER_OF_MESSAGES, AMQP_PORT_2); // We consume on both servers as this is currently replicated
+
+      if (acks) {
+         consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, AMQP_PORT_2, false);
+         Queue queue = server.locateQueue("TEST");
+         // Replica is async, so we need to wait acks to arrive before we finish consuming there
+         /*Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue::getMessageCount);
+         consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, AMQP_PORT, true); // We consume on both servers as this is currently replicated */
+      }
+
 
    }
 
-   private void consumeMessages(boolean largeMessage, int NUMBER_OF_MESSAGES, int port) throws JMSException {
+   private void consumeMessages(boolean largeMessage, int NUMBER_OF_MESSAGES, int port, boolean assertNull) throws JMSException {
       ConnectionFactory cf = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + port);
       Connection conn = cf.createConnection();
       Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -136,7 +144,9 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
             Assert.assertEquals(getText(largeMessage, i), ((TextMessage)message).getText());
          }
       }
-      Assert.assertNull(consumer.receiveNoWait());
+      if (assertNull) {
+         Assert.assertNull(consumer.receiveNoWait());
+      }
       conn.close();
    }
 
