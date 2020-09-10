@@ -72,6 +72,7 @@ public class AmqpReferenceDeliveryAnnotationTest extends AmqpClientTestSupport {
 
       server.getConfiguration().registerBrokerPlugin(new ActiveMQServerMessagePlugin() {
 
+         @Override
          public void beforeDeliver(ServerConsumer consumer, MessageReference reference) throws ActiveMQException {
             Map<Symbol, Object> symbolObjectMap = new HashMap<>();
             DeliveryAnnotations deliveryAnnotations = new DeliveryAnnotations(symbolObjectMap);

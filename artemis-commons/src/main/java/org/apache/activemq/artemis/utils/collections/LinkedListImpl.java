@@ -64,12 +64,14 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       this(comparator, null);
    }
 
+   @Override
    public void clearID() {
       idSupplier = null;
       nodeMap.clear(); // just a little hand to GC
       nodeMap = null;
    }
 
+   @Override
    public void setIDSupplier(IDSupplier<E> supplier) {
       this.idSupplier = supplier;
       nodeMap = new HashMap<>();

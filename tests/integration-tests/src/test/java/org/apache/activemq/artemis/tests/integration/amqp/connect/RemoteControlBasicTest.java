@@ -49,6 +49,8 @@ import org.junit.Test;
 public class RemoteControlBasicTest extends ActiveMQTestBase {
 
    ActiveMQServer server;
+
+   @Override
    public void setUp() throws Exception {
       super.setUp();
 

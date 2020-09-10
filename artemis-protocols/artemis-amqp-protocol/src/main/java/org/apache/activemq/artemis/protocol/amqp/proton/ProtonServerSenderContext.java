@@ -851,6 +851,7 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
          return this.preSettle;
       }
 
+      @Override
       public Consumer init(ProtonServerSenderContext senderContext) throws Exception {
          Source source = (Source) sender.getRemoteSource();
          final Map<Symbol, Object> supportedFilters = new HashMap<>();
