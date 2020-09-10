@@ -290,8 +290,7 @@ public class ProtonServerReceiverContext extends ProtonAbstractReceiver {
       }
    }
 
-
-
+   @Override
    public void flow() {
       // this will mark flow control to happen once after the event loop
       connection.afterFlush(spiFlow);

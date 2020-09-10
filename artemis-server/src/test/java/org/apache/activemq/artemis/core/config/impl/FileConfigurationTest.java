@@ -106,7 +106,6 @@ public class FileConfigurationTest extends ConfigurationImplTest {
       Assert.assertEquals(444, conf.getAuthorizationCacheSize());
       Assert.assertEquals(true, conf.isWildcardRoutingEnabled());
       Assert.assertEquals(new SimpleString("Giraffe"), conf.getManagementAddress());
-      Assert.assertEquals(new SimpleString("LazyRemote"), conf.getRemoteControlAddress());
       Assert.assertEquals(new SimpleString("Whatever"), conf.getManagementNotificationAddress());
       Assert.assertEquals("Frog", conf.getClusterUser());
       Assert.assertEquals("Wombat", conf.getClusterPassword());

@@ -16,11 +16,13 @@
  */
 package org.apache.activemq.artemis.core.config.amqpbridging;
 
+import java.io.Serializable;
+
 /**
  * We will start small, with a matching address for all the addresses
  * each
  */
-public class AMQPConnectionAddress {
+public class AMQPConnectionAddress implements Serializable {
    String matchAddress;
    String outboundQueueSuffix;
    boolean inbound;

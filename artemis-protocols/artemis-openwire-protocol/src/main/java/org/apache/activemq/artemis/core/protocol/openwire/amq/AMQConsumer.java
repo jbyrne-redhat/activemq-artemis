@@ -289,7 +289,7 @@ public class AMQConsumer {
 
    /**
     * The acknowledgement in openwire is done based on intervals.
-    * We will iterate through the list of delivering messages at {@link ServerConsumer#scanDeliveringReferences(boolean, Function, Function)} 
+    * We will iterate through the list of delivering messages at {@link ServerConsumer#scanDeliveringReferences(boolean, Function, Function)}
     * and add those to the Transaction.
     * Notice that we will start a new transaction on the cases where there is no transaction.
     */
@@ -304,7 +304,7 @@ public class AMQConsumer {
          if (first == null) {
             first = last;
          }
-         
+
          startID = first;
          lastID = last;
       }

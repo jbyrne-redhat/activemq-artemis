@@ -16,9 +16,11 @@
  */
 package org.apache.activemq.artemis.core.config.amqpbridging;
 
+import java.io.Serializable;
+
 import org.apache.activemq.artemis.api.core.SimpleString;
 
-public class AMQPReplica {
+public class AMQPReplica implements Serializable {
 
    final SimpleString address;
 

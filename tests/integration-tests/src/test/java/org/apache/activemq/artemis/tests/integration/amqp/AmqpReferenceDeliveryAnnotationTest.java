@@ -91,7 +91,7 @@ public class AmqpReferenceDeliveryAnnotationTest extends AmqpClientTestSupport {
       String body;
       if (largeMessage) {
          StringBuffer buffer = new StringBuffer();
-         for (int i = 0 ; i < 1024 * 1024; i++) {
+         for (int i = 0; i < 1024 * 1024; i++) {
             buffer.append("*");
          }
          body = buffer.toString();

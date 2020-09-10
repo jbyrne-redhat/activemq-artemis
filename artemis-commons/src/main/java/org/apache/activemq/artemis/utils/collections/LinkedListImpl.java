@@ -146,7 +146,7 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       }
    }
 
-   private void itemRemoved (Node node) {
+   private void itemRemoved(Node node) {
       if (nodeMap != null) {
          Object id = idSupplier.getID((E)node.val());
          if (id != null) {

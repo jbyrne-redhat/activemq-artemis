@@ -219,7 +219,7 @@ public class LinkedListTest extends ActiveMQTestBase {
 
 
       /** remove all even items */
-      for (int i = 0; i < 1000; i+=2) {
+      for (int i = 0; i < 1000; i += 2) {
          objs.removeWithID(i);
       }
 

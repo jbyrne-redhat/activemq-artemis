@@ -95,40 +95,25 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
             if (eventType.equals(ADD_ADDRESS)) {
                AddressInfo addressInfo = parseAddress(message);
                addAddress(addressInfo);
-            }  else if (eventType.equals(DELETE_ADDRESS)) {
+            } else if (eventType.equals(DELETE_ADDRESS)) {
                AddressInfo addressInfo = parseAddress(message);
                deleteAddress(addressInfo);
             } else if (eventType.equals(CREATE_QUEUE)) {
                QueueConfiguration queueConfiguration = parseQueue(message);
                createQueue(queueConfiguration);
             } else if (eventType.equals(DELETE_QUEUE)) {
-               String address = (String)annotationsMap.get(ADDRESS);
-               String queueName = (String)annotationsMap.get(QUEUE);
+               String address = (String) annotationsMap.get(ADDRESS);
+               String queueName = (String) annotationsMap.get(QUEUE);
                deleteQueue(SimpleString.toSimpleString(address), SimpleString.toSimpleString(queueName));
             } else if (eventType.equals(POST_ACK)) {
-               String address = (String)annotationsMap.get(ADDRESS);
-               String queueName = (String)annotationsMap.get(QUEUE);
-               AmqpValue value = (AmqpValue)message.getBody();
-               Long messageID = (Long)value.getValue();
+               String address = (String) annotationsMap.get(ADDRESS);
+               String queueName = (String) annotationsMap.get(QUEUE);
+               AmqpValue value = (AmqpValue) message.getBody();
+               Long messageID = (Long) value.getValue();
                postAcknowledge(address, queueName, messageID);
             }
          } else {
-            if (message.getMessageID() <= 0) {
-               message.setMessageID(server.getStorageManager().generateID());
-            }
-
-            DeliveryAnnotations deliveryAnnotations = message.getDeliveryAnnotations();
-
-            if (deliveryAnnotations != null) {
-               Long internalID = (Long)deliveryAnnotations.getValue().get(INTERNAL_ID);
-               if (internalID != null) {
-                  message.setBrokerProperty(INTERNAL_ID_EXTRA_PROPERTY, internalID);
-               }
-            }
-
-            routingContext.clear();
-            server.getPostOffice().route(message, routingContext, false);
-            flow();
+            sendMessage(message);
          }
       } catch (Throwable e) {
          logger.warn(e.getMessage(), e);
@@ -140,43 +125,6 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
             logger.warn(e.getMessage(), e);
          }
       }
-   }
-
-   private static IDSupplier<MessageReference> referenceIDSupplier =
-      new IDSupplier<MessageReference>() {
-         @Override
-         public Object getID(MessageReference source) {
-            Long id = (Long)source.getMessage().getBrokerProperty(INTERNAL_ID_EXTRA_PROPERTY);
-            return id;
-         }
-      };
-
-   public void postAcknowledge(String address, String queue, long messageID) {
-      if (logger.isTraceEnabled()) {
-         logger.trace("post acking " + address + ", queue = " + queue + ", messageID = " + messageID);
-      }
-
-      Queue targetQueue = server.locateQueue(queue);
-      if (targetQueue != null) {
-         MessageReference reference = targetQueue.removeWithSuppliedID(messageID, referenceIDSupplier);
-         if (reference != null) {
-            if (logger.isDebugEnabled()) {
-               logger.debug("Acking reference " + reference);
-            }
-            try {
-               targetQueue.acknowledge(reference);
-            } catch (Exception e) {
-               // TODO anything else I can do here?
-               // such as close the connection with error?
-               logger.warn(e.getMessage(), e);
-            }
-         } else {
-            if (logger.isTraceEnabled()) {
-               logger.trace("There is no reference to ack on " + messageID);
-            }
-         }
-      }
-
    }
 
    @Override
@@ -191,7 +139,6 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
       receiver.setReceiverSettleMode(ReceiverSettleMode.FIRST);
       flow();
    }
-
 
    private QueueConfiguration parseQueue(AMQPMessage message) throws Exception {
       AmqpValue bodyvalue = (AmqpValue) message.getBody();
@@ -244,13 +191,80 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
 
    }
 
+   private static IDSupplier<MessageReference> referenceIDSupplier = new IDSupplier<MessageReference>() {
+      @Override
+      public Object getID(MessageReference source) {
+         Long id = (Long) source.getMessage().getBrokerProperty(INTERNAL_ID_EXTRA_PROPERTY);
+         return id;
+      }
+   };
+
+   public void postAcknowledge(String address, String queue, long messageID) {
+      if (logger.isTraceEnabled()) {
+         logger.trace("post acking " + address + ", queue = " + queue + ", messageID = " + messageID);
+      }
+
+      Queue targetQueue = server.locateQueue(queue);
+      if (targetQueue != null) {
+         MessageReference reference = targetQueue.removeWithSuppliedID(messageID, referenceIDSupplier);
+         if (reference != null) {
+            if (logger.isDebugEnabled()) {
+               logger.debug("Acking reference " + reference);
+            }
+            try {
+               targetQueue.acknowledge(reference);
+            } catch (Exception e) {
+               // TODO anything else I can do here?
+               // such as close the connection with error?
+               logger.warn(e.getMessage(), e);
+            }
+         } else {
+            if (logger.isTraceEnabled()) {
+               logger.trace("There is no reference to ack on " + messageID);
+            }
+         }
+      }
+
+   }
+
+   private void sendMessage(AMQPMessage message) throws Exception {
+      if (message.getMessageID() <= 0) {
+         message.setMessageID(server.getStorageManager().generateID());
+      }
+
+      DeliveryAnnotations deliveryAnnotations = message.getDeliveryAnnotations();
+
+      if (deliveryAnnotations != null) {
+         Long internalID = (Long) deliveryAnnotations.getValue().get(INTERNAL_ID);
+         if (internalID != null) {
+            message.setBrokerProperty(INTERNAL_ID_EXTRA_PROPERTY, internalID);
+         }
+      }
+
+      routingContext.clear();
+      server.getPostOffice().route(message, routingContext, false);
+      flow();
+   }
+
+   /**
+    * not implemented on the target, treated at {@link #postAcknowledge(String, String, long)}
+    *
+    * @param ref
+    * @param reason
+    */
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) {
-
    }
 
+   /**
+    * not implemented on the target, treated at {@link #sendMessage(AMQPMessage)}
+    *
+    * @param message
+    * @param context
+    * @param refs
+    */
    @Override
    public void sendMessage(Message message, RoutingContext context, List<MessageReference> refs) {
-
    }
- }
+
+}

@@ -91,9 +91,9 @@ public interface ServerConsumer extends Consumer, ConsumerInfo {
     */
    void backToDelivering(MessageReference reference);
 
-    List<MessageReference> scanDeliveringReferences(boolean remove,
-                                                     Function<MessageReference, Boolean> startFunction,
-                                                     Function<MessageReference, Boolean> endFunction);
+   List<MessageReference> scanDeliveringReferences(boolean remove,
+                                                   Function<MessageReference, Boolean> startFunction,
+                                                   Function<MessageReference, Boolean> endFunction);
 
    List<Long> acknowledge(Transaction tx, long messageID) throws Exception;
 

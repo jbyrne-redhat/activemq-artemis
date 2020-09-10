@@ -19,7 +19,6 @@ package org.apache.activemq.artemis.protocol.amqp.bridge;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -72,6 +71,8 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
    // Delivery annotation property used on remote control routing and Ack
    public static final Symbol INTERNAL_ID = Symbol.getSymbol("ma.INTERNAL_ID");
 
+   private static final ThreadLocal<RemoteControlRouting> remoteControlRouting = ThreadLocal.withInitial(() -> new RemoteControlRouting(null));
+
 
    final SimpleString sourceAddress;
    final ActiveMQServer server;
@@ -81,7 +82,6 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
    @Override
    public void start() throws Exception {
       if (!started) {
-         new Exception ("Starting remote control source").printStackTrace();
          server.installRemoteControl(this);
          started = true;
       }
@@ -205,7 +205,9 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    public static void route(ActiveMQServer server, Message message) throws Exception {
       message.setMessageID(server.getStorageManager().generateID());
-      server.getPostOffice().route(message, new RemoteControlRouting(null) , false);
+      RemoteControlRouting ctx = remoteControlRouting.get();
+      ctx.clear();
+      server.getPostOffice().route(message, ctx, false);
    }
 
    @Override
@@ -217,12 +219,8 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    private static class RemoteControlRouting extends RoutingContextImpl {
 
-      public RemoteControlRouting(Transaction transaction) {
+      RemoteControlRouting(Transaction transaction) {
          super(transaction);
-      }
-
-      public RemoteControlRouting(Transaction transaction, Executor executor) {
-         super(transaction, executor);
       }
 
       @Override
