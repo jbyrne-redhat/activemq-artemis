@@ -657,9 +657,16 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
             } else if (DeliveryAnnotations.class.equals(constructor.getTypeClass())) {
                // Don't decode these as they are not used by the broker at all and are
                // discarded on send, mark for lazy decode if ever needed.
-               this.deliveryAnnotations = (DeliveryAnnotations) constructor.readValue();
-               deliveryAnnotationsPosition = constructorPos;
-               encodedDeliveryAnnotationsSize = data.position() - constructorPos;
+               try {
+                  this.deliveryAnnotations = (DeliveryAnnotations) constructor.readValue();
+                  deliveryAnnotationsPosition = constructorPos;
+                  encodedDeliveryAnnotationsSize = data.position() - constructorPos;
+               } catch (Exception e) {
+                  e.printStackTrace();
+                  data.position(constructorPos);
+                  constructor.skipValue();
+                  encodedDeliveryAnnotationsSize = data.position() - constructorPos;
+               }
             } else if (MessageAnnotations.class.equals(constructor.getTypeClass())) {
                messageAnnotationsPosition = constructorPos;
                messageAnnotations = (MessageAnnotations) constructor.readValue();
@@ -729,7 +736,7 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
 
       DeliveryAnnotations deliveryAnnotations;
 
-      if (reference.getProtocolData() != null && reference.getProtocolData() instanceof DeliveryAnnotations) {
+      if (reference != null && reference.getProtocolData() != null && reference.getProtocolData() instanceof DeliveryAnnotations) {
          deliveryAnnotations = (DeliveryAnnotations) reference.getProtocolData();
       } else {
          deliveryAnnotations = null;

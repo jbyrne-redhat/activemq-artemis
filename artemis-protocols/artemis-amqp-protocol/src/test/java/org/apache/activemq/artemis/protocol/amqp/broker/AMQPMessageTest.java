@@ -1612,6 +1612,7 @@ public class AMQPMessageTest {
       try {
          message = new AMQPStandardMessage(0, readable, null, null);
       } catch (Exception decodeError) {
+         decodeError.printStackTrace();
          fail("Should not have encountered an exception on partial decode: " + decodeError.getMessage());
       }
 
