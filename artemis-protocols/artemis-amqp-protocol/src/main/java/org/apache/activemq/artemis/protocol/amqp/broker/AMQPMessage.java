@@ -658,11 +658,12 @@ public abstract class AMQPMessage extends RefCountMessage implements org.apache.
                // Don't decode these as they are not used by the broker at all and are
                // discarded on send, mark for lazy decode if ever needed.
                try {
-                  this.deliveryAnnotations = (DeliveryAnnotations) constructor.readValue();
                   deliveryAnnotationsPosition = constructorPos;
+                  this.deliveryAnnotations = (DeliveryAnnotations) constructor.readValue();
                   encodedDeliveryAnnotationsSize = data.position() - constructorPos;
                } catch (Exception e) {
-                  e.printStackTrace();
+                  // mal formed delivery annotation, we will just skip it then
+                  logger.debug(e.getMessage(), e);
                   data.position(constructorPos);
                   constructor.skipValue();
                   encodedDeliveryAnnotationsSize = data.position() - constructorPos;
