@@ -64,12 +64,26 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
    }
    @Test
    public void testReplicaWithPushLargeMessages() throws Exception {
-      replicaTest(true, true, true);
+      replicaTest(true, true, true, false, false);
    }
 
    @Test
+   public void testReplicaWithPushLargeMessagesPagingEverywhere() throws Exception {
+      replicaTest(true, true, true, true, true);
+   }
+   @Test
    public void testReplicaWithPush() throws Exception {
-      replicaTest(true, false, true);
+      replicaTest(true, false, true, false, false);
+   }
+
+   @Test
+   public void testReplicaWithPushPagedTarget() throws Exception {
+      replicaTest(true, false, true, true, false);
+   }
+
+   @Test
+   public void testReplicaWithPushPagingEverywhere() throws Exception {
+      replicaTest(true, false, true, true, true);
    }
 
    private String getText(boolean large, int i) {
@@ -84,7 +98,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       }
    }
 
-   private void replicaTest(boolean push, boolean largeMessage, boolean acks) throws Exception {
+   private void replicaTest(boolean push, boolean largeMessage, boolean acks, boolean pagingTarget, boolean pagingSource) throws Exception {
       server.setIdentity("targetServer");
       //server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
@@ -112,36 +126,61 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
       MessageProducer producer = session.createProducer(session.createQueue("TEST"));
       producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+
+      Queue queueOnServer1 = locateQueue(server, "TEST");
+
+      if (pagingTarget) {
+         queueOnServer1.getPagingStore().startPaging();
+      }
+
       for (int i = 0; i < NUMBER_OF_MESSAGES; i++) {
          Message message = session.createTextMessage(getText(largeMessage, i));
          message.setIntProperty("i", i);
          producer.send(message);
       }
 
-      // Now we need to stop the server, and make it activate
 
+      Wait.assertEquals(NUMBER_OF_MESSAGES, queueOnServer1::getMessageCount);
+
+      if (pagingTarget) {
+         assertTrue(queueOnServer1.getPagingStore().isPaging());
+      }
 
       if (acks) {
          consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES / 2 - 1, AMQP_PORT_2, false);
-         Queue queue = server.locateQueue("TEST");
          // Replica is async, so we need to wait acks to arrive before we finish consuming there
-         Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue::getMessageCount);
+         Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queueOnServer1::getMessageCount);
          consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true); // We consume on both servers as this is currently replicated
       }
    }
 
+   @Test
+   public void testDualStandard() throws Exception {
+      dualReplica(false, false, false);
+   }
 
    @Test
-   public void testDualRegular() throws Exception {
-      dualReplica(false);
+   public void testDualRegularPagedTargets() throws Exception {
+      dualReplica(false, false, true);
+   }
+
+   @Test
+   public void testDualRegularPagedEverything() throws Exception {
+      dualReplica(false, true, true);
    }
 
    @Test
    public void testDualRegularLarge() throws Exception {
-      dualReplica(true);
+      dualReplica(true, false, false);
    }
 
-   private void dualReplica(boolean largeMessage) throws Exception {
+   public Queue locateQueue(ActiveMQServer server, String queueName) throws Exception {
+      Wait.waitFor(() -> server.locateQueue(queueName) != null);
+      return server.locateQueue(queueName);
+   }
+
+
+   private void dualReplica(boolean largeMessage, boolean pagingSource, boolean pagingTarget) throws Exception {
       server.setIdentity("server_1");
       //server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
@@ -179,18 +218,39 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
       MessageProducer producer = session.createProducer(session.createQueue("TEST"));
       producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+
+      Queue queue_server_2 = locateQueue(server_2, "TEST");
+      Queue queue_server_1 = locateQueue(server, "TEST");
+      Queue queue_server_3 = locateQueue(server_3, "TEST");
+
+      if (pagingSource) {
+         queue_server_2.getPagingStore().startPaging();
+      }
+
+      if (pagingTarget) {
+         queue_server_1.getPagingStore().startPaging();
+         queue_server_3.getPagingStore().startPaging();
+      }
+
       for (int i = 0; i < NUMBER_OF_MESSAGES; i++) {
          Message message = session.createTextMessage(getText(largeMessage, i));
          message.setIntProperty("i", i);
          producer.send(message);
       }
 
-      Queue queue_server_2 = server_2.locateQueue("TEST");
-      Queue queue_server_1 = server.locateQueue("TEST");
-      Queue queue_server_3 = server_3.locateQueue("TEST");
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_2::getMessageCount);
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_3::getMessageCount);
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_1::getMessageCount);
+
+
+      if (pagingTarget) {
+         Assert.assertTrue(queue_server_1.getPagingStore().isPaging());
+         Assert.assertTrue(queue_server_3.getPagingStore().isPaging());
+      }
+
+      if (pagingSource) {
+         Assert.assertTrue(queue_server_2.getPagingStore().isPaging());
+      }
 
       consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES / 2 - 1, AMQP_PORT_2, false);
 
