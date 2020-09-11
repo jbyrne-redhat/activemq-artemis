@@ -40,7 +40,7 @@ public class AdressInfoJSonTest {
       Assert.assertEquals(info.toString(), newInfo.toString());
       Assert.assertEquals(info.getRoutingType(), newInfo.getRoutingType());
 
-      info.addRoutingType(RoutingType.MULTICAST);
+      info.addRoutingType(RoutingType.ANYCAST);
 
       newInfo = AddressInfo.fromJSON(info.toJSON());
       Assert.assertEquals(info.toString(), newInfo.toString());
