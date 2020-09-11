@@ -807,8 +807,6 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
             server.callBrokerAddressPlugins(plugin -> plugin.beforeRemoveAddress(address));
          }
 
-
-
          final Collection<Binding> bindingsForAddress = getDirectBindings(address);
          if (force) {
             for (Binding binding : bindingsForAddress) {

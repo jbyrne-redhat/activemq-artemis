@@ -2938,7 +2938,6 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          memoryManager.start();
       }
 
-
       // Create the hard-wired components
 
       callPreActiveCallbacks();

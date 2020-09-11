@@ -157,9 +157,7 @@ public class AddressInfo {
       if (routingType != null) {
          if (routingTypes == null || routingTypes.isEmpty()) {
             routingTypes = EnumSet.of(routingType);
-            if (firstSeen != null) {
-               firstSeen = routingType;
-            }
+            firstSeen = routingType;
          } else {
             routingTypes.add(routingType);
          }
