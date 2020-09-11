@@ -254,6 +254,8 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
          throw new ActiveMQAMQPResourceLimitExceededException(e1.getMessage());
       } catch (ActiveMQSecurityException e) {
          throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.securityErrorCreatingConsumer(e.getMessage());
+      } catch (ActiveMQAMQPNotFoundException e) {
+         throw e;
       } catch (Exception e) {
          throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.errorCreatingConsumer(e.getMessage());
       }
