@@ -19,8 +19,6 @@ package org.apache.activemq.artemis.protocol.amqp.proton;
 import org.apache.activemq.artemis.core.server.Consumer;
 
 public interface SenderInitializer {
-   boolean isPresettle();
-
    Consumer init(ProtonServerSenderContext senderContext) throws Exception;
    void close() throws Exception;
 }

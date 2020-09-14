@@ -282,11 +282,6 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
       }
 
       @Override
-      public boolean isPresettle() {
-         return false;
-      }
-
-      @Override
       public Consumer init(ProtonServerSenderContext senderContext) throws Exception {
          SimpleString queue = binding.getQueue().getName();
          return (Consumer) sessionSPI.createSender(senderContext, queue, null, false);

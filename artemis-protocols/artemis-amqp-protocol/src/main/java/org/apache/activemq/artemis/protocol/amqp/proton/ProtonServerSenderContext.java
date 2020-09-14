@@ -244,7 +244,7 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
       super.initialize();
 
       if (initializer == null) {
-         initializer = new DefaultInitializer(sender, sessionSPI);
+         initializer = new DefaultInitializer(sessionSPI);
       }
 
       try {
@@ -826,7 +826,6 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
 
    class DefaultInitializer implements SenderInitializer {
 
-      final Sender sender;
 
       private boolean shared = false;
       boolean global = false;
@@ -840,17 +839,10 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
       private RoutingType routingTypeToUse = RoutingType.ANYCAST;
 
       private boolean isVolatile = false;
-      private boolean preSettle;
 
-      DefaultInitializer(Sender sender, AMQPSessionCallback sessionSPI) {
-         this.sender = sender;
+      DefaultInitializer(AMQPSessionCallback sessionSPI) {
          this.sessionSPI = sessionSPI;
 
-      }
-
-      @Override
-      public boolean isPresettle() {
-         return this.preSettle;
       }
 
       @Override
