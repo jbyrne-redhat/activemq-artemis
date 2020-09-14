@@ -257,6 +257,7 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
       } catch (ActiveMQAMQPNotFoundException e) {
          throw e;
       } catch (Exception e) {
+         log.warn(e.getMessage(), e);
          throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.errorCreatingConsumer(e.getMessage());
       }
    }
@@ -825,7 +826,6 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
 
    class DefaultInitializer implements SenderInitializer {
 
-      AMQPConnectionContext connection;
       final Sender sender;
 
       private boolean shared = false;
