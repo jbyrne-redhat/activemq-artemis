@@ -75,7 +75,7 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
       }
 
 
-      NettyConnectorFactory factory = new NettyConnectorFactory();
+      NettyConnectorFactory factory = new NettyConnectorFactory().setServerConnector(true);
       protonProtocolManager = (ProtonProtocolManager)protonProtocolManagerFactory.createProtocolManager(server, null, null, null);
       NettyConnector bridgesConnector = (NettyConnector)factory.createConnector(null, null, this, server.getExecutorFactory().getExecutor(), server.getThreadPool(), server.getScheduledPool(), new ClientProtocolManagerWithAMQP(protonProtocolManager));
       bridgesConnector.start();

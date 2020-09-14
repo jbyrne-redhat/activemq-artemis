@@ -174,6 +174,8 @@ public class NettyConnector extends AbstractConnector {
 
    // Attributes ----------------------------------------------------
 
+   private final boolean serverConnection;
+
    private Class<? extends Channel> channelClazz;
 
    private Bootstrap bootstrap;
@@ -316,7 +318,19 @@ public class NettyConnector extends AbstractConnector {
                          final Executor threadPool,
                          final ScheduledExecutorService scheduledThreadPool,
                          final ClientProtocolManager protocolManager) {
+      this(configuration, handler, listener, closeExecutor, threadPool, scheduledThreadPool, protocolManager, false);
+   }
+   public NettyConnector(final Map<String, Object> configuration,
+                         final BufferHandler handler,
+                         final BaseConnectionLifeCycleListener<?> listener,
+                         final Executor closeExecutor,
+                         final Executor threadPool,
+                         final ScheduledExecutorService scheduledThreadPool,
+                         final ClientProtocolManager protocolManager,
+                         final boolean serverConnection) {
       super(configuration);
+
+      this.serverConnection = serverConnection;
 
       this.protocolManager = protocolManager;
 
@@ -324,13 +338,9 @@ public class NettyConnector extends AbstractConnector {
          throw ActiveMQClientMessageBundle.BUNDLE.nullListener();
       }
 
-      /**
-       * // Original the handler could not be null on Core Protocol
-       * // however this component is now being reused by AMQP Bridge
-       * // where the connection will initialize a different handler on every new connection.
-       if (handler == null) {
+      if (!serverConnection && handler == null) {
          throw ActiveMQClientMessageBundle.BUNDLE.nullHandler();
-      } **/
+      }
 
       this.listener = listener;
 
@@ -466,6 +476,10 @@ public class NettyConnector extends AbstractConnector {
 
    public ChannelGroup getChannelGroup() {
       return channelGroup;
+   }
+
+   public boolean isServerConnection() {
+      return serverConnection;
    }
 
    private String getHttpUpgradeInfo() {
@@ -930,7 +944,13 @@ public class NettyConnector extends AbstractConnector {
             ActiveMQChannelHandler channelHandler = channelPipeline.get(ActiveMQChannelHandler.class);
             if (channelHandler != null) {
                channelHandler.active = true;
-            } // there used to be an else condition here, throwing an exception. However this is not being used to make AMQP server connctions, and this can be actually true now
+            } else if (!serverConnection) {
+               ch.close().awaitUninterruptibly();
+               ActiveMQClientLogger.LOGGER.errorCreatingNettyConnection(
+                  new IllegalStateException("No ActiveMQChannelHandler has been found while connecting to " +
+                                               remoteDestination + " from Channel with id = " + ch.id()));
+               return null;
+            }
          }
 
          // No acceptor on a client connection
