@@ -317,7 +317,7 @@ public class AMQConsumer {
          removeReferences = false;
       }
 
-      List<MessageReference> ackList = serverConsumer.scanDeliveringReferences(removeReferences, reference -> startID.equals(reference), reference -> lastID.equals(reference));
+      List<MessageReference> ackList = serverConsumer.scanDeliveringReferences(removeReferences, reference -> startID.equals(reference.getProtocolData()), reference -> lastID.equals(reference.getProtocolData()));
 
       if (removeReferences && (ack.isIndividualAck() || ack.isStandardAck() || ack.isPoisonAck())) {
          if (deliveredAcks < ackList.size()) {
