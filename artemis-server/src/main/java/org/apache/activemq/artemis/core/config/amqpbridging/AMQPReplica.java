@@ -22,9 +22,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 
 public class AMQPReplica implements Serializable {
 
-   final SimpleString address;
-
-   final SimpleString subscription;
+   final SimpleString snfQueue;
 
    /** if true, this server will push replication towards another server.
     *  if false, this server will pull replication from another server.
@@ -32,30 +30,25 @@ public class AMQPReplica implements Serializable {
     *  it's basically the direction where it's flowing. */
    final boolean push;
 
-   public AMQPReplica(SimpleString address, SimpleString subscription, boolean push) {
-      this.address = address;
-      this.subscription = subscription;
+   public AMQPReplica(SimpleString snfQueue, boolean push) {
+      this.snfQueue = snfQueue;
       this.push = push;
    }
 
-   public AMQPReplica(String address, String subscription, boolean push) {
-      this(SimpleString.toSimpleString(address), SimpleString.toSimpleString(subscription), push);
-   }
-
-   public SimpleString getAddress() {
-      return address;
-   }
-
-   public SimpleString getSubscription() {
-      return subscription;
+   public AMQPReplica(String snfQueue, boolean push) {
+      this(SimpleString.toSimpleString(snfQueue),  push);
    }
 
    public boolean isPush() {
       return push;
    }
 
+   public SimpleString getSnfQueue() {
+      return snfQueue;
+   }
+
    @Override
    public String toString() {
-      return "AMQPReplica{" + "address=" + address + ", subscription=" + subscription + ", push=" + push + '}';
+      return "AMQPReplica{" + "snfQueue=" + snfQueue + ", push=" + push + '}';
    }
 }

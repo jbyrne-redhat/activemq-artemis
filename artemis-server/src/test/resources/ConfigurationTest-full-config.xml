@@ -376,7 +376,7 @@
          <amqp-connection uri="tcp://test1:111" name="test1">
             <address match="TEST" push="false" pull="false" interconnect="true"/>
             <address match="TEST2" push="false" pull="false" interconnect="true"/>
-            <replica address="REPLICA" subscription="SUBSCRIPTION" push="true"/>
+            <replica snfqueue="REPLICA" push="true"/>
          </amqp-connection>
          <amqp-connection uri="tcp://test2:222" name="test2">
             <address match="TEST"/>

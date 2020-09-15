@@ -112,7 +112,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
       if (push) {
          AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-         amqpConnection.setReplica(new AMQPReplica("REPLICA", "SUBSCRIPTION_ON_SERVER", true));
+         amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
          server_2.getConfiguration().addAMQPConnection(amqpConnection);
       }
 
@@ -201,11 +201,11 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection1 = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection1.setReplica(new AMQPReplica("REPLICA", "SUBSCRIPTION_ON_SERVER", true));
+      amqpConnection1.setReplica(new AMQPReplica("REPLICA1", true));
       server_2.getConfiguration().addAMQPConnection(amqpConnection1);
 
       AMQPConnectConfiguration amqpConnection3 = new AMQPConnectConfiguration("test2", "tcp://localhost:" + AMQP_PORT_3);
-      amqpConnection3.setReplica(new AMQPReplica("REPLICA3", "SUBSCRIPTION_ON_SERVER_3", true));
+      amqpConnection3.setReplica(new AMQPReplica("REPLICA2", true));
       server_2.getConfiguration().addAMQPConnection(amqpConnection3);
 
       int NUMBER_OF_MESSAGES = 200;

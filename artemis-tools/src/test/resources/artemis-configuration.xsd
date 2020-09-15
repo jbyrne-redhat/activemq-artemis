@@ -2047,17 +2047,10 @@
    </xsd:complexType>
 
    <xsd:complexType name="amqp-replica-type">
-      <xsd:attribute name="address" type="xsd:string" use="required">
+      <xsd:attribute name="snfqueue" type="xsd:string" use="required">
          <xsd:annotation>
             <xsd:documentation>
-               Name of the address used for replication
-            </xsd:documentation>
-         </xsd:annotation>
-      </xsd:attribute>
-      <xsd:attribute name="subscription" type="xsd:string" use="required">
-         <xsd:annotation>
-            <xsd:documentation>
-               Name of the subscription used to store and forward
+               Name of the Anycast Queue (and address) used for replication
             </xsd:documentation>
          </xsd:annotation>
       </xsd:attribute>

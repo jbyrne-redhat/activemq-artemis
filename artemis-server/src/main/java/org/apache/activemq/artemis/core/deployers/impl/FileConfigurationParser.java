@@ -1904,11 +1904,10 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       for (int i = 0; i < addressesList.getLength(); i++) {
          Element e2 = (Element)addressesList.item(i);
 
-         String address = e2.getAttribute("address");
-         String subscription = e2.getAttribute("subscription");
+         String snfQueue = e2.getAttribute("snfQueue");
          boolean pushing = Boolean.valueOf(e2.getAttribute("push"));
 
-         AMQPReplica replica = new AMQPReplica(SimpleString.toSimpleString(address), SimpleString.toSimpleString(subscription), pushing);
+         AMQPReplica replica = new AMQPReplica(SimpleString.toSimpleString(snfQueue), pushing);
          config.setReplica(replica);
       }
 

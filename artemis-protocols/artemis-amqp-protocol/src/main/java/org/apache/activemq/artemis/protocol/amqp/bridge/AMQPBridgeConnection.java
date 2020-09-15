@@ -158,15 +158,15 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
    }
 
    private void configurePushReplica(AMQPReplica replicaConfig) throws Exception {
-      AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getAddress());
+      AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getSnfQueue());
       if (addressInfo == null) {
-         addressInfo = new AddressInfo(replicaConfig.getAddress()).addRoutingType(RoutingType.MULTICAST);
+         addressInfo = new AddressInfo(replicaConfig.getSnfQueue()).addRoutingType(RoutingType.ANYCAST);
       }
 
-      server.createQueue(new QueueConfiguration(replicaConfig.getSubscription()).setAddress(replicaConfig.getAddress()).setRoutingType(RoutingType.MULTICAST), true);
+      server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST), true);
 
 
-      QueueBinding queueBinding = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSubscription());
+      QueueBinding queueBinding = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
       if (queueBinding == null) {
          logger.warn("Queue does not exist even after creation! " + replicaConfig);
          return;
@@ -174,14 +174,14 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
 
       Queue queue = queueBinding.getQueue();
 
-      if (!queue.getAddress().equals(replicaConfig.getAddress())) {
+      if (!queue.getAddress().equals(replicaConfig.getSnfQueue())) {
          logger.warn("Queue " + queue + " belong to a different address (" + queue.getAddress() + "), while we expected it to be " + addressInfo.getName());
          return;
       }
 
       connectOutbound(queueBinding, REPLICA_TARGET_SYMBOL);
 
-      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(replicaConfig.getAddress(), server);
+      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(replicaConfig.getSnfQueue(), server);
 
       RemoteControl currentRemoteControl = server.getRemoteControl();
 
