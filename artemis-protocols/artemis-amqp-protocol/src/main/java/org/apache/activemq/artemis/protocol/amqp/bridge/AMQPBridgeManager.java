@@ -84,15 +84,15 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
 
 
       for (AMQPConnectConfiguration config : amqpConnectionsConfig) {
-         AMQPBridgeConnection bridgeConnection = new AMQPBridgeConnection(config, protonProtocolManager, server, bridgesConnector);
+         AMQPBridgeConnection bridgeConnection = new AMQPBridgeConnection(this, config, protonProtocolManager, server, bridgesConnector);
          amqpBridgeConnections.add(bridgeConnection);
-         NettyConnection nettyConnection = bridgeConnection.connect();
-         if (nettyConnection == null) {
-            reconnectBridge(bridgeConnection);
-         } else {
-            amqpBridgeConnectionsMap.put(nettyConnection.getID(), bridgeConnection);
-         }
+         bridgeConnection.connect();
       }
+   }
+
+   public void connected(NettyConnection nettyConnection, AMQPBridgeConnection bridgeConnection) {
+      // TODO: I don't know if I need this
+      // amqpBridgeConnectionsMap.put(nettyConnection.getID(), bridgeConnection);
    }
 
    @Override
@@ -111,11 +111,6 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
    public void connectionCreated(ActiveMQComponent component, Connection connection, ClientProtocolManager protocol) {
       // reset connection retry counts
 
-   }
-
-
-   public void reconnectBridge(AMQPBridgeConnection bridgeConnection) {
-      // todo implement reconnection on this
    }
 
 

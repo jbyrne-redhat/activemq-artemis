@@ -20,6 +20,9 @@ package org.apache.activemq.artemis.protocol.amqp.bridge;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
@@ -74,19 +77,45 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
    AMQPSessionContext sessionContext;
    ActiveMQProtonRemotingConnection protonRemotingConnection;
    private volatile boolean started = false;
+   private final AMQPBridgeManager bridgeManager;
+   QueueBinding snfReplicaQueue;
 
-   public AMQPBridgeConnection(AMQPConnectConfiguration amqpConfiguration,
+   final Executor connectExecutor;
+   final ScheduledExecutorService scheduledExecutorService;
+
+   public AMQPBridgeConnection(AMQPBridgeManager bridgeManager, AMQPConnectConfiguration amqpConfiguration,
                                ProtonProtocolManager protonProtocolManager,
                                ActiveMQServer server,
                                NettyConnector bridgesConnector) {
+      this.bridgeManager = bridgeManager;
       this.amqpConfiguration = amqpConfiguration;
       this.protonProtocolManager = protonProtocolManager;
       this.server = server;
       this.bridgesConnector = bridgesConnector;
+      connectExecutor = server.getExecutorFactory().getExecutor();
+      scheduledExecutorService = server.getScheduledPool();
    }
 
-   public NettyConnection connect() throws Exception {
 
+   public void connect() throws Exception {
+
+      try {
+
+         if (amqpConfiguration.getReplica() != null) {
+            if (!amqpConfiguration.getReplica().isPush()) {
+               logger.warn("Replica pull is not implemented yet");
+            } else {
+               snfReplicaQueue = installRemoteControl(amqpConfiguration.getReplica());
+            }
+         }
+      } catch (Throwable e) {
+         logger.warn(e.getMessage(), e);
+         return;
+      }
+      connectExecutor.execute(() -> doConnect());
+   }
+
+   private void doConnect() {
       try {
          List<TransportConfiguration> configurationList = amqpConfiguration.getTransportConfigurations();
 
@@ -99,9 +128,7 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
          connection = bridgesConnector.createConnection(null, host, port);
 
          if (connection == null) {
-            logger.warn("\n*******************************************************************************************************************************\n" +
-                        "AMQPBridgeConnect Cannot connect towards " + host + " :: " + port + "\n" +
-                        "*******************************************************************************************************************************");
+            logger.warn("\n*******************************************************************************************************************************\n" + "AMQPBridgeConnect Cannot connect towards " + host + " :: " + port + "\n" + "*******************************************************************************************************************************");
          }
 
          ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection);
@@ -141,23 +168,23 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
             }
          }
 
-         if (amqpConfiguration.getReplica() != null) {
-            if (!amqpConfiguration.getReplica().isPush()) {
-               logger.warn("Replica pull is not implemented yet");
-            } else {
-               configurePushReplica(amqpConfiguration.getReplica());
-            }
+         if (snfReplicaQueue != null) {
+            connectOutbound(snfReplicaQueue, REPLICA_TARGET_SYMBOL);
          }
 
          protonRemotingConnection.getAmqpConnection().flush();
-         return connection;
       } catch (Throwable e) {
-         error(e);
-         return null;
+         logger.warn(e.getMessage());
+         retryConnection();
       }
    }
 
-   private void configurePushReplica(AMQPReplica replicaConfig) throws Exception {
+   public void retryConnection() {
+      new Exception ("Retrying the connection in 30 seconds");
+      scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), 30, TimeUnit.SECONDS);
+   }
+
+   private QueueBinding installRemoteControl(AMQPReplica replicaConfig) throws Exception {
       AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getSnfQueue());
       if (addressInfo == null) {
          addressInfo = new AddressInfo(replicaConfig.getSnfQueue()).addRoutingType(RoutingType.ANYCAST);
@@ -166,20 +193,18 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
       server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST), true);
 
 
-      QueueBinding queueBinding = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
-      if (queueBinding == null) {
+      QueueBinding snfReplicaQueue = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
+      if (snfReplicaQueue == null) {
          logger.warn("Queue does not exist even after creation! " + replicaConfig);
-         return;
+         throw new IllegalAccessException("Cannot start replica");
       }
 
-      Queue queue = queueBinding.getQueue();
+      Queue queue = snfReplicaQueue.getQueue();
 
       if (!queue.getAddress().equals(replicaConfig.getSnfQueue())) {
          logger.warn("Queue " + queue + " belong to a different address (" + queue.getAddress() + "), while we expected it to be " + addressInfo.getName());
-         return;
+         throw new IllegalAccessException("Cannot start replica");
       }
-
-      connectOutbound(queueBinding, REPLICA_TARGET_SYMBOL);
 
       AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(replicaConfig.getSnfQueue(), server);
 
@@ -199,7 +224,7 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
          ((AMQPRemoteControlsAggregation)currentRemoteControl).addPartition(newPartition);
       }
 
-      // TODO call server to send current copy of existent queues and addresses
+      return snfReplicaQueue;
    }
 
    private void connectInbound(ActiveMQProtonRemotingConnection protonRemotingConnection,
