@@ -250,11 +250,7 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
       try {
          brokerConsumer = initializer.init(this);
          onflowControlReady = brokerConsumer::promptDelivery;
-      } catch (ActiveMQAMQPResourceLimitExceededException e1) {
-         throw new ActiveMQAMQPResourceLimitExceededException(e1.getMessage());
-      } catch (ActiveMQSecurityException e) {
-         throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.securityErrorCreatingConsumer(e.getMessage());
-      } catch (ActiveMQAMQPNotFoundException e) {
+      } catch (ActiveMQException e) {
          throw e;
       } catch (Exception e) {
          log.warn(e.getMessage(), e);
