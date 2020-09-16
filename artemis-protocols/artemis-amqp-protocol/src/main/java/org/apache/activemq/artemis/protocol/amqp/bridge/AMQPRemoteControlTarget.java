@@ -38,6 +38,7 @@ import org.apache.activemq.artemis.protocol.amqp.proton.AMQPSessionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.ProtonAbstractReceiver;
 import org.apache.activemq.artemis.utils.collections.IDSupplier;
 import org.apache.qpid.proton.amqp.Symbol;
+import org.apache.qpid.proton.amqp.messaging.Accepted;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.DeliveryAnnotations;
 import org.apache.qpid.proton.amqp.transport.ReceiverSettleMode;
@@ -119,6 +120,7 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
          logger.warn(e.getMessage(), e);
       } finally {
          try {
+            delivery.disposition(Accepted.getInstance());
             settle(delivery);
             connection.flush();
          } catch (Throwable e) {

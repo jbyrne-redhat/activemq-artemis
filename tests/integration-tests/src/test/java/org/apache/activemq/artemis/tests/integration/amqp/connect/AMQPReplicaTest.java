@@ -140,6 +140,13 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       }
 
 
+      Queue snfreplica = server_2.locateQueue("SNFREPLICA");
+
+      Assert.assertNotNull(snfreplica);
+
+      Wait.assertEquals(0, snfreplica::getMessageCount);
+
+
       Wait.assertEquals(NUMBER_OF_MESSAGES, queueOnServer1::getMessageCount);
 
       if (pagingTarget) {

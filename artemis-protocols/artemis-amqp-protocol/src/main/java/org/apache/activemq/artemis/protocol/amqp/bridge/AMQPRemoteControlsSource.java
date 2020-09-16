@@ -158,8 +158,10 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) throws Exception {
-      Message message = createMessage(sourceAddress.toString(), ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
-      route(server, message);
+      if (!ref.getQueue().getAddress().equals(sourceAddress)) { // we don't call postACK on the actual queue, otherwise we get infinite repetitions
+         Message message = createMessage(sourceAddress.toString(), ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
+         route(server, message);
+      }
    }
 
    public static Message createMessage(String to, SimpleString address, SimpleString queue, Object event, Object body) {

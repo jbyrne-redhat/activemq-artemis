@@ -34,6 +34,7 @@ import org.apache.activemq.artemis.core.config.CoreAddressConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddress;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
+import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.tests.integration.amqp.AmqpClientTestSupport;
 import org.apache.activemq.artemis.tests.util.CFUtil;
@@ -96,6 +97,10 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
             producer.send(session.createMessage());
          }
       }
+
+      Queue testQueueOnServer2 = server_2.locateQueue("TEST");
+      Assert.assertNotNull(testQueueOnServer2);
+      Wait.assertEquals(0, testQueueOnServer2::getMessageCount);
 
       ConnectionFactory factory2 = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + AMQP_PORT);
       Connection connection2 = factory2.createConnection();
