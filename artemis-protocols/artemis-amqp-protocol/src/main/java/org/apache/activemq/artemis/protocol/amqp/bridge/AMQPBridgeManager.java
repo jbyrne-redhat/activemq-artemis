@@ -19,8 +19,6 @@ package org.apache.activemq.artemis.protocol.amqp.bridge;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
 
@@ -59,7 +57,6 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
 
    List<AMQPConnectConfiguration> amqpConnectionsConfig;
    List<AMQPBridgeConnection> amqpBridgeConnections;
-   final Map<Object, AMQPBridgeConnection> amqpBridgeConnectionsMap = new ConcurrentHashMap<>();
    ProtonProtocolManager protonProtocolManager;
 
    public AMQPBridgeManager(ProtonProtocolManagerFactory factory, List<AMQPConnectConfiguration> amqpConnectionsConfig, ActiveMQServer server) {
@@ -116,19 +113,30 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
 
    @Override
    public void connectionDestroyed(Object connectionID) {
-      System.out.println("connection destroyed");
+      for (AMQPBridgeConnection connection : amqpBridgeConnections) {
+         if (connection.getConnection().getID().equals(connectionID)) {
+            connection.connectionDestroyed(connectionID);
+         }
+      }
    }
 
    @Override
    public void connectionException(Object connectionID, ActiveMQException me) {
-      me.printStackTrace();
-      // TODO: retry connection
+      for (AMQPBridgeConnection connection : amqpBridgeConnections) {
+         if (connection.getConnection().getID().equals(connectionID)) {
+            connection.connectionException(connectionID, me);
+         }
+      }
 
    }
 
    @Override
    public void connectionReadyForWrites(Object connectionID, boolean ready) {
-
+      for (AMQPBridgeConnection connection : amqpBridgeConnections) {
+         if (connection.getConnection().getID().equals(connectionID)) {
+            connection.connectionReadyForWrites(connectionID, ready);
+         }
+      }
    }
 
    /** The Client Protocol Manager is used for Core Clients.

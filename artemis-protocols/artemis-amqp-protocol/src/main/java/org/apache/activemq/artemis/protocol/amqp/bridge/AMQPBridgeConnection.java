@@ -115,6 +115,10 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
       connectExecutor.execute(() -> doConnect());
    }
 
+   public NettyConnection getConnection() {
+      return connection;
+   }
+
    private void doConnect() {
       try {
          System.out.println("Trying to reconnect");
@@ -178,9 +182,11 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
          }
 
          protonRemotingConnection.getAmqpConnection().flush();
+
+         bridgeManager.connected(connection, this);
       } catch (Throwable e) {
          logger.warn(e.getMessage());
-         retryConnection();
+         redoConnection();
       }
    }
 
@@ -344,11 +350,15 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
    }
 
    private void redoConnection() {
+      System.out.println("closing connection");
       try {
-         connection.close();
+         if (connection != null) {
+            connection.close();
+         }
       } catch (Throwable e) {
          logger.warn(e.getMessage(), e);
       }
+      System.out.println("connection closed going to retry now");
 
       retryConnection();
 
@@ -356,7 +366,7 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
 
    @Override
    public void connectionReadyForWrites(Object connectionID, boolean ready) {
-
+      protonRemotingConnection.flush();
    }
 
    private static class PlainSASLMechanism implements ClientSASL {
