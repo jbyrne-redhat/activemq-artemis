@@ -117,6 +117,7 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
 
    private void doConnect() {
       try {
+         System.out.println("Trying to reconnect");
          List<TransportConfiguration> configurationList = amqpConfiguration.getTransportConfigurations();
 
          //AMQPBridgeManager.ClientProtocolManagerWithAMQP protonFacade = new AMQPBridgeManager.ClientProtocolManagerWithAMQP(protonProtocolManager);
@@ -129,7 +130,11 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
 
          if (connection == null) {
             logger.warn("\n*******************************************************************************************************************************\n" + "AMQPBridgeConnect Cannot connect towards " + host + " :: " + port + "\n" + "*******************************************************************************************************************************");
+            retryConnection();
+            return;
          }
+
+         System.out.println("Connection succeeded");
 
          ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection);
          protonRemotingConnection = (ActiveMQProtonRemotingConnection) entry.connection;
@@ -180,8 +185,8 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
    }
 
    public void retryConnection() {
-      new Exception ("Retrying the connection in 30 seconds");
-      scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), 30, TimeUnit.SECONDS);
+      new Exception("Retrying the connection in 5 seconds").printStackTrace();
+      scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), 5, TimeUnit.SECONDS);
    }
 
    private QueueBinding installRemoteControl(AMQPReplica replicaConfig) throws Exception {
@@ -319,28 +324,33 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
    }
 
    public void disconnect() throws Exception {
-
-      // TODO remove from queues just like a connection close
-
+      redoConnection();
    }
 
    @Override
    public void connectionCreated(ActiveMQComponent component, Connection connection, ClientProtocolManager protocol) {
       System.out.println("Connection created on " + protonProtocolManager.getServer().getIdentity());
-
-      // reset connection retry counts
-
    }
 
    @Override
    public void connectionDestroyed(Object connectionID) {
       System.out.println("connection destroyed");
+      redoConnection();
    }
 
    @Override
    public void connectionException(Object connectionID, ActiveMQException me) {
-      me.printStackTrace();
-      // TODO: retry connection
+      redoConnection();
+   }
+
+   private void redoConnection() {
+      try {
+         connection.close();
+      } catch (Throwable e) {
+         logger.warn(e.getMessage(), e);
+      }
+
+      retryConnection();
 
    }
 

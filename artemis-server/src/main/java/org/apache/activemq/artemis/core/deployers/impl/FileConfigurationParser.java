@@ -1904,7 +1904,7 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       for (int i = 0; i < addressesList.getLength(); i++) {
          Element e2 = (Element)addressesList.item(i);
 
-         String snfQueue = e2.getAttribute("snfQueue");
+         String snfQueue = e2.getAttribute("snfqueue");
          boolean pushing = Boolean.valueOf(e2.getAttribute("push"));
 
          AMQPReplica replica = new AMQPReplica(SimpleString.toSimpleString(snfQueue), pushing);
