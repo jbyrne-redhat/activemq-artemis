@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.activemq.artemis.protocol.amqp.bridge;
+package org.apache.activemq.artemis.protocol.amqp.connect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,16 +50,16 @@ import org.apache.activemq.artemis.spi.core.remoting.TopologyResponseHandler;
  *
  * Dev: ClientProtocolManager on ProtocolManager
  */
-public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLifeCycleListener {
+public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientConnectionLifeCycleListener {
    private final ProtonProtocolManagerFactory protonProtocolManagerFactory;
    private final ActiveMQServer server;
    private volatile boolean started = false;
 
    List<AMQPConnectConfiguration> amqpConnectionsConfig;
-   List<AMQPBridgeConnection> amqpBridgeConnections;
+   List<AMQPOutgoingConnection> amqpOutgoingConnections;
    ProtonProtocolManager protonProtocolManager;
 
-   public AMQPBridgeManager(ProtonProtocolManagerFactory factory, List<AMQPConnectConfiguration> amqpConnectionsConfig, ActiveMQServer server) {
+   public AMQPOutgoingConnectionManager(ProtonProtocolManagerFactory factory, List<AMQPConnectConfiguration> amqpConnectionsConfig, ActiveMQServer server) {
       this.amqpConnectionsConfig = amqpConnectionsConfig;
       this.server = server;
       this.protonProtocolManagerFactory = factory;
@@ -77,17 +77,17 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
       NettyConnector bridgesConnector = (NettyConnector)factory.createConnector(null, null, this, server.getExecutorFactory().getExecutor(), server.getThreadPool(), server.getScheduledPool(), new ClientProtocolManagerWithAMQP(protonProtocolManager));
       bridgesConnector.start();
 
-      amqpBridgeConnections = new ArrayList<>();
+      amqpOutgoingConnections = new ArrayList<>();
 
 
       for (AMQPConnectConfiguration config : amqpConnectionsConfig) {
-         AMQPBridgeConnection bridgeConnection = new AMQPBridgeConnection(this, config, protonProtocolManager, server, bridgesConnector);
-         amqpBridgeConnections.add(bridgeConnection);
+         AMQPOutgoingConnection bridgeConnection = new AMQPOutgoingConnection(this, config, protonProtocolManager, server, bridgesConnector);
+         amqpOutgoingConnections.add(bridgeConnection);
          bridgeConnection.connect();
       }
    }
 
-   public void connected(NettyConnection nettyConnection, AMQPBridgeConnection bridgeConnection) {
+   public void connected(NettyConnection nettyConnection, AMQPOutgoingConnection bridgeConnection) {
       // TODO: I don't know if I need this
       // amqpBridgeConnectionsMap.put(nettyConnection.getID(), bridgeConnection);
    }
@@ -113,7 +113,7 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
 
    @Override
    public void connectionDestroyed(Object connectionID) {
-      for (AMQPBridgeConnection connection : amqpBridgeConnections) {
+      for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
          if (connection.getConnection().getID().equals(connectionID)) {
             connection.connectionDestroyed(connectionID);
          }
@@ -122,7 +122,7 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
 
    @Override
    public void connectionException(Object connectionID, ActiveMQException me) {
-      for (AMQPBridgeConnection connection : amqpBridgeConnections) {
+      for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
          if (connection.getConnection().getID().equals(connectionID)) {
             connection.connectionException(connectionID, me);
          }
@@ -132,7 +132,7 @@ public class AMQPBridgeManager implements ActiveMQComponent, ClientConnectionLif
 
    @Override
    public void connectionReadyForWrites(Object connectionID, boolean ready) {
-      for (AMQPBridgeConnection connection : amqpBridgeConnections) {
+      for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
          if (connection.getConnection().getID().equals(connectionID)) {
             connection.connectionReadyForWrites(connectionID, ready);
          }

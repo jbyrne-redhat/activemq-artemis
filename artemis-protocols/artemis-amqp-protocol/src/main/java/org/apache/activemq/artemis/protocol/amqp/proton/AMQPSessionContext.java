@@ -25,7 +25,7 @@ import org.apache.activemq.artemis.api.core.ActiveMQSecurityException;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ServerProducer;
 import org.apache.activemq.artemis.core.server.impl.ServerProducerImpl;
-import org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlTarget;
+import org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlTarget;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.client.ProtonClientSenderContext;
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPException;

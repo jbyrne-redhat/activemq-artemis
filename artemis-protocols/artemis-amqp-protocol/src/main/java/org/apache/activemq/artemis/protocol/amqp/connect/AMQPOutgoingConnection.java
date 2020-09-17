@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.activemq.artemis.protocol.amqp.bridge;
+package org.apache.activemq.artemis.protocol.amqp.connect;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -63,10 +63,10 @@ import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
 import org.jboss.logging.Logger;
 
-public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
+public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener {
 
    public static final Symbol REPLICA_TARGET_SYMBOL = Symbol.valueOf("_AMQ_REPLICA_TARGET");
-   private static final Logger logger = Logger.getLogger(AMQPBridgeConnection.class);
+   private static final Logger logger = Logger.getLogger(AMQPOutgoingConnection.class);
 
    private final AMQPConnectConfiguration amqpConfiguration;
    private final ProtonProtocolManager protonProtocolManager;
@@ -77,16 +77,16 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
    AMQPSessionContext sessionContext;
    ActiveMQProtonRemotingConnection protonRemotingConnection;
    private volatile boolean started = false;
-   private final AMQPBridgeManager bridgeManager;
+   private final AMQPOutgoingConnectionManager bridgeManager;
    QueueBinding snfReplicaQueue;
 
    final Executor connectExecutor;
    final ScheduledExecutorService scheduledExecutorService;
 
-   public AMQPBridgeConnection(AMQPBridgeManager bridgeManager, AMQPConnectConfiguration amqpConfiguration,
-                               ProtonProtocolManager protonProtocolManager,
-                               ActiveMQServer server,
-                               NettyConnector bridgesConnector) {
+   public AMQPOutgoingConnection(AMQPOutgoingConnectionManager bridgeManager, AMQPConnectConfiguration amqpConfiguration,
+                                 ProtonProtocolManager protonProtocolManager,
+                                 ActiveMQServer server,
+                                 NettyConnector bridgesConnector) {
       this.bridgeManager = bridgeManager;
       this.amqpConfiguration = amqpConfiguration;
       this.protonProtocolManager = protonProtocolManager;
@@ -142,7 +142,7 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
 
          ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection);
          protonRemotingConnection = (ActiveMQProtonRemotingConnection) entry.connection;
-         connection.getChannel().pipeline().addLast(new BridgeChannelHandler(bridgesConnector.getChannelGroup(), protonRemotingConnection.getAmqpConnection().getHandler()));
+         connection.getChannel().pipeline().addLast(new AMQPOutgoingChannelHandler(bridgesConnector.getChannelGroup(), protonRemotingConnection.getAmqpConnection().getHandler()));
 
          protonRemotingConnection.getAmqpConnection().runLater(() -> {
             protonRemotingConnection.getAmqpConnection().open();

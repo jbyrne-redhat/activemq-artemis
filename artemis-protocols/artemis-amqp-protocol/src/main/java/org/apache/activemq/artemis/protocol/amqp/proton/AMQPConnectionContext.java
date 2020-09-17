@@ -34,7 +34,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoop;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnection;
 import org.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants;
-import org.apache.activemq.artemis.protocol.amqp.bridge.AMQPBridgeConnection;
+import org.apache.activemq.artemis.protocol.amqp.connect.AMQPOutgoingConnection;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPConnectionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ProtonProtocolManager;
@@ -323,7 +323,7 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
    private boolean isReplicaTarget(Link link) {
       if (link.getRemoteDesiredCapabilities() != null) {
          for (Symbol symbol : link.getRemoteDesiredCapabilities()) {
-            if (symbol.equals(AMQPBridgeConnection.REPLICA_TARGET_SYMBOL)) {
+            if (symbol.equals(AMQPOutgoingConnection.REPLICA_TARGET_SYMBOL)) {
                return true;
             }
          }

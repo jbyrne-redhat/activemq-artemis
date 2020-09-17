@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.protocol.amqp.bridge;
+package org.apache.activemq.artemis.protocol.amqp.connect;
 
 import java.util.List;
 import java.util.Map;
@@ -46,15 +46,15 @@ import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.Receiver;
 import org.jboss.logging.Logger;
 
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.EVENT_TYPE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.POST_ACK;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.ADD_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.DELETE_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.CREATE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.DELETE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource.INTERNAL_ID;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.EVENT_TYPE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.POST_ACK;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADD_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.DELETE_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.CREATE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.DELETE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.INTERNAL_ID;
 
 public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements RemoteControl {
 

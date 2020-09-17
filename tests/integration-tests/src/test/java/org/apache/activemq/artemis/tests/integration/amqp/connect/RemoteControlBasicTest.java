@@ -34,7 +34,7 @@ import org.apache.activemq.artemis.core.config.Configuration;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ActiveMQServers;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
-import org.apache.activemq.artemis.protocol.amqp.bridge.AMQPRemoteControlsSource;
+import org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.tests.util.CFUtil;
 import org.apache.activemq.transport.amqp.client.AmqpClient;

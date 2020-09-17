@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.protocol.amqp.bridge;
+package org.apache.activemq.artemis.protocol.amqp.connect;
 
 import java.util.HashMap;
 import java.util.List;

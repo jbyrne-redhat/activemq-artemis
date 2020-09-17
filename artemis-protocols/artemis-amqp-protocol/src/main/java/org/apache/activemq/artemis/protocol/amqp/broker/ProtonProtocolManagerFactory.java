@@ -25,7 +25,7 @@ import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfigura
 import org.apache.activemq.artemis.core.persistence.Persister;
 import org.apache.activemq.artemis.core.server.ActiveMQComponent;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
-import org.apache.activemq.artemis.protocol.amqp.bridge.AMQPBridgeManager;
+import org.apache.activemq.artemis.protocol.amqp.connect.AMQPOutgoingConnectionManager;
 import org.apache.activemq.artemis.spi.core.protocol.AbstractProtocolManagerFactory;
 import org.apache.activemq.artemis.spi.core.protocol.ProtocolManager;
 import org.apache.activemq.artemis.spi.core.protocol.ProtocolManagerFactory;
@@ -80,7 +80,7 @@ public class ProtonProtocolManagerFactory extends AbstractProtocolManagerFactory
 
       List<AMQPConnectConfiguration> amqpServicesConfiguration = server.getConfiguration().getAMQPConnection();
       if (amqpServicesConfiguration != null && amqpServicesConfiguration.size() > 0) {
-         AMQPBridgeManager bridgeService = new AMQPBridgeManager(this, amqpServicesConfiguration, server);
+         AMQPOutgoingConnectionManager bridgeService = new AMQPOutgoingConnectionManager(this, amqpServicesConfiguration, server);
          services.add(bridgeService);
       }
 

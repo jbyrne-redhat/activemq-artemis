@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.protocol.amqp.bridge;
+package org.apache.activemq.artemis.protocol.amqp.connect;
 
 
 import io.netty.buffer.ByteBuf;
@@ -28,7 +28,7 @@ import org.apache.activemq.artemis.protocol.amqp.proton.handler.ProtonHandler;
 /**
  * Common handler implementation for client and server side handler.
  */
-public class BridgeChannelHandler extends ChannelDuplexHandler {
+public class AMQPOutgoingChannelHandler extends ChannelDuplexHandler {
 
    private final ChannelGroup group;
 
@@ -40,8 +40,8 @@ public class BridgeChannelHandler extends ChannelDuplexHandler {
 
    //private final Executor listenerExecutor;
 
-   protected BridgeChannelHandler(final ChannelGroup group,
-                                  final ProtonHandler handler/*,
+   protected AMQPOutgoingChannelHandler(final ChannelGroup group,
+                                        final ProtonHandler handler/*,
                                   final BaseConnectionLifeCycleListener<?> listener,
                                   final Executor listenerExecutor */) {
       this.group = group;
