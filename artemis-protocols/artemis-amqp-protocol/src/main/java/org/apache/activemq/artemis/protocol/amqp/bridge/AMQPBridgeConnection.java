@@ -201,8 +201,8 @@ public class AMQPBridgeConnection implements ClientConnectionLifeCycleListener {
          addressInfo = new AddressInfo(replicaConfig.getSnfQueue()).addRoutingType(RoutingType.ANYCAST);
       }
 
-      server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST), true);
-
+      Queue remoteControlQueue = server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST), true);
+      remoteControlQueue.setRemoteControl(true);
 
       QueueBinding snfReplicaQueue = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
       if (snfReplicaQueue == null) {

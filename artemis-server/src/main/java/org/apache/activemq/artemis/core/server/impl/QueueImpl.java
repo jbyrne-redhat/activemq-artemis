@@ -181,6 +181,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private volatile boolean printErrorExpiring = false;
 
+   private boolean remoteControl;
+
    // Messages will first enter intermediateMessageReferences
    // Before they are added to messageReferences
    // This is to avoid locking the queue on the producer
@@ -715,6 +717,16 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       // non destructive queues will reuse the same reference between multiple consumers
       // so you cannot really use the callback from the MessageReference
       return !nonDestructive;
+   }
+
+   @Override
+   public boolean isRemoteControl() {
+      return remoteControl;
+   }
+
+   @Override
+   public void setRemoteControl(boolean remoteControl) {
+      this.remoteControl = remoteControl;
    }
 
    public SimpleString getRoutingName() {

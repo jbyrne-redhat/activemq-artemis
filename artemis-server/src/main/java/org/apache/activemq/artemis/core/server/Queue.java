@@ -167,6 +167,13 @@ public interface Queue extends Bindable,CriticalComponent {
 
    long getRingSize();
 
+   default boolean isRemoteControl() {
+      return false;
+   }
+
+   default void setRemoteControl(boolean remoteControl) {
+   }
+
     /**
     * This will set a reference counter for every consumer present on the queue.
     * The ReferenceCounter will know what to do when the counter became zeroed.
