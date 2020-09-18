@@ -336,14 +336,7 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
             // this can happen in the twice ack mode, that is the receiver accepts and settles separately
             // acking again would show an exception but would have no negative effect but best to handle anyway.
             if (!delivery.isSettled()) {
-               // we have to individual ack as we can't guarantee we will get the delivery updates
-               // (including acks) in order from dealer, a performance hit but a must
-               try {
-                  sessionSPI.ack(null, brokerConsumer, message);
-               } catch (Exception e) {
-                  log.warn(e.toString(), e);
-                  throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.errorAcknowledgingMessage(message.toString(), e.getMessage());
-               }
+               doAck(message);
 
                delivery.settle();
             }
@@ -357,6 +350,17 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
       } finally {
          sessionSPI.afterIO(connectionFlusher);
          sessionSPI.resetContext(oldContext);
+      }
+   }
+
+   protected void doAck(Message message) throws ActiveMQAMQPIllegalStateException {
+      // we have to individual ack as we can't guarantee we will get the delivery updates
+      // (including acks) in order from dealer, a performance hit but a must
+      try {
+         sessionSPI.ack(null, brokerConsumer, message);
+      } catch (Exception e) {
+         log.warn(e.toString(), e);
+         throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.errorAcknowledgingMessage(message.toString(), e.getMessage());
       }
    }
 

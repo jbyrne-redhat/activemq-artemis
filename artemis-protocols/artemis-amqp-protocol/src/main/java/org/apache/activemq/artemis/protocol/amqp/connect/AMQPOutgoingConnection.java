@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
+import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
@@ -46,6 +47,8 @@ import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ActiveMQProtonRemotingConnection;
 import org.apache.activemq.artemis.protocol.amqp.broker.ProtonProtocolManager;
+import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPIllegalStateException;
+import org.apache.activemq.artemis.protocol.amqp.proton.AMQPConnectionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.AMQPSessionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.ProtonServerSenderContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.SenderInitializer;
@@ -156,16 +159,13 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
             protonRemotingConnection.getAmqpConnection().flush();
          });
 
-         session.open();
-         protonRemotingConnection.getAmqpConnection().getHandler().flush();
-
          if (amqpConfiguration.getConnectionAddresses() != null) {
             for (AMQPConnectionAddress policy : amqpConfiguration.getConnectionAddresses()) {
                Collection<Binding> bindings = server.getPostOffice().getMatchingBindings(SimpleString.toSimpleString(policy.getMatchAddress()));
                for (Binding b : bindings) {
                   if (b instanceof QueueBinding) {
                      if (policy.isOutbound()) {
-                        connectOutbound((QueueBinding) b);
+                        connectOutbound(false, (QueueBinding) b);
                      }
 
                      if (policy.isInbound()) {
@@ -178,7 +178,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          }
 
          if (snfReplicaQueue != null) {
-            connectOutbound(snfReplicaQueue, REPLICA_TARGET_SYMBOL);
+            connectOutbound(true, snfReplicaQueue, REPLICA_TARGET_SYMBOL);
          }
 
          protonRemotingConnection.getAmqpConnection().flush();
@@ -201,7 +201,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          addressInfo = new AddressInfo(replicaConfig.getSnfQueue()).addRoutingType(RoutingType.ANYCAST);
       }
 
-      Queue remoteControlQueue = server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST), true);
+      Queue remoteControlQueue = server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST).setDurable(false), true);
       remoteControlQueue.setRemoteControl(true);
 
       QueueBinding snfReplicaQueue = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
@@ -267,7 +267,8 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    }
 
 
-   private void connectOutbound(QueueBinding b,
+   private void connectOutbound(boolean remoteControl,
+                                QueueBinding b,
                                 Symbol... capabilities) {
       // TODO: Adding log.debug here
       if (logger.isDebugEnabled()) {
@@ -287,16 +288,42 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          sender.setDesiredCapabilities(capabilities);
       }
 
-      BridgeSenderInitializer bridgeSenderInitializer = new BridgeSenderInitializer(queueBinding, sender, sessionContext.getSessionSPI());
+      AMQPOutgoingInitializer outgoingInitializer = new AMQPOutgoingInitializer(queueBinding, sender, sessionContext.getSessionSPI());
+
+      ProtonServerSenderContext senderContext = remoteControl ? null : null;
+
+
+      ProtonServerSenderContext protonSender;
+      if (remoteControl) {
+         protonSender = new RemoteControlServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
+      } else {
+         protonSender = new ProtonServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
+      }
 
       protonRemotingConnection.getAmqpConnection().runLater(() -> {
          try {
-            sessionContext.addSender(sender, bridgeSenderInitializer);
+            sessionContext.addSender(sender, protonSender);
          } catch (Exception e) {
             error(e);
          }
          protonRemotingConnection.getAmqpConnection().flush();
       });
+   }
+
+   static class RemoteControlServerSenderContext extends ProtonServerSenderContext {
+
+      RemoteControlServerSenderContext(AMQPConnectionContext connection,
+                                                 Sender sender,
+                                                 AMQPSessionContext protonSession,
+                                                 AMQPSessionCallback server,
+                                                 SenderInitializer senderInitializer) {
+         super(connection, sender, protonSession, server, senderInitializer);
+      }
+
+      @Override
+      protected void doAck(Message message) throws ActiveMQAMQPIllegalStateException {
+         super.doAck(message);
+      }
    }
 
    protected void error(Throwable e) {
@@ -305,13 +332,13 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       //       and make this retry
    }
 
-   private class BridgeSenderInitializer implements SenderInitializer {
+   private class AMQPOutgoingInitializer implements SenderInitializer {
 
       final QueueBinding binding;
       final Sender sender;
       final AMQPSessionCallback sessionSPI;
 
-      BridgeSenderInitializer(Binding binding, Sender sender, AMQPSessionCallback sessionSPI) {
+      AMQPOutgoingInitializer(Binding binding, Sender sender, AMQPSessionCallback sessionSPI) {
          this.binding = (QueueBinding)binding;
          this.sessionSPI = sessionSPI;
          this.sender = sender;
