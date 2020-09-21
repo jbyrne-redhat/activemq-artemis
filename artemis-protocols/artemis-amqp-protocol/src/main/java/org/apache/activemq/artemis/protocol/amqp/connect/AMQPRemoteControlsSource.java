@@ -133,7 +133,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
          ref.setProtocolData(deliveryAnnotations);
 
          refs.add(ref);
-         //snfQueue.refUp(message);
+         message.usageUp();
       } catch (Throwable e) {
          logger.warn(e.getMessage(), e);
       }
@@ -144,6 +144,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
       if (!ref.getQueue().isRemoteControl()) { // we don't call postACK on snfqueues, otherwise we would get infinite loop because of this feedback
          Message message = createMessage(ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
          route(server, message);
+         ref.getMessage().usageDown();
       }
    }
 

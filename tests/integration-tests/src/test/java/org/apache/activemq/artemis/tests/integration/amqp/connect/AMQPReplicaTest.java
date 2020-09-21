@@ -145,7 +145,14 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
          consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES / 2 - 1, AMQP_PORT_2, false);
          // Replica is async, so we need to wait acks to arrive before we finish consuming there
          Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queueOnServer1::getMessageCount);
+         // we consume on replica, as half the messages were acked
          consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true); // We consume on both servers as this is currently replicated
+
+         if (largeMessage) {
+            validateNoFilesOnLargeDir(server.getConfiguration().getLargeMessagesDirectory(), 0);
+            validateNoFilesOnLargeDir(server_2.getConfiguration().getLargeMessagesDirectory(), 50); // we kept half of the messages
+         }
+
       }
    }
 
@@ -262,6 +269,9 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT_3, true); // We consume on both servers as this is currently replicated
       consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT_2, true); // We consume on both servers as this is currently replicated
 
+      validateNoFilesOnLargeDir(server.getConfiguration().getLargeMessagesDirectory(), 0);
+      validateNoFilesOnLargeDir(server_3.getConfiguration().getLargeMessagesDirectory(), 0);
+      validateNoFilesOnLargeDir(server_2.getConfiguration().getLargeMessagesDirectory(), 0);
 
    }
 
