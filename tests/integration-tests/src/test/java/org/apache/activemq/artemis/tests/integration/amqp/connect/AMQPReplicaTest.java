@@ -58,26 +58,26 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    }
    @Test
-   public void testReplicaWithPushLargeMessages() throws Exception {
+   public void testReplicaLargeMessages() throws Exception {
       replicaTest(true, true, false, false);
    }
 
    @Test
-   public void testReplicaWithPushLargeMessagesPagingEverywhere() throws Exception {
+   public void testReplicaLargeMessagesPagingEverywhere() throws Exception {
       replicaTest(true, true, true, true);
    }
    @Test
-   public void testReplicaWithPush() throws Exception {
+   public void testReplica() throws Exception {
       replicaTest(false, true, false, false);
    }
 
    @Test
-   public void testReplicaWithPushPagedTarget() throws Exception {
+   public void testReplicaPagedTarget() throws Exception {
       replicaTest(false, true, true, false);
    }
 
    @Test
-   public void testReplicaWithPushPagingEverywhere() throws Exception {
+   public void testReplicaPagingEverywhere() throws Exception {
       replicaTest(false, true, true, true);
    }
 
