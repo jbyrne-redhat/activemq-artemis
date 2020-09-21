@@ -218,4 +218,7 @@ public interface PostOffice extends ActiveMQComponent {
    PostOffice setRemoteControlSource(RemoteControl remoteControlSource);
 
    void postAcknowledge(MessageReference ref, AckReason reason);
+
+   default void scanAddresses(RemoteControl remoteControl) throws Exception {
+   }
 }

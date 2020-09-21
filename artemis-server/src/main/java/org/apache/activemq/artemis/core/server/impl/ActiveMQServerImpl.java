@@ -3044,6 +3044,13 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       this.remoteControlService = remoteControl;
    }
 
+
+   @Override
+   public void scanAddresses(RemoteControl remoteControl) throws Exception {
+      logger.debug("Scanning addresses to send on remote control");
+      postOffice.scanAddresses(remoteControl);
+   }
+
    @Override
    public RemoteControl getRemoteControl() {
       return this.remoteControlService;

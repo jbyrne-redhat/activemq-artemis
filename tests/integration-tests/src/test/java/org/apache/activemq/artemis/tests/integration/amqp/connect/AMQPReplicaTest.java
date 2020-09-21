@@ -57,6 +57,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
    public void testReplicaCatchupOnQueueCreates() throws Exception {
 
    }
+
    @Test
    public void testReplicaLargeMessages() throws Exception {
       replicaTest(true, true, false, false);

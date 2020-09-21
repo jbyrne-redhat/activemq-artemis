@@ -88,7 +88,6 @@ import org.apache.activemq.artemis.utils.critical.CriticalAnalyzer;
  */
 public interface ActiveMQServer extends ServiceComponent {
 
-
    enum SERVER_STATE {
       /**
        * start() has been called but components are not initialized. The whole point of this state,
@@ -136,6 +135,10 @@ public interface ActiveMQServer extends ServiceComponent {
    Configuration getConfiguration();
 
    void installRemoteControl(RemoteControl remoteControl);
+
+   /** This method will scan all queues and addresses.
+    * it is supposed to be called before the remoteControl is started */
+   void scanAddresses(RemoteControl remoteControl) throws Exception;
 
    RemoteControl getRemoteControl();
 

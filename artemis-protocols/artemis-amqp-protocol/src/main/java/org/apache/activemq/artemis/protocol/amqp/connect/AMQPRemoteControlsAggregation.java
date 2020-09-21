@@ -107,4 +107,18 @@ public class AMQPRemoteControlsAggregation implements RemoteControl, ActiveMQCom
          partition.postAcknowledge(ref, reason);
       }
    }
+
+   @Override
+   public void startAddressScan() throws Exception {
+      for (RemoteControl partition : partitions) {
+         partition.startAddressScan();
+      }
+   }
+
+   @Override
+   public void endAddressScan() throws Exception {
+      for (RemoteControl partition : partitions) {
+         partition.startAddressScan();
+      }
+   }
 }

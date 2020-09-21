@@ -225,6 +225,8 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
       AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(snfQueue, server);
 
+      server.scanAddresses(newPartition);
+
       RemoteControl currentRemoteControl = server.getRemoteControl();
 
       if (currentRemoteControl == null) {

@@ -31,6 +31,9 @@ import org.apache.activemq.artemis.core.server.impl.AddressInfo;
  * This represents the contract we will use to send messages to replicas.
  * */
 public interface RemoteControl {
+   void startAddressScan() throws Exception;
+   void endAddressScan() throws Exception;
+
    void addAddress(AddressInfo addressInfo) throws Exception;
    void deleteAddress(AddressInfo addressInfo) throws Exception;
    void createQueue(QueueConfiguration queueConfiguration) throws Exception;

@@ -254,6 +254,12 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
       }
    }
 
+   @Override
+   public void scanAddresses(RemoteControl remoteControl) throws Exception {
+      addressManager.scanAddresses(remoteControl);
+
+   }
+
    // NotificationListener implementation -------------------------------------
 
    @Override

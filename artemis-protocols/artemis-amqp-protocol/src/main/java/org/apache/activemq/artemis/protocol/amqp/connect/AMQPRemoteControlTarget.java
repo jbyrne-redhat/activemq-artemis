@@ -16,18 +16,23 @@
  */
 package org.apache.activemq.artemis.protocol.amqp.connect;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.core.postoffice.Binding;
+import org.apache.activemq.artemis.core.postoffice.Bindings;
+import org.apache.activemq.artemis.core.postoffice.impl.LocalQueueBinding;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
+import org.apache.activemq.artemis.core.server.impl.QueueImpl;
 import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
 import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.core.transaction.Transaction;
@@ -55,6 +60,8 @@ import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteContro
 import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.CREATE_QUEUE;
 import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.DELETE_QUEUE;
 import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.INTERNAL_ID;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADDRESS_SCAN_START;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADDRESS_SCAN_END;
 
 public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements RemoteControl {
 
@@ -65,6 +72,8 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
    final ActiveMQServer server;
 
    final RoutingContextImpl routingContext = new RoutingContextImpl(null);
+
+   Map<SimpleString, Map<SimpleString, QueueConfiguration>> scanAddresses;
 
    public AMQPRemoteControlTarget(AMQPSessionCallback sessionSPI,
                                   AMQPConnectionContext connection,
@@ -93,7 +102,11 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
          Object eventType = annotationsMap.get(EVENT_TYPE);
          if (eventType != null) {
             // I'm not using fancy switch with strings for JDK compatibility, just in case
-            if (eventType.equals(ADD_ADDRESS)) {
+            if (eventType.equals(ADDRESS_SCAN_START)) {
+               startAddressScan();
+            } else if (eventType.equals(ADDRESS_SCAN_END)) {
+               endAddressScan();
+            } else if (eventType.equals(ADD_ADDRESS)) {
                AddressInfo addressInfo = parseAddress(message);
                addAddress(addressInfo);
             } else if (eventType.equals(DELETE_ADDRESS)) {
@@ -156,6 +169,39 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
       return addressInfo;
    }
 
+
+   @Override
+   public void startAddressScan() throws Exception {
+      scanAddresses = new HashMap<>();
+   }
+
+   @Override
+   public void endAddressScan() throws Exception {
+      Map<SimpleString, Map<SimpleString, QueueConfiguration>> scannedAddresses = scanAddresses;
+      this.scanAddresses = null;
+      for (Map.Entry<SimpleString, Map<SimpleString, QueueConfiguration>> entry : scannedAddresses.entrySet()) {
+         Bindings bindings = server.getPostOffice().getBindingsForAddress(entry.getKey());
+         for (Binding binding : bindings.getBindings()) {
+            if (binding instanceof LocalQueueBinding) {
+               LocalQueueBinding localQueueBinding = (LocalQueueBinding) binding;
+               if (scannedAddresses.get(localQueueBinding.getQueue().getName()) == null) {
+                  System.out.println("Queue " + localQueueBinding.getQueue().getName() + " should be removed");
+                  deleteQueue(entry.getKey(), localQueueBinding.getQueue().getName());
+               }
+            }
+         }
+      }
+   }
+
+   private Map<SimpleString, QueueConfiguration> getQueueScanMap(SimpleString address) {
+      Map<SimpleString, QueueConfiguration> queueMap = scanAddresses.get(address);
+      if (queueMap == null) {
+         queueMap = new HashMap<>();
+         scanAddresses.put(address, queueMap);
+      }
+      return queueMap;
+   }
+
    @Override
    public void addAddress(AddressInfo addressInfo) throws Exception {
       System.out.println("*******************************************************************************************************************************");
@@ -179,6 +225,10 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
       System.out.println("*******************************************************************************************************************************");
       System.out.println("Adding queue " + queueConfiguration);
       server.createQueue(queueConfiguration, true);
+
+      if (scanAddresses != null) {
+         getQueueScanMap(queueConfiguration.getAddress()).put(queueConfiguration.getName(), queueConfiguration);
+      }
    }
 
    @Override

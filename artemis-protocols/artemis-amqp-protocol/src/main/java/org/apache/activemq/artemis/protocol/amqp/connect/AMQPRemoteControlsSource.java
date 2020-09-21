@@ -66,6 +66,8 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
    public static final Symbol DELETE_ADDRESS = Symbol.getSymbol("deleteAddress");
    public static final Symbol CREATE_QUEUE = Symbol.getSymbol("createQueue");
    public static final Symbol DELETE_QUEUE = Symbol.getSymbol("deleteQueue");
+   public static final Symbol ADDRESS_SCAN_START = Symbol.getSymbol("AddressCanStart");
+   public static final Symbol ADDRESS_SCAN_END = Symbol.getSymbol("AddressScanEnd");
    public static final Symbol POST_ACK = Symbol.getSymbol("postAck");
 
    // Delivery annotation property used on remote control routing and Ack
@@ -94,6 +96,18 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
    public AMQPRemoteControlsSource(Queue snfQueue, ActiveMQServer server) {
       this.snfQueue = snfQueue;
       this.server = server;
+   }
+
+   @Override
+   public void startAddressScan() throws Exception {
+      Message message = createMessage(null, null, ADDRESS_SCAN_START, null);
+      route(server, message);
+   }
+
+   @Override
+   public void endAddressScan() throws Exception {
+      Message message = createMessage(null, null, ADDRESS_SCAN_END, null);
+      route(server, message);
    }
 
    @Override
@@ -160,7 +174,9 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
       Map<Symbol, Object> annotations = new HashMap<>();
       annotations.put(EVENT_TYPE, event);
-      annotations.put(ADDRESS, address.toString());
+      if (address != null) {
+         annotations.put(ADDRESS, address.toString());
+      }
       if (queue != null) {
          annotations.put(QUEUE, queue.toString());
       }
