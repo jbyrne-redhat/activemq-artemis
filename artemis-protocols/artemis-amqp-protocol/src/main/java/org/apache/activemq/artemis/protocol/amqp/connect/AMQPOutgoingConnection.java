@@ -108,7 +108,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
             if (!amqpConfiguration.getReplica().isPush()) {
                logger.warn("Replica pull is not implemented yet");
             } else {
-               snfReplicaQueue = installRemoteControl(amqpConfiguration.getReplica());
+               snfReplicaQueue = installRemoteControl(amqpConfiguration.getReplica(), server);
             }
          }
       } catch (Throwable e) {
@@ -195,29 +195,35 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), 5, TimeUnit.SECONDS);
    }
 
-   private QueueBinding installRemoteControl(AMQPReplica replicaConfig) throws Exception {
+   /** The reason this method is static is the following:
+    *
+    *  It is returning the snfQueue to the replica, and I needed isolation from the actual instance.
+    *  During development I had a mistake where I used a property from the Object,
+    *  so, I needed this isolation for my organization and making sure nothing would be shared. */
+   private static QueueBinding installRemoteControl(AMQPReplica replicaConfig, ActiveMQServer server) throws Exception {
       AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getSnfQueue());
       if (addressInfo == null) {
-         addressInfo = new AddressInfo(replicaConfig.getSnfQueue()).addRoutingType(RoutingType.ANYCAST);
+         addressInfo = new AddressInfo(replicaConfig.getSnfQueue()).addRoutingType(RoutingType.ANYCAST).setAutoCreated(false);
+         server.addAddressInfo(addressInfo);
       }
 
       Queue remoteControlQueue = server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST).setDurable(false), true);
       remoteControlQueue.setRemoteControl(true);
 
-      QueueBinding snfReplicaQueue = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
-      if (snfReplicaQueue == null) {
+      QueueBinding snfReplicaQueueBinding = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
+      if (snfReplicaQueueBinding == null) {
          logger.warn("Queue does not exist even after creation! " + replicaConfig);
          throw new IllegalAccessException("Cannot start replica");
       }
 
-      Queue queue = snfReplicaQueue.getQueue();
+      Queue snfQueue = snfReplicaQueueBinding.getQueue();
 
-      if (!queue.getAddress().equals(replicaConfig.getSnfQueue())) {
-         logger.warn("Queue " + queue + " belong to a different address (" + queue.getAddress() + "), while we expected it to be " + addressInfo.getName());
+      if (!snfQueue.getAddress().equals(replicaConfig.getSnfQueue())) {
+         logger.warn("Queue " + snfQueue + " belong to a different address (" + snfQueue.getAddress() + "), while we expected it to be " + addressInfo.getName());
          throw new IllegalAccessException("Cannot start replica");
       }
 
-      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(replicaConfig.getSnfQueue(), server);
+      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(snfQueue, server);
 
       RemoteControl currentRemoteControl = server.getRemoteControl();
 
@@ -235,7 +241,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          ((AMQPRemoteControlsAggregation)currentRemoteControl).addPartition(newPartition);
       }
 
-      return snfReplicaQueue;
+      return snfReplicaQueueBinding;
    }
 
    private void connectInbound(ActiveMQProtonRemotingConnection protonRemotingConnection,

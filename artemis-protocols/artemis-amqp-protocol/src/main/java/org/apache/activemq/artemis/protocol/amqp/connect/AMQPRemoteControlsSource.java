@@ -73,26 +73,17 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    private static final ThreadLocal<RemoteControlRouting> remoteControlRouting = ThreadLocal.withInitial(() -> new RemoteControlRouting(null));
 
-
-   final SimpleString sourceAddress;
+   final Queue snfQueue;
    final ActiveMQServer server;
 
    boolean started;
 
    @Override
    public void start() throws Exception {
-      if (!started) {
-         server.installRemoteControl(this);
-         started = true;
-      }
    }
 
    @Override
    public void stop() throws Exception {
-      if (started) {
-         started = false;
-         server.removeRemoteControl();
-      }
    }
 
    @Override
@@ -100,32 +91,32 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
       return started;
    }
 
-   public AMQPRemoteControlsSource(SimpleString sourceAddress, ActiveMQServer server) {
-      this.sourceAddress = sourceAddress;
+   public AMQPRemoteControlsSource(Queue snfQueue, ActiveMQServer server) {
+      this.snfQueue = snfQueue;
       this.server = server;
    }
 
    @Override
    public void addAddress(AddressInfo addressInfo) throws Exception {
-      Message message = createMessage(sourceAddress.toString(), addressInfo.getName(), null, ADD_ADDRESS, addressInfo.toJSON());
+      Message message = createMessage(addressInfo.getName(), null, ADD_ADDRESS, addressInfo.toJSON());
       route(server, message);
    }
 
    @Override
    public void deleteAddress(AddressInfo addressInfo) throws Exception {
-      Message message = createMessage(sourceAddress.toString(), addressInfo.getName(), null, DELETE_ADDRESS, addressInfo.toJSON());
+      Message message = createMessage(addressInfo.getName(), null, DELETE_ADDRESS, addressInfo.toJSON());
       route(server, message);
    }
 
    @Override
    public void createQueue(QueueConfiguration queueConfiguration) throws Exception {
-      Message message = createMessage(sourceAddress.toString(), queueConfiguration.getAddress(), queueConfiguration.getName(), CREATE_QUEUE, queueConfiguration.toJSON());
+      Message message = createMessage(queueConfiguration.getAddress(), queueConfiguration.getName(), CREATE_QUEUE, queueConfiguration.toJSON());
       route(server, message);
    }
 
    @Override
    public void deleteQueue(SimpleString address, SimpleString queue) throws Exception {
-      Message message = createMessage(sourceAddress.toString(), address, queue, DELETE_QUEUE, queue.toString());
+      Message message = createMessage(address, queue, DELETE_QUEUE, queue.toString());
       route(server, message);
    }
 
@@ -134,23 +125,15 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
       try {
          context.setReusable(false);
-         Bindings bindings = server.getPostOffice().getBindingsForAddress(sourceAddress);
-         for (Binding binding : bindings.getBindings()) {
-            if (binding instanceof LocalQueueBinding) {
-               LocalQueueBinding localQueueBinding = (LocalQueueBinding)binding;
-               Queue transferQueue = localQueueBinding.getQueue();
-               MessageReference ref = MessageReference.Factory.createReference(message, transferQueue);
+         MessageReference ref = MessageReference.Factory.createReference(message, snfQueue);
 
-               Map<Symbol, Object> symbolObjectMap = new HashMap<>();
-               DeliveryAnnotations deliveryAnnotations = new DeliveryAnnotations(symbolObjectMap);
-               symbolObjectMap.put(INTERNAL_ID, message.getMessageID());
-               ref.setProtocolData(deliveryAnnotations);
+         Map<Symbol, Object> symbolObjectMap = new HashMap<>();
+         DeliveryAnnotations deliveryAnnotations = new DeliveryAnnotations(symbolObjectMap);
+         symbolObjectMap.put(INTERNAL_ID, message.getMessageID());
+         ref.setProtocolData(deliveryAnnotations);
 
-               refs.add(ref);
-               transferQueue.refUp(message);
-            }
-         }
-
+         refs.add(ref);
+         //snfQueue.refUp(message);
       } catch (Throwable e) {
          logger.warn(e.getMessage(), e);
       }
@@ -158,12 +141,18 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) throws Exception {
-      if (!ref.getQueue().isRemoteControl()) { // we don't call postACK on the actual queue, otherwise we get infinite repetitions
-         Message message = createMessage(sourceAddress.toString(), ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
+      if (!ref.getQueue().isRemoteControl()) { // we don't call postACK on snfqueues, otherwise we would get infinite loop because of this feedback
+         Message message = createMessage(ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
          route(server, message);
       }
    }
 
+   private Message createMessage(SimpleString address, SimpleString queue, Object event, Object body) {
+      return createMessage(snfQueue.getAddress().toString(), address, queue, event, body);
+   }
+
+   /** This method is open to make it testable,
+    * do not use on your applications. */
    public static Message createMessage(String to, SimpleString address, SimpleString queue, Object event, Object body) {
       Header header = new Header();
       header.setDurable(true);

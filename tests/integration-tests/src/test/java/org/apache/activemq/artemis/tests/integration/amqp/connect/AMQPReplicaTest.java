@@ -49,11 +49,6 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    @Ignore // not implemented yet
    @Test
-   public void testReplicaWithPull() throws Exception {
-   }
-
-   @Ignore // not implemented yet
-   @Test
    public void testReplicaDisconnect() throws Exception {
    }
 
@@ -64,26 +59,26 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
    }
    @Test
    public void testReplicaWithPushLargeMessages() throws Exception {
-      replicaTest(true, true, true, false, false);
+      replicaTest(true, true, false, false);
    }
 
    @Test
    public void testReplicaWithPushLargeMessagesPagingEverywhere() throws Exception {
-      replicaTest(true, true, true, true, true);
+      replicaTest(true, true, true, true);
    }
    @Test
    public void testReplicaWithPush() throws Exception {
-      replicaTest(true, false, true, false, false);
+      replicaTest(false, true, false, false);
    }
 
    @Test
    public void testReplicaWithPushPagedTarget() throws Exception {
-      replicaTest(true, false, true, true, false);
+      replicaTest(false, true, true, false);
    }
 
    @Test
    public void testReplicaWithPushPagingEverywhere() throws Exception {
-      replicaTest(true, false, true, true, true);
+      replicaTest(false, true, true, true);
    }
 
    private String getText(boolean large, int i) {
@@ -98,23 +93,16 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       }
    }
 
-   private void replicaTest(boolean push, boolean largeMessage, boolean acks, boolean pagingTarget, boolean pagingSource) throws Exception {
+   private void replicaTest(boolean largeMessage, boolean acks, boolean pagingTarget, boolean pagingSource) throws Exception {
       server.setIdentity("targetServer");
       //server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
 
-      /** if (!push) { -- TODO configure this on the server, not here though!
-       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT_2);
-       amqpConnection.setReplica(new AMQPReplica("REPLICA", "SERVER2", false));
-       } */
-
       server_2 = createServer(AMQP_PORT_2, false);
 
-      if (push) {
-         AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-         amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
-         server_2.getConfiguration().addAMQPConnection(amqpConnection);
-      }
+      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       int NUMBER_OF_MESSAGES = 100;
 
@@ -192,11 +180,6 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       //server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
 
-      /** if (!push) { -- TODO configure this on the server, not here though!
-       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT_2);
-       amqpConnection.setReplica(new AMQPReplica("REPLICA", "SERVER2", false));
-       } */
-
       ActiveMQServer server_3 = createServer(AMQP_PORT_3, false);
       server_3.setIdentity("server_3");
       server_3.start();
@@ -248,6 +231,12 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_2::getMessageCount);
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_3::getMessageCount);
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_1::getMessageCount);
+
+      Queue replica1Queue = server_2.locateQueue("REPLICA1");
+      Queue replica2Queue = server_2.locateQueue("REPLICA2");
+
+      Wait.assertEquals(0l, replica2Queue.getPagingStore()::getAddressSize, 1000, 100);
+      Wait.assertEquals(0l, replica1Queue.getPagingStore()::getAddressSize, 1000, 100);
 
 
       if (pagingTarget) {
