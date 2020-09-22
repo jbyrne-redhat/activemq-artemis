@@ -81,6 +81,7 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
 
 
       for (AMQPConnectConfiguration config : amqpConnectionsConfig) {
+         System.out.println("Connecting " + config);
          AMQPOutgoingConnection bridgeConnection = new AMQPOutgoingConnection(this, config, protonProtocolManager, server, bridgesConnector);
          amqpOutgoingConnections.add(bridgeConnection);
          bridgeConnection.connect();

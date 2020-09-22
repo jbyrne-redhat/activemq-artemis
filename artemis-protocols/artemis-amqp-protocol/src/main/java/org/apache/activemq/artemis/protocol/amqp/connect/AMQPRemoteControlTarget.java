@@ -81,6 +81,7 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
                                   Receiver receiver,
                                   ActiveMQServer server) {
       super(sessionSPI, connection, protonSession, receiver);
+      new Exception("new Target").printStackTrace(System.out);
       this.server = server;
    }
 
@@ -103,8 +104,10 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
          if (eventType != null) {
             // I'm not using fancy switch with strings for JDK compatibility, just in case
             if (eventType.equals(ADDRESS_SCAN_START)) {
+               new Exception("Start scan").printStackTrace(System.out);
                startAddressScan();
             } else if (eventType.equals(ADDRESS_SCAN_END)) {
+               new Exception("End scan").printStackTrace(System.out);
                endAddressScan();
             } else if (eventType.equals(ADD_ADDRESS)) {
                AddressInfo addressInfo = parseAddress(message);

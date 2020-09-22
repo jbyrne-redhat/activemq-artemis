@@ -76,13 +76,10 @@ public class ProtonProtocolManagerFactory extends AbstractProtocolManagerFactory
     *  As the broker may choose to not load the AMQP Protocol */
    @Override
    public void loadProtocolServices(ActiveMQServer server, List<ActiveMQComponent> services) {
-
-
       List<AMQPConnectConfiguration> amqpServicesConfiguration = server.getConfiguration().getAMQPConnection();
       if (amqpServicesConfiguration != null && amqpServicesConfiguration.size() > 0) {
          AMQPOutgoingConnectionManager bridgeService = new AMQPOutgoingConnectionManager(this, amqpServicesConfiguration, server);
          services.add(bridgeService);
       }
-
    }
 }

@@ -1265,6 +1265,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          }
       }
 
+      installRemoteControl(null);
+
       pagingManager = null;
       securityStore = null;
       resourceManager = null;

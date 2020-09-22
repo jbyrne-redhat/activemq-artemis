@@ -124,6 +124,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    @Override
    public void createQueue(QueueConfiguration queueConfiguration) throws Exception {
+      new Exception("Create Queue " + queueConfiguration.getName()).printStackTrace();
       Message message = createMessage(queueConfiguration.getAddress(), queueConfiguration.getName(), CREATE_QUEUE, queueConfiguration.toJSON());
       route(server, message);
    }

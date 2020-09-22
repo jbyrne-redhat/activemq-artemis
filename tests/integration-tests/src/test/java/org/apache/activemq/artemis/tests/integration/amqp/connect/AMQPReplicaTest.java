@@ -27,11 +27,14 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import org.apache.activemq.artemis.api.core.QueueConfiguration;
+import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
+import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.tests.integration.amqp.AmqpClientTestSupport;
 import org.apache.activemq.artemis.tests.util.CFUtil;
 import org.apache.activemq.artemis.utils.Wait;
@@ -52,10 +55,70 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
    public void testReplicaDisconnect() throws Exception {
    }
 
-   @Ignore // not implemented yet
    @Test
    public void testReplicaCatchupOnQueueCreates() throws Exception {
+      server.setIdentity("Server1");
+      server.stop();
 
+      server_2 = createServer(AMQP_PORT_2, false);
+
+      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      server_2.getConfiguration().addAMQPConnection(amqpConnection);
+
+      server_2.start();
+
+      server_2.addAddressInfo(new AddressInfo("sometest").setAutoCreated(false));
+      server_2.createQueue(new QueueConfiguration("sometest").setDurable(true));
+
+      Wait.assertTrue(() -> server_2.locateQueue("sometest") != null);
+
+      server_2.stop();
+
+      server.start();
+      Assert.assertTrue(server.locateQueue("sometest") == null);
+      Wait.assertTrue(server::isActive);
+      server_2.start();
+      // if this does not succeed the catch up did not arrive at the other server
+      Wait.assertTrue(() -> server.locateQueue("sometest") != null);
+      server_2.stop();
+      server.stop();
+   }
+
+   @Test
+   public void testReplicaCatchupOnQueueCreatesAndDeletes() throws Exception {
+      server.setIdentity("Server1");
+      server.addAddressInfo(new AddressInfo("sometest").setAutoCreated(false).addRoutingType(RoutingType.MULTICAST));
+      // This queue will disappear from the source, so it should go
+      server.createQueue(new QueueConfiguration("ToBeGone").setDurable(true).setRoutingType(RoutingType.MULTICAST));
+      server.stop();
+
+      server_2 = createServer(AMQP_PORT_2, false);
+      server_2.setIdentity("server_2");
+
+      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      server_2.getConfiguration().addAMQPConnection(amqpConnection);
+
+      server_2.start();
+
+      server_2.addAddressInfo(new AddressInfo("sometest").setAutoCreated(false).addRoutingType(RoutingType.MULTICAST));
+      server_2.createQueue(new QueueConfiguration("sometest").setDurable(true).setRoutingType(RoutingType.MULTICAST));
+
+      Wait.assertTrue(() -> server_2.locateQueue("sometest") != null);
+
+      server_2.stop();
+
+      server.start();
+      Assert.assertTrue(server.locateQueue("sometest") == null);
+      Assert.assertTrue(server.locateQueue("ToBeGone") != null);
+      Wait.assertTrue(server::isActive);
+      server_2.start();
+      // if this does not succeed the catch up did not arrive at the other server
+      Wait.assertTrue(() -> server.locateQueue("sometest") != null);
+      Wait.assertTrue(() -> server.locateQueue("ToBeGone") == null);
+      server_2.stop();
+      server.stop();
    }
 
    @Test
