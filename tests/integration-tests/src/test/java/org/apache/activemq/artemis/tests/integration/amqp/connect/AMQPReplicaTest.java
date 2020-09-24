@@ -109,6 +109,13 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
       server_2.stop();
 
+      server_2 = createServer(AMQP_PORT_2, false);
+      server_2.setIdentity("server_2");
+
+      amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      server_2.getConfiguration().addAMQPConnection(amqpConnection);
+
       server.start();
       Assert.assertTrue(server.locateQueue("sometest") == null);
       Assert.assertTrue(server.locateQueue("ToBeGone") != null);

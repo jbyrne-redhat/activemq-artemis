@@ -19,6 +19,7 @@ package org.apache.activemq.artemis.protocol.amqp.connect;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
@@ -181,18 +182,32 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
    public void endAddressScan() throws Exception {
       Map<SimpleString, Map<SimpleString, QueueConfiguration>> scannedAddresses = scanAddresses;
       this.scanAddresses = null;
-      for (Map.Entry<SimpleString, Map<SimpleString, QueueConfiguration>> entry : scannedAddresses.entrySet()) {
-         Bindings bindings = server.getPostOffice().getBindingsForAddress(entry.getKey());
-         for (Binding binding : bindings.getBindings()) {
-            if (binding instanceof LocalQueueBinding) {
-               LocalQueueBinding localQueueBinding = (LocalQueueBinding) binding;
-               if (scannedAddresses.get(localQueueBinding.getQueue().getName()) == null) {
-                  System.out.println("Queue " + localQueueBinding.getQueue().getName() + " should be removed");
-                  deleteQueue(entry.getKey(), localQueueBinding.getQueue().getName());
+      Stream<Binding> bindings = server.getPostOffice().getAllBindings();
+      bindings.forEach((binding) -> {
+         if (binding instanceof LocalQueueBinding) {
+            LocalQueueBinding localQueueBinding = (LocalQueueBinding) binding;
+            Map<SimpleString, QueueConfiguration> scannedQueues = scannedAddresses.get(localQueueBinding.getQueue().getAddress());
+
+            if (scannedQueues == null) {
+               System.out.println("There's no address " + localQueueBinding.getQueue().getAddress() + " so, removing queue");
+               try {
+                  deleteQueue(localQueueBinding.getQueue().getAddress(), localQueueBinding.getQueue().getName());
+               } catch (Exception e) {
+                  logger.warn(e.getMessage(), e);
+               }
+            } else {
+               QueueConfiguration queueConfg = scannedQueues.get(localQueueBinding.getQueue().getName());
+               if (queueConfg == null) {
+                  System.out.println("There no queue for " + localQueueBinding.getQueue().getName() + " so, removing queue");
+                  try {
+                     deleteQueue(localQueueBinding.getQueue().getAddress(), localQueueBinding.getQueue().getName());
+                  } catch (Exception e) {
+                     logger.warn(e.getMessage(), e);
+                  }
                }
             }
          }
-      }
+      });
    }
 
    private Map<SimpleString, QueueConfiguration> getQueueScanMap(SimpleString address) {

@@ -99,6 +99,10 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       scheduledExecutorService = server.getScheduledPool();
    }
 
+   public void stop() {
+      connection.close();
+      started = false;
+   }
 
    public void connect() throws Exception {
 
@@ -191,8 +195,10 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    }
 
    public void retryConnection() {
-      new Exception("Retrying the connection in 5 seconds").printStackTrace();
-      scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), 5, TimeUnit.SECONDS);
+      if (bridgeManager.isStarted() && started) {
+         new Exception("Retrying the connection in 5 seconds").printStackTrace();
+         scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), 5, TimeUnit.SECONDS);
+      }
    }
 
    /** The reason this method is static is the following:

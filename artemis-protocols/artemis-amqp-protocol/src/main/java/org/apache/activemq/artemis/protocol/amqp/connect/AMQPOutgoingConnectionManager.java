@@ -97,6 +97,10 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
    public void stop() throws Exception {
       if (started) {
          started = false;
+         for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
+            connection.stop();
+
+         }
       }
    }
 
