@@ -306,8 +306,8 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Queue replica1Queue = server_2.locateQueue("REPLICA1");
       Queue replica2Queue = server_2.locateQueue("REPLICA2");
 
-      Wait.assertEquals(0l, replica2Queue.getPagingStore()::getAddressSize, 1000, 100);
-      Wait.assertEquals(0l, replica1Queue.getPagingStore()::getAddressSize, 1000, 100);
+      Wait.assertEquals(0L, replica2Queue.getPagingStore()::getAddressSize, 1000, 100);
+      Wait.assertEquals(0L, replica1Queue.getPagingStore()::getAddressSize, 1000, 100);
 
 
       if (pagingTarget) {

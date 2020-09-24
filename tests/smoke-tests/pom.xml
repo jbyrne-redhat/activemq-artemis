@@ -118,7 +118,7 @@
       <dependency>
          <groupId>org.eclipse.paho</groupId>
          <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
-         <version>RELEASE</version>
+         <version>${paho.client.mqttv3.version}</version>
       </dependency>
       <dependency>
          <groupId>org.apache.activemq</groupId>
