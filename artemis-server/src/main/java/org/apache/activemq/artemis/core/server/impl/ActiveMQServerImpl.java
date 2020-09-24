@@ -3516,10 +3516,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       final AddressSettings addressSettings = addressSettingsRepository.getMatch(getRuntimeTempQueueNamespace(queueConfiguration.isTemporary()) + queueConfiguration.getAddress().toString());
       QueueConfigurationUtils.applyDynamicQueueDefaults(queueConfiguration, addressSettings);
 
-      if (ActiveMQServerLogger.LOGGER.isEnabled(Logger.Level.WARN)) {
-         if (new AddressImpl(queueConfiguration.getAddress(), configuration.getWildcardConfiguration()).containsWildCard() && addressSettings.getPageStoreName() == null) {
-            ActiveMQServerLogger.LOGGER.wildcardRoutingWithoutSharedPageStore(queueConfiguration.getName(), queueConfiguration.getAddress());
-         }
+      if (AddressImpl.isContainsWildCard(queueConfiguration.getAddress(), configuration.getWildcardConfiguration())) {
+         ActiveMQServerLogger.LOGGER.wildcardRoutingWithoutSharedPageStore(queueConfiguration.getName(), queueConfiguration.getAddress());
       }
 
       AddressInfo info = postOffice.getAddressInfo(queueConfiguration.getAddress());
