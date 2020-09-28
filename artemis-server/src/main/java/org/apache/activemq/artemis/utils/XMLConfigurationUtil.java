@@ -90,6 +90,20 @@ public class XMLConfigurationUtil {
       }
    }
 
+   public static final Integer getAttributeInteger(final Element e,
+                                          final String name,
+                                          final Integer def,
+                                          final Validators.Validator validator) {
+      String attribute = e.getAttribute(name);
+       if (attribute != null && !attribute.equals("")) {
+         int val = XMLUtil.parseInt(e, attribute);
+         validator.validate(name, val);
+         return val;
+      } else {
+         return def;
+      }
+   }
+
    public static final Integer getInteger(final Element e,
                                           final String name,
                                           final Integer def,

@@ -29,6 +29,8 @@ public class AMQPConnectConfiguration implements Serializable {
    String name;
    String uri;
    List<TransportConfiguration> transportConfigurations;
+   int reconnectAttempts;
+   int retryInterval = 5000;
 
    List<AMQPConnectionAddress> connectionAddresses;
 
@@ -72,6 +74,24 @@ public class AMQPConnectConfiguration implements Serializable {
          parseURI();
       }
       return transportConfigurations;
+   }
+
+   public int getReconnectAttempts() {
+      return reconnectAttempts;
+   }
+
+   public AMQPConnectConfiguration setReconnectAttempts(int reconnectAttempts) {
+      this.reconnectAttempts = reconnectAttempts;
+      return this;
+   }
+
+   public int getRetryInterval() {
+      return retryInterval;
+   }
+
+   public AMQPConnectConfiguration setRetryInterval(int retryInterval) {
+      this.retryInterval = retryInterval;
+      return this;
    }
 
    public String getUri() {

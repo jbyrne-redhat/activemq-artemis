@@ -16,27 +16,8 @@
  */
 package org.apache.activemq.artemis.core.config.amqpbridging;
 
-import java.io.Serializable;
-
-public class AMQPConnectionAddress implements Serializable {
-   String matchAddress;
-   AMQPConnectionAddressType type;
-
-   public String getMatchAddress() {
-      return matchAddress;
-   }
-
-   public AMQPConnectionAddress setMatchAddress(String matchAddress) {
-      this.matchAddress = matchAddress;
-      return this;
-   }
-
-   public AMQPConnectionAddressType getType() {
-      return type;
-   }
-
-   public AMQPConnectionAddress setType(AMQPConnectionAddressType type) {
-      this.type = type;
-      return this;
-   }
+public enum AMQPConnectionAddressType {
+   pull,
+   push,
+   dual
 }

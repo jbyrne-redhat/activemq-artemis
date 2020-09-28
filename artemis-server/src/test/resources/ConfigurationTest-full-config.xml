@@ -373,13 +373,15 @@
          </cluster-connection>
       </cluster-connections>
       <amqp-connections>
-         <amqp-connection uri="tcp://test1:111" name="test1">
-            <address match="TEST" push="false" pull="false" interconnect="true"/>
-            <address match="TEST2" push="false" pull="false" interconnect="true"/>
-            <replica snfqueue="REPLICA" push="true"/>
+         <amqp-connection uri="tcp://test1:111" name="test1" retry-interval="333" reconnect-attempts="33">
+            <address match="TEST-PUSH" connection-type="push"/>
+            <address match="TEST-PULL" connection-type="pull"/>
+            <address match="TEST-DUAL" connection-type="dual"/>
+            <replica snfqueue="TestWithoutAcks" acks="false"/>
          </amqp-connection>
          <amqp-connection uri="tcp://test2:222" name="test2">
-            <address match="TEST"/>
+            <address match="TEST" connection-type="push"/>
+            <replica snfqueue="TestWithAcks" acks="true"/>
          </amqp-connection>
       </amqp-connections>
       <grouping-handler name="gh1">

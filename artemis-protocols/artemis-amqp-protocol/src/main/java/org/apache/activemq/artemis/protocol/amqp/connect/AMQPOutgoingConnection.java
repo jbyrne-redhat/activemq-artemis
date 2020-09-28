@@ -22,7 +22,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.Message;
@@ -32,6 +34,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.TransportConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddress;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.QueueBinding;
@@ -82,6 +85,8 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    private volatile boolean started = false;
    private final AMQPOutgoingConnectionManager bridgeManager;
    QueueBinding snfReplicaQueue;
+   private volatile int retryCounter = 0;
+   private volatile ScheduledFuture reconnectFuture;
 
    final Executor connectExecutor;
    final ScheduledExecutorService scheduledExecutorService;
@@ -101,6 +106,11 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
    public void stop() {
       connection.close();
+      ScheduledFuture scheduledFuture = reconnectFuture;
+      reconnectFuture = null;
+      if (scheduledFuture != null) {
+         scheduledFuture.cancel(true);
+      }
       started = false;
    }
 
@@ -109,11 +119,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       try {
 
          if (amqpConfiguration.getReplica() != null) {
-            if (!amqpConfiguration.getReplica().isPush()) {
-               logger.warn("Replica pull is not implemented yet");
-            } else {
-               snfReplicaQueue = installRemoteControl(amqpConfiguration.getReplica(), server);
-            }
+            snfReplicaQueue = installRemoteControl(amqpConfiguration.getReplica(), server);
          }
       } catch (Throwable e) {
          logger.warn(e.getMessage(), e);
@@ -145,6 +151,9 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
             return;
          }
 
+         reconnectFuture = null;
+         retryCounter = 0;
+
          System.out.println("Connection succeeded");
 
          ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection);
@@ -168,11 +177,11 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
                Collection<Binding> bindings = server.getPostOffice().getMatchingBindings(SimpleString.toSimpleString(policy.getMatchAddress()));
                for (Binding b : bindings) {
                   if (b instanceof QueueBinding) {
-                     if (policy.isOutbound()) {
+                     if (policy.getType() == AMQPConnectionAddressType.push || policy.getType() == AMQPConnectionAddressType.dual) {
                         connectOutbound(false, (QueueBinding) b);
                      }
 
-                     if (policy.isInbound()) {
+                     if (policy.getType() == AMQPConnectionAddressType.pull || policy.getType() == AMQPConnectionAddressType.dual) {
                         connectInbound(protonRemotingConnection, session, sessionContext, (QueueBinding) b);
                      }
 
@@ -196,8 +205,10 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
    public void retryConnection() {
       if (bridgeManager.isStarted() && started) {
-         new Exception("Retrying the connection in 5 seconds").printStackTrace();
-         scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), 5, TimeUnit.SECONDS);
+         if (retryCounter++ < amqpConfiguration.getReconnectAttempts()) {
+            new Exception("Retrying the connection in 5 seconds").printStackTrace();
+            reconnectFuture = scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), amqpConfiguration.getRetryInterval(), TimeUnit.MILLISECONDS);
+         }
       }
    }
 

@@ -18,6 +18,7 @@ package org.apache.activemq.artemis.tests.unit.core.config.impl;
 
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.FileDeploymentManager;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
 import org.apache.activemq.artemis.core.config.impl.FileConfiguration;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.utils.XMLUtil;
@@ -76,12 +77,26 @@ public class ConfigurationValidationTest extends ActiveMQTestBase {
       Assert.assertEquals(2, fc.getAMQPConnection().size());
 
       AMQPConnectConfiguration amqpConnectConfiguration = fc.getAMQPConnection().get(0);
+      Assert.assertEquals(33, amqpConnectConfiguration.getReconnectAttempts());
+      Assert.assertEquals(333, amqpConnectConfiguration.getRetryInterval());
       Assert.assertEquals("test1", amqpConnectConfiguration.getName());
       Assert.assertEquals("tcp://test1:111", amqpConnectConfiguration.getUri());
+
+      Assert.assertEquals("TEST-PUSH", amqpConnectConfiguration.getConnectionAddresses().get(0).getMatchAddress());
+      Assert.assertEquals(AMQPConnectionAddressType.push, amqpConnectConfiguration.getConnectionAddresses().get(0).getType());
+      Assert.assertEquals("TEST-PULL", amqpConnectConfiguration.getConnectionAddresses().get(1).getMatchAddress());
+      Assert.assertEquals(AMQPConnectionAddressType.pull, amqpConnectConfiguration.getConnectionAddresses().get(1).getType());
+      Assert.assertEquals("TEST-DUAL", amqpConnectConfiguration.getConnectionAddresses().get(2).getMatchAddress());
+      Assert.assertEquals(AMQPConnectionAddressType.dual, amqpConnectConfiguration.getConnectionAddresses().get(2).getType());
+
+      Assert.assertEquals("TestWithoutAcks", amqpConnectConfiguration.getReplica().getSnfQueue().toString());
+      Assert.assertFalse(amqpConnectConfiguration.getReplica().isAcks());
 
       amqpConnectConfiguration = fc.getAMQPConnection().get(1);
       Assert.assertEquals("test2", amqpConnectConfiguration.getName());
       Assert.assertEquals("tcp://test2:222", amqpConnectConfiguration.getUri());
+      Assert.assertTrue(amqpConnectConfiguration.getReplica().isAcks());
+      Assert.assertEquals("TestWithAcks", amqpConnectConfiguration.getReplica().getSnfQueue().toString());
 
    }
 

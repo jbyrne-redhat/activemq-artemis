@@ -2023,6 +2023,21 @@
             </xsd:documentation>
          </xsd:annotation>
       </xsd:attribute>
+      <xsd:attribute name="reconnect-attempts" type="xsd:int" default="-1">
+         <xsd:annotation>
+            <xsd:documentation>
+               How many attempts should be made to reconnect after failure
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attribute name="retry-interval" type="xsd:long" default="5000">
+         <xsd:annotation>
+            <xsd:documentation>
+               period (in ms) between successive retries
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+
       <xsd:attribute name="name" type="xsd:string" use="required">
          <xsd:annotation>
             <xsd:documentation>
@@ -2041,9 +2056,20 @@
             </xsd:documentation>
          </xsd:annotation>
       </xsd:attribute>
-      <xsd:attribute name="push" type="xsd:boolean"/>
-      <xsd:attribute name="pull" type="xsd:boolean"/>
-      <xsd:attribute name="interconnect" type="xsd:boolean"/>
+      <xsd:attribute name="connection-type" use="required">
+         <xsd:annotation>
+            <xsd:documentation>
+               The type of connection done.
+            </xsd:documentation>
+         </xsd:annotation>
+         <xsd:simpleType>
+            <xsd:restriction base="xsd:string">
+               <xsd:enumeration value="push"/>
+               <xsd:enumeration value="pull"/>
+               <xsd:enumeration value="dual"/>
+            </xsd:restriction>
+         </xsd:simpleType>
+      </xsd:attribute>
    </xsd:complexType>
 
    <xsd:complexType name="amqp-replica-type">
@@ -2054,12 +2080,12 @@
             </xsd:documentation>
          </xsd:annotation>
       </xsd:attribute>
-      <xsd:attribute name="push" type="xsd:boolean" use="required">
-      <xsd:annotation>
+      <xsd:attribute name="acks" type="xsd:boolean" use="required">
+         <xsd:annotation>
          <xsd:documentation>
-            is it pushing data, otherwise is pulling
+            If turned off we won't send acknowledgements towards the replica.
          </xsd:documentation>
-      </xsd:annotation>
+         </xsd:annotation>
       </xsd:attribute>
    </xsd:complexType>
 

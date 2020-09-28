@@ -59,6 +59,7 @@ import org.apache.activemq.artemis.core.config.ScaleDownConfiguration;
 import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddress;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.config.federation.FederationAddressPolicyConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationDownstreamConfiguration;
@@ -1878,8 +1879,15 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
 
       String uri = e.getAttribute("uri");
 
+      int retryInterval = getAttributeInteger(e, "retry-interval", 5000, Validators.GT_ZERO);
+      int reconnectAttemps = getAttributeInteger(e, "reconnect-attempts", -1, Validators.MINUS_ONE_OR_GT_ZERO);
+
+      getInteger(e, "local-bind-port", -1, Validators.MINUS_ONE_OR_GT_ZERO);
+
       AMQPConnectConfiguration config = new AMQPConnectConfiguration(name, uri);
       config.parseURI();
+      config.setRetryInterval(retryInterval);
+      config.setReconnectAttempts(reconnectAttemps);
 
       mainConfig.addAMQPConnection(config);
 
@@ -1889,11 +1897,11 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
          Element e2 = (Element)addressesList.item(i);
 
          String match = e2.getAttribute("match");
-         String push = e2.getAttribute("push");
-         String pull = e2.getAttribute("pull");
-         String interconenct = e.getAttribute("interconnect");
+         String connectionTypeStr = e2.getAttribute("connection-type");
 
-         AMQPConnectionAddress address = new AMQPConnectionAddress().setMatchAddress(match).setOutbound(Boolean.valueOf(push)).setInbound(Boolean.valueOf(pull));
+         AMQPConnectionAddressType addressType = AMQPConnectionAddressType.valueOf(connectionTypeStr);
+
+         AMQPConnectionAddress address = new AMQPConnectionAddress().setMatchAddress(match).setType(addressType);
 
          config.addAddress(address);
       }
@@ -1905,9 +1913,9 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
          Element e2 = (Element)addressesList.item(i);
 
          String snfQueue = e2.getAttribute("snfqueue");
-         boolean pushing = Boolean.valueOf(e2.getAttribute("push"));
+         boolean acks = Boolean.valueOf(e2.getAttribute("acks"));
 
-         AMQPReplica replica = new AMQPReplica(SimpleString.toSimpleString(snfQueue), pushing);
+         AMQPReplica replica = new AMQPReplica(SimpleString.toSimpleString(snfQueue), acks);
          config.setReplica(replica);
       }
 
