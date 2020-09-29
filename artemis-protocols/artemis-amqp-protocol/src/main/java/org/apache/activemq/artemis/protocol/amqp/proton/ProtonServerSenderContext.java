@@ -49,6 +49,7 @@ import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPExceptio
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPIllegalStateException;
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPInternalErrorException;
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPNotFoundException;
+import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPResourceLimitExceededException;
 import org.apache.activemq.artemis.protocol.amqp.logger.ActiveMQAMQPProtocolMessageBundle;
 import org.apache.activemq.artemis.protocol.amqp.proton.transaction.ProtonTransactionImpl;
 import org.apache.activemq.artemis.protocol.amqp.util.NettyReadable;
@@ -249,10 +250,11 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
       try {
          brokerConsumer = initializer.init(this);
          onflowControlReady = brokerConsumer::promptDelivery;
-      } catch (ActiveMQException e) {
-         throw e;
+      } catch (ActiveMQAMQPResourceLimitExceededException e1) {
+         throw e1;
+      } catch (ActiveMQSecurityException e) {
+         throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.securityErrorCreatingConsumer(e.getMessage());
       } catch (Exception e) {
-         log.warn(e.getMessage(), e);
          throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.errorCreatingConsumer(e.getMessage());
       }
    }
