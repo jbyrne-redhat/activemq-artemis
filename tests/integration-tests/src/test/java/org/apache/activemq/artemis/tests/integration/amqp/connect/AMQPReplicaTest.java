@@ -31,6 +31,8 @@ import javax.jms.TextMessage;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
@@ -64,7 +66,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.replica));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       server_2.start();
@@ -98,7 +100,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2.setIdentity("server_2");
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.replica));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       server_2.start();
@@ -114,7 +116,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2.setIdentity("server_2");
 
       amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.replica));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       server.start();
@@ -177,7 +179,8 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", acks));
+      AMQPReplica replica = new AMQPReplica().setType(acks ? AMQPConnectionAddressType.replica : AMQPConnectionAddressType.copy);
+      amqpConnection.addElement(replica);
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       int NUMBER_OF_MESSAGES = 100;
@@ -208,7 +211,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       }
 
 
-      Queue snfreplica = server_2.locateQueue("SNFREPLICA");
+      Queue snfreplica = server_2.locateQueue(replica.getSnfQueue());
 
       Assert.assertNotNull(snfreplica);
 
@@ -288,11 +291,13 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection1 = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection1.setReplica(new AMQPReplica("REPLICA1", true));
+      AMQPReplica replica1 = new AMQPReplica().setType(AMQPConnectionAddressType.replica);
+      amqpConnection1.addElement(replica1);
       server_2.getConfiguration().addAMQPConnection(amqpConnection1);
 
       AMQPConnectConfiguration amqpConnection3 = new AMQPConnectConfiguration("test2", "tcp://localhost:" + AMQP_PORT_3);
-      amqpConnection3.setReplica(new AMQPReplica("REPLICA2", true));
+      AMQPReplica replica2 = new AMQPReplica().setType(AMQPConnectionAddressType.replica);
+      amqpConnection3.addElement(replica2);
       server_2.getConfiguration().addAMQPConnection(amqpConnection3);
 
       int NUMBER_OF_MESSAGES = 200;
@@ -329,8 +334,8 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_3::getMessageCount);
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_1::getMessageCount);
 
-      Queue replica1Queue = server_2.locateQueue("REPLICA1");
-      Queue replica2Queue = server_2.locateQueue("REPLICA2");
+      Queue replica1Queue = server_2.locateQueue(replica1.getSnfQueue());
+      Queue replica2Queue = server_2.locateQueue(replica2.getSnfQueue());
 
       Wait.assertEquals(0L, replica2Queue.getPagingStore()::getAddressSize, 1000, 100);
       Wait.assertEquals(0L, replica1Queue.getPagingStore()::getAddressSize, 1000, 100);

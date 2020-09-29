@@ -2013,8 +2013,13 @@
 
    <xsd:complexType name="amqp-connectionUriType">
       <xsd:sequence>
-         <xsd:element name="address" type="amqp-address-match-type" minOccurs="0" maxOccurs="unbounded"/>
-         <xsd:element name="replica" type="amqp-replica-type" minOccurs="0" maxOccurs="1"/>
+         <xsd:choice maxOccurs="unbounded">
+            <xsd:element name="sender" type="amqp-address-match-type"/>
+            <xsd:element name="receiver" type="amqp-address-match-type"/>
+            <xsd:element name="peer" type="amqp-address-match-type"/>
+            <xsd:element name="replica" type="amqp-address-match-type"/>
+            <xsd:element name="copy" type="amqp-address-match-type"/>
+         </xsd:choice>
       </xsd:sequence>
       <xsd:attribute name="uri" type="xsd:string" use="required">
          <xsd:annotation>
@@ -2056,39 +2061,7 @@
             </xsd:documentation>
          </xsd:annotation>
       </xsd:attribute>
-      <xsd:attribute name="connection-type" use="required">
-         <xsd:annotation>
-            <xsd:documentation>
-               The type of connection done.
-            </xsd:documentation>
-         </xsd:annotation>
-         <xsd:simpleType>
-            <xsd:restriction base="xsd:string">
-               <xsd:enumeration value="push"/>
-               <xsd:enumeration value="pull"/>
-               <xsd:enumeration value="dual"/>
-            </xsd:restriction>
-         </xsd:simpleType>
-      </xsd:attribute>
    </xsd:complexType>
-
-   <xsd:complexType name="amqp-replica-type">
-      <xsd:attribute name="snfqueue" type="xsd:string" use="required">
-         <xsd:annotation>
-            <xsd:documentation>
-               Name of the Anycast Queue (and address) used for replication
-            </xsd:documentation>
-         </xsd:annotation>
-      </xsd:attribute>
-      <xsd:attribute name="acks" type="xsd:boolean" use="required">
-         <xsd:annotation>
-         <xsd:documentation>
-            If turned off we won't send acknowledgements towards the replica.
-         </xsd:documentation>
-         </xsd:annotation>
-      </xsd:attribute>
-   </xsd:complexType>
-
 
    <xsd:complexType name="cluster-connectionUriType">
       <xsd:attribute name="address" type="xsd:string" use="required">

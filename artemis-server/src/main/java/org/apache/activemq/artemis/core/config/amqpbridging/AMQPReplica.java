@@ -16,34 +16,41 @@
  */
 package org.apache.activemq.artemis.core.config.amqpbridging;
 
-import java.io.Serializable;
-
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.utils.RandomUtil;
 
-public class AMQPReplica implements Serializable {
+public class AMQPReplica extends AMQPConnectionElement {
 
-   final SimpleString snfQueue;
-   final boolean acks;
+   SimpleString snfQueue;
 
-   public AMQPReplica(SimpleString snfQueue, boolean acks) {
-      this.snfQueue = snfQueue;
-      this.acks = acks;
+   public AMQPReplica() {
    }
 
-   public AMQPReplica(String snfQueue, boolean acks) {
-      this(SimpleString.toSimpleString(snfQueue),  acks);
+   public AMQPReplica setSnfQueue(String snfQueue) {
+      return this.setSnfQueue(SimpleString.toSimpleString(snfQueue));
+   }
+
+   public AMQPReplica setSnfQueue(SimpleString snfQueue) {
+      this.snfQueue = snfQueue;
+      return this;
    }
 
    public boolean isAcks() {
-      return acks;
+      return type != null && type == AMQPConnectionAddressType.replica;
    }
 
    public SimpleString getSnfQueue() {
+      if (snfQueue == null) {
+         snfQueue = SimpleString.toSimpleString(parent.getName() + RandomUtil.randomString());
+      }
       return snfQueue;
    }
 
+
    @Override
-   public String toString() {
-      return "AMQPReplica{" + "snfQueue=" + snfQueue + ", acks=" + acks + '}';
+   public AMQPReplica setType(AMQPConnectionAddressType type) {
+      super.setType(type);
+      return this;
    }
+
 }

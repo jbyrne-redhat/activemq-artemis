@@ -58,7 +58,7 @@ import org.apache.activemq.artemis.core.config.MetricsConfiguration;
 import org.apache.activemq.artemis.core.config.ScaleDownConfiguration;
 import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddress;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
 import org.apache.activemq.artemis.core.config.federation.FederationAddressPolicyConfiguration;
@@ -601,7 +601,7 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
             for (int i = 0; i < ccAMQConnectionsURI.getLength(); i++) {
                Element ccNode = (Element) ccAMQConnectionsURI.item(i);
 
-               parseAMQPConnectionConfigurationURI(ccNode, config);
+               parseConnectionElements(ccNode, config);
             }
          }
       }
@@ -1873,8 +1873,8 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       }
    }
 
-   private void parseAMQPConnectionConfigurationURI(final Element e,
-                                                       final Configuration mainConfig) throws Exception {
+   private void parseConnectionElements(final Element e,
+                                        final Configuration mainConfig) throws Exception {
       String name = e.getAttribute("name");
 
       String uri = e.getAttribute("uri");
@@ -1891,32 +1891,25 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
 
       mainConfig.addAMQPConnection(config);
 
-      NodeList addressesList = e.getElementsByTagName("address");
 
-      for (int i = 0; i < addressesList.getLength(); i++) {
-         Element e2 = (Element)addressesList.item(i);
+      NodeList senderList = e.getChildNodes();
+      for (int i = 0; i < senderList.getLength(); i++) {
+         if (senderList.item(i).getNodeType() == Node.ELEMENT_NODE) {
+            Element e2 = (Element)senderList.item(i);
+            AMQPConnectionAddressType nodeType = AMQPConnectionAddressType.valueOf(e2.getTagName());
+            String match = e2.getAttribute("match");
+            AMQPConnectionElement connectionElement;
 
-         String match = e2.getAttribute("match");
-         String connectionTypeStr = e2.getAttribute("connection-type");
+            if (nodeType == AMQPConnectionAddressType.replica ||
+                nodeType == AMQPConnectionAddressType.copy) {
+               connectionElement = new AMQPReplica();
+            } else {
+               connectionElement = new AMQPConnectionElement();
+            }
 
-         AMQPConnectionAddressType addressType = AMQPConnectionAddressType.valueOf(connectionTypeStr);
-
-         AMQPConnectionAddress address = new AMQPConnectionAddress().setMatchAddress(match).setType(addressType);
-
-         config.addAddress(address);
-      }
-
-
-      addressesList = e.getElementsByTagName("replica");
-
-      for (int i = 0; i < addressesList.getLength(); i++) {
-         Element e2 = (Element)addressesList.item(i);
-
-         String snfQueue = e2.getAttribute("snfqueue");
-         boolean acks = Boolean.valueOf(e2.getAttribute("acks"));
-
-         AMQPReplica replica = new AMQPReplica(SimpleString.toSimpleString(snfQueue), acks);
-         config.setReplica(replica);
+            connectionElement.setMatchAddress(match).setType(nodeType);
+            config.addElement(connectionElement);
+         }
       }
 
       if (logger.isDebugEnabled()) {

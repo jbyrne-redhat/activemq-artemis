@@ -18,15 +18,28 @@ package org.apache.activemq.artemis.core.config.amqpbridging;
 
 import java.io.Serializable;
 
-public class AMQPConnectionAddress implements Serializable {
+public class AMQPConnectionElement implements Serializable {
    String matchAddress;
    AMQPConnectionAddressType type;
+   AMQPConnectConfiguration parent;
+
+   public AMQPConnectionElement() {
+   }
+
+   public AMQPConnectConfiguration getParent() {
+      return parent;
+   }
+
+   public AMQPConnectionElement setParent(AMQPConnectConfiguration parent) {
+      this.parent = parent;
+      return this;
+   }
 
    public String getMatchAddress() {
       return matchAddress;
    }
 
-   public AMQPConnectionAddress setMatchAddress(String matchAddress) {
+   public AMQPConnectionElement setMatchAddress(String matchAddress) {
       this.matchAddress = matchAddress;
       return this;
    }
@@ -35,7 +48,7 @@ public class AMQPConnectionAddress implements Serializable {
       return type;
    }
 
-   public AMQPConnectionAddress setType(AMQPConnectionAddressType type) {
+   public AMQPConnectionElement setType(AMQPConnectionAddressType type) {
       this.type = type;
       return this;
    }

@@ -17,7 +17,9 @@
 package org.apache.activemq.artemis.core.config.amqpbridging;
 
 public enum AMQPConnectionAddressType {
-   pull,
-   push,
-   dual
+   sender,
+   receiver,
+   peer,
+   copy,
+   replica
 }

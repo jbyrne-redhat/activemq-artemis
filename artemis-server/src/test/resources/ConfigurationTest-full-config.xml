@@ -374,14 +374,16 @@
       </cluster-connections>
       <amqp-connections>
          <amqp-connection uri="tcp://test1:111" name="test1" retry-interval="333" reconnect-attempts="33">
-            <address match="TEST-PUSH" connection-type="push"/>
-            <address match="TEST-PULL" connection-type="pull"/>
-            <address match="TEST-DUAL" connection-type="dual"/>
-            <replica snfqueue="TestWithoutAcks" acks="false"/>
+            <sender match="TEST-SENDER" />
+            <receiver match="TEST-RECEIVER" />
+            <peer match="TEST-PEER"/>
+            <copy match="TEST-COPY"/>
+            <replica match="TEST-REPLICA"/>
+            <replica match="TEST-REPLICA2"/>
          </amqp-connection>
          <amqp-connection uri="tcp://test2:222" name="test2">
-            <address match="TEST" connection-type="push"/>
-            <replica snfqueue="TestWithAcks" acks="true"/>
+            <replica match="TEST-REPLICA"/>
+            <copy match="TEST-REPLICA2"/>
          </amqp-connection>
       </amqp-connections>
       <grouping-handler name="gh1">

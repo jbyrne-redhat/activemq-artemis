@@ -32,36 +32,30 @@ public class AMQPConnectConfiguration implements Serializable {
    int reconnectAttempts;
    int retryInterval = 5000;
 
-   List<AMQPConnectionAddress> connectionAddresses;
-
-   AMQPReplica replica;
+   List<AMQPConnectionElement> connectionElements;
 
    public AMQPConnectConfiguration(String name, String uri) {
       this.name = name;
       this.uri = uri;
    }
 
-   public AMQPConnectConfiguration addAddress(AMQPConnectionAddress amqpConnectionAddress) {
-      if (connectionAddresses == null) {
-         connectionAddresses = new ArrayList<>();
+   public AMQPConnectConfiguration addElement(AMQPConnectionElement amqpConnectionElement) {
+      if (connectionElements == null) {
+         connectionElements = new ArrayList<>();
       }
+      if (!(amqpConnectionElement instanceof AMQPReplica) && (amqpConnectionElement.getType() == AMQPConnectionAddressType.replica ||
+          amqpConnectionElement.getType() == AMQPConnectionAddressType.copy)) {
+         amqpConnectionElement = new AMQPReplica().setType(amqpConnectionElement.getType()).setMatchAddress(amqpConnectionElement.matchAddress);
+      }
+      amqpConnectionElement.setParent(this);
 
-      connectionAddresses.add(amqpConnectionAddress);
+      connectionElements.add(amqpConnectionElement);
 
       return this;
    }
 
-   public AMQPReplica getReplica() {
-      return replica;
-   }
-
-   public AMQPConnectConfiguration setReplica(AMQPReplica replica) {
-      this.replica = replica;
-      return this;
-   }
-
-   public List<AMQPConnectionAddress> getConnectionAddresses() {
-      return connectionAddresses;
+   public List<AMQPConnectionElement> getConnectionElements() {
+      return connectionElements;
    }
 
    public void parseURI() throws Exception {
