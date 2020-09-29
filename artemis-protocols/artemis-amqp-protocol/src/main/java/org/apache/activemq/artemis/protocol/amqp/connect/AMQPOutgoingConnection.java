@@ -24,7 +24,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.Message;
@@ -85,7 +84,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    private volatile boolean started = false;
    private final AMQPOutgoingConnectionManager bridgeManager;
    QueueBinding snfReplicaQueue;
-   private volatile int retryCounter = 0;
+   private int retryCounter = 0;
    private volatile ScheduledFuture reconnectFuture;
 
    final Executor connectExecutor;
