@@ -33,6 +33,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.config.CoreAddressConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddress;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
@@ -61,7 +62,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
    }
 
    @Test
-   public void testSimpleTransferOutbound() throws Exception {
+   public void testSimpleTransferPush() throws Exception {
       server.setIdentity("targetServer");
       server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
@@ -69,7 +70,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addAddress(new AMQPConnectionAddress().setMatchAddress("TEST").setOutbound(true).setInbound(false));
+      amqpConnection.addAddress(new AMQPConnectionAddress().setMatchAddress("TEST").setType(AMQPConnectionAddressType.push));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
       server_2.getConfiguration().addQueueConfiguration(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
@@ -125,7 +126,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
 
 
    @Test
-   public void testSimpleTransferInbound() throws Exception {
+   public void testSimpleTransferPull() throws Exception {
       server.setIdentity("targetServer");
       server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
@@ -133,7 +134,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addAddress(new AMQPConnectionAddress().setMatchAddress("TEST").setOutbound(false).setInbound(true));
+      amqpConnection.addAddress(new AMQPConnectionAddress().setMatchAddress("TEST").setType(AMQPConnectionAddressType.pull));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
       server_2.getConfiguration().addQueueConfiguration(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));

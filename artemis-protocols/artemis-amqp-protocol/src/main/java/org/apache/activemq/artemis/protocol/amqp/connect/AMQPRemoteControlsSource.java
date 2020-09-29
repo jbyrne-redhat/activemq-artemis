@@ -74,6 +74,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    final Queue snfQueue;
    final ActiveMQServer server;
+   final boolean acks;
 
    boolean started;
 
@@ -90,9 +91,10 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
       return started;
    }
 
-   public AMQPRemoteControlsSource(Queue snfQueue, ActiveMQServer server) {
+   public AMQPRemoteControlsSource(Queue snfQueue, ActiveMQServer server, boolean acks) {
       this.snfQueue = snfQueue;
       this.server = server;
+      this.acks = acks;
    }
 
    @Override
@@ -153,7 +155,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) throws Exception {
-      if (!ref.getQueue().isRemoteControl()) { // we don't call postACK on snfqueues, otherwise we would get infinite loop because of this feedback
+      if (acks && !ref.getQueue().isRemoteControl()) { // we don't call postACK on snfqueues, otherwise we would get infinite loop because of this feedback
          Message message = createMessage(ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
          route(server, message);
          ref.getMessage().usageDown();

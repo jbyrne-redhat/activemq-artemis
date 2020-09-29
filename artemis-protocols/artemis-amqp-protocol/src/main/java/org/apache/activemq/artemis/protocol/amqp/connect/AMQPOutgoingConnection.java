@@ -240,7 +240,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          throw new IllegalAccessException("Cannot start replica");
       }
 
-      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(snfQueue, server);
+      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(snfQueue, server, replicaConfig.isAcks());
 
       server.scanAddresses(newPartition);
 

@@ -30,8 +30,8 @@ public class AMQPReplica implements Serializable {
       this.acks = acks;
    }
 
-   public AMQPReplica(String snfQueue, boolean push) {
-      this(SimpleString.toSimpleString(snfQueue),  push);
+   public AMQPReplica(String snfQueue, boolean acks) {
+      this(SimpleString.toSimpleString(snfQueue),  acks);
    }
 
    public boolean isAcks() {

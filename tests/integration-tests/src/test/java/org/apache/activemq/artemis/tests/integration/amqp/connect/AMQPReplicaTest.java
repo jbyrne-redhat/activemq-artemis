@@ -26,6 +26,7 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+import javax.jms.TextMessage;
 
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
@@ -137,9 +138,16 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
    public void testReplicaLargeMessagesPagingEverywhere() throws Exception {
       replicaTest(true, true, true, true);
    }
+
+
    @Test
    public void testReplica() throws Exception {
       replicaTest(false, true, false, false);
+   }
+
+   @Test
+   public void testReplicaNoAcks() throws Exception {
+      replicaTest(false, false, false, false);
    }
 
    @Test
@@ -166,19 +174,20 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    private void replicaTest(boolean largeMessage, boolean acks, boolean pagingTarget, boolean pagingSource) throws Exception {
       server.setIdentity("targetServer");
-      //server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
-      //server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
-
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", true));
+      amqpConnection.setReplica(new AMQPReplica("SNFREPLICA", acks));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       int NUMBER_OF_MESSAGES = 100;
 
       server_2.start();
       Wait.assertTrue(server_2::isStarted);
+
+      // We create the address to avoid auto delete on the queue
+      server_2.addAddressInfo(new AddressInfo("TEST").addRoutingType(RoutingType.ANYCAST).setAutoCreated(false));
+      server_2.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST).setAddress("TEST").setAutoCreated(false));
 
       ConnectionFactory factory = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + AMQP_PORT_2);
       Connection connection = factory.createConnection();
@@ -207,6 +216,9 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
 
       Wait.assertEquals(NUMBER_OF_MESSAGES, queueOnServer1::getMessageCount);
+      Queue queueOnServer2 = locateQueue(server_2, "TEST");
+      Wait.assertEquals(NUMBER_OF_MESSAGES, queueOnServer1::getMessageCount);
+      Wait.assertEquals(NUMBER_OF_MESSAGES, queueOnServer2::getMessageCount);
 
       if (pagingTarget) {
          assertTrue(queueOnServer1.getPagingStore().isPaging());
@@ -223,7 +235,14 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
             validateNoFilesOnLargeDir(server.getConfiguration().getLargeMessagesDirectory(), 0);
             validateNoFilesOnLargeDir(server_2.getConfiguration().getLargeMessagesDirectory(), 50); // we kept half of the messages
          }
+      } else {
 
+         consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES - 1, AMQP_PORT_2, true);
+         consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true);
+         if (largeMessage) {
+            validateNoFilesOnLargeDir(server.getConfiguration().getLargeMessagesDirectory(), 0);
+            validateNoFilesOnLargeDir(server_2.getConfiguration().getLargeMessagesDirectory(), 0); // we kept half of the messages
+         }
       }
    }
 
@@ -369,11 +388,11 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       for (int i = START_ID; i <= LAST_ID; i++) {
          Message message = consumer.receive(3000);
          Assert.assertNotNull(message);
-         System.out.println("i::" + message.getIntProperty("i"));
+         System.out.println("port " + port + ",i::" + message.getIntProperty("i"));
          Assert.assertEquals(i, message.getIntProperty("i"));
-         /*if (message instanceof TextMessage) {
+         if (message instanceof TextMessage) {
             Assert.assertEquals(getText(largeMessage, i), ((TextMessage)message).getText());
-         } */
+         }
       }
       if (assertNull) {
          Assert.assertNull(consumer.receiveNoWait());
