@@ -118,6 +118,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    }
 
    public void connect() throws Exception {
+      started = true;
       server.getConfiguration().registerBrokerPlugin(this);
       try {
 
@@ -231,9 +232,11 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
    public void retryConnection() {
       if (bridgeManager.isStarted() && started) {
-         if (retryCounter++ < amqpConfiguration.getReconnectAttempts()) {
-            new Exception("Retrying the connection in 5 seconds").printStackTrace();
+         if (amqpConfiguration.getReconnectAttempts() < 0 || retryCounter++ < amqpConfiguration.getReconnectAttempts()) {
+            System.out.println("Reconnecting in " + amqpConfiguration.getRetryInterval() + ", this is the " + retryCounter + " of " + amqpConfiguration.getReconnectAttempts());
             reconnectFuture = scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), amqpConfiguration.getRetryInterval(), TimeUnit.MILLISECONDS);
+         } else {
+            System.out.println("Reconnect interrupted with " + amqpConfiguration.getReconnectAttempts() + " retryCounter = " + retryCounter);
          }
       }
    }
