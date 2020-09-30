@@ -3598,6 +3598,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          throw ActiveMQMessageBundle.BUNDLE.invalidQueueName(queueConfiguration.getName());
       }
 
+      new Exception("Create queue " + queueConfiguration.getName() + " on " + identity).printStackTrace();
+
       final QueueBinding binding = (QueueBinding) postOffice.getBinding(queueConfiguration.getName());
       if (binding != null) {
          if (ignoreIfExists) {

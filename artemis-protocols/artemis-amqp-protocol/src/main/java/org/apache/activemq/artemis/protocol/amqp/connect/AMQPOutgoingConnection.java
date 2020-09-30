@@ -19,7 +19,9 @@ package org.apache.activemq.artemis.protocol.amqp.connect;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -45,6 +47,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.Consumer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
+import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
 import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ActiveMQProtonRemotingConnection;
@@ -68,7 +71,7 @@ import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
 import org.jboss.logging.Logger;
 
-public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener {
+public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener, ActiveMQServerQueuePlugin {
 
    public static final Symbol REPLICA_TARGET_SYMBOL = Symbol.valueOf("_AMQ_REPLICA_TARGET");
    private static final Logger logger = Logger.getLogger(AMQPOutgoingConnection.class);
@@ -85,6 +88,8 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    private final AMQPOutgoingConnectionManager bridgeManager;
    private int retryCounter = 0;
    private volatile ScheduledFuture reconnectFuture;
+   Map<Queue, Sender> senders = new HashMap<>();
+   Map<Queue, Receiver> receivers = new HashMap<>();
 
    final Executor connectExecutor;
    final ScheduledExecutorService scheduledExecutorService;
@@ -113,7 +118,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    }
 
    public void connect() throws Exception {
-
+      server.getConfiguration().registerBrokerPlugin(this);
       try {
 
          for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
@@ -131,6 +136,24 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
    public NettyConnection getConnection() {
       return connection;
+   }
+
+   @Override
+   public void afterCreateQueue(Queue queue) throws ActiveMQException {
+      connectExecutor.execute(() -> {
+         for (AMQPConnectionElement policy : amqpConfiguration.getConnectionElements()) {
+            if (policy.getType() != AMQPConnectionAddressType.copy && policy.getType() != AMQPConnectionAddressType.replica) {
+               if (policy.match(queue.getAddress(), server.getConfiguration().getWildcardConfiguration())) {
+                  if (policy.getType() == AMQPConnectionAddressType.sender || policy.getType() == AMQPConnectionAddressType.peer) {
+                     connectSender(false, queue);
+                  }
+                  if (policy.getType() == AMQPConnectionAddressType.receiver || policy.getType() == AMQPConnectionAddressType.peer) {
+                     connectReceiver(protonRemotingConnection, session, sessionContext, queue);
+                  }
+               }
+            }
+         }
+      });
    }
 
    private void doConnect() {
@@ -176,15 +199,15 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          if (amqpConfiguration.getConnectionElements() != null) {
             for (AMQPConnectionElement policy : amqpConfiguration.getConnectionElements()) {
                if (policy.getType() != AMQPConnectionAddressType.copy && policy.getType() != AMQPConnectionAddressType.replica) {
-                  Collection<Binding> bindings = server.getPostOffice().getMatchingBindings(SimpleString.toSimpleString(policy.getMatchAddress()));
+                  Collection<Binding> bindings = server.getPostOffice().getMatchingBindings(policy.getMatchAddress());
                   for (Binding b : bindings) {
                      if (b instanceof QueueBinding) {
                         if (policy.getType() == AMQPConnectionAddressType.sender || policy.getType() == AMQPConnectionAddressType.peer) {
-                           connectOutbound(false, ((QueueBinding) b).getQueue());
+                           connectSender(false, ((QueueBinding) b).getQueue());
                         }
 
                         if (policy.getType() == AMQPConnectionAddressType.receiver || policy.getType() == AMQPConnectionAddressType.peer) {
-                           connectInbound(protonRemotingConnection, session, sessionContext, (QueueBinding) b);
+                           connectReceiver(protonRemotingConnection, session, sessionContext, ((QueueBinding) b).getQueue());
                         }
                      }
                   }
@@ -192,7 +215,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
                   AMQPReplica replica = (AMQPReplica)policy;
                   Queue queue = server.locateQueue(replica.getSnfQueue());
 
-                  connectOutbound(true, queue, REPLICA_TARGET_SYMBOL);
+                  connectSender(true, queue, REPLICA_TARGET_SYMBOL);
                }
             }
          }
@@ -267,22 +290,32 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       return snfReplicaQueueBinding;
    }
 
-   private void connectInbound(ActiveMQProtonRemotingConnection protonRemotingConnection,
+   private void connectReceiver(ActiveMQProtonRemotingConnection protonRemotingConnection,
                                 Session session,
                                 AMQPSessionContext sessionContext,
-                                QueueBinding b) {
+                                Queue queue) {
       if (logger.isDebugEnabled()) {
-         logger.debug("Connecting inbound for " + b);
+         logger.debug("Connecting inbound for " + queue);
       }
-      QueueBinding queueBinding = b;
-      Receiver receiver = session.receiver(queueBinding.getQueue().getName().toString());
+      {
+         Receiver checkRec = receivers.get(queue);
+
+         if (checkRec != null) {
+            logger.debug("Receiver for queue " + queue + " already exists, just giving up");
+            return;
+         }
+      }
+
+      Receiver receiver = session.receiver(queue.getName().toString());
       Target target = new Target();
-      target.setAddress(queueBinding.getAddress().toString());
+      target.setAddress(queue.getAddress().toString());
       receiver.setTarget(target);
 
       Source source = new Source();
-      source.setAddress(queueBinding.getQueue().getName().toString());
+      source.setAddress(queue.getName().toString());
       receiver.setSource(source);
+
+      receivers.put(queue, receiver);
 
       protonRemotingConnection.getAmqpConnection().runLater(() -> {
          receiver.open();
@@ -295,14 +328,22 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       });
    }
 
-
-   private void connectOutbound(boolean remoteControl,
+   private void connectSender(boolean remoteControl,
                                 Queue queue,
                                 Symbol... capabilities) {
       // TODO: Adding log.debug here
       if (logger.isDebugEnabled()) {
          logger.debug("Connecting outbound for " + queue);
       }
+
+      {
+         Sender sender = senders.get(queue);
+         if (sender != null) {
+            logger.debug("Sender for queue " + queue + " already exists, just giving up");
+            return;
+         }
+      }
+
       Sender sender = session.sender(queue.getName().toString());
       Target target = new Target();
       target.setAddress(queue.getAddress().toString());
@@ -318,19 +359,19 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
       AMQPOutgoingInitializer outgoingInitializer = new AMQPOutgoingInitializer(queue, sender, sessionContext.getSessionSPI());
 
-      ProtonServerSenderContext senderContext = remoteControl ? null : null;
 
-
-      ProtonServerSenderContext protonSender;
+      ProtonServerSenderContext senderContext;
       if (remoteControl) {
-         protonSender = new RemoteControlServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
+         senderContext = new RemoteControlServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
       } else {
-         protonSender = new ProtonServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
+         senderContext = new ProtonServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
       }
+
+      senders.put(queue, sender);
 
       protonRemotingConnection.getAmqpConnection().runLater(() -> {
          try {
-            sessionContext.addSender(sender, protonSender);
+            sessionContext.addSender(sender, senderContext);
          } catch (Exception e) {
             error(e);
          }

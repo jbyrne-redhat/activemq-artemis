@@ -1907,7 +1907,7 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
                connectionElement = new AMQPConnectionElement();
             }
 
-            connectionElement.setMatchAddress(match).setType(nodeType);
+            connectionElement.setMatchAddress(SimpleString.toSimpleString(match)).setType(nodeType);
             config.addElement(connectionElement);
          }
       }

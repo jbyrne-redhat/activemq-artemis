@@ -18,8 +18,12 @@ package org.apache.activemq.artemis.core.config.amqpbridging;
 
 import java.io.Serializable;
 
+import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.core.config.WildcardConfiguration;
+import org.apache.activemq.artemis.core.postoffice.impl.AddressImpl;
+
 public class AMQPConnectionElement implements Serializable {
-   String matchAddress;
+   SimpleString matchAddress;
    AMQPConnectionAddressType type;
    AMQPConnectConfiguration parent;
 
@@ -35,11 +39,21 @@ public class AMQPConnectionElement implements Serializable {
       return this;
    }
 
-   public String getMatchAddress() {
+   public SimpleString getMatchAddress() {
       return matchAddress;
    }
 
+   public boolean match(SimpleString checkAddress, WildcardConfiguration wildcardConfig) {
+      AddressImpl thisAddress = new AddressImpl(matchAddress, wildcardConfig);
+      AddressImpl otherAddress = new AddressImpl(checkAddress, wildcardConfig);
+      return thisAddress.matches(otherAddress);
+   }
+
    public AMQPConnectionElement setMatchAddress(String matchAddress) {
+      return this.setMatchAddress(SimpleString.toSimpleString(matchAddress));
+   }
+
+   public AMQPConnectionElement setMatchAddress(SimpleString matchAddress) {
       this.matchAddress = matchAddress;
       return this;
    }

@@ -63,26 +63,42 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
 
    @Test
    public void testSimpleTransferPush() throws Exception {
+      internalTransferPush("TEST", false);
+   }
+
+   @Test
+   public void testSimpleTransferPushDeferredCreation() throws Exception {
+      internalTransferPush("TEST", true);
+   }
+
+   public void internalTransferPush(String queueName, boolean deferCreation) throws Exception {
       server.setIdentity("targetServer");
-      server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
-      server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
+      server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString(queueName), RoutingType.ANYCAST));
+      server.createQueue(new QueueConfiguration(queueName).setRoutingType(RoutingType.ANYCAST));
 
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addElement(new AMQPConnectionElement().setMatchAddress("TEST").setType(AMQPConnectionAddressType.sender));
+      amqpConnection.addElement(new AMQPConnectionElement().setMatchAddress(queueName).setType(AMQPConnectionAddressType.sender));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
-      server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
-      server_2.getConfiguration().addQueueConfiguration(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
+      if (!deferCreation) {
+         server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName(queueName).addRoutingType(RoutingType.ANYCAST));
+         server_2.getConfiguration().addQueueConfiguration(new QueueConfiguration(queueName).setRoutingType(RoutingType.ANYCAST));
+      }
       server_2.setIdentity("serverWithBridge");
 
       server_2.start();
       Wait.assertTrue(server_2::isStarted);
 
+      if (deferCreation) {
+         server_2.addAddressInfo(new AddressInfo(queueName).addRoutingType(RoutingType.ANYCAST));
+         server_2.createQueue(new QueueConfiguration(queueName).setRoutingType(RoutingType.ANYCAST));
+      }
+
       ConnectionFactory factory = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + AMQP_PORT_2);
       Connection connection = factory.createConnection();
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-      MessageProducer producer = session.createProducer(session.createQueue("TEST"));
+      MessageProducer producer = session.createProducer(session.createQueue(queueName));
       producer.setDeliveryMode(DeliveryMode.PERSISTENT);
       String largeMessageBody = null;
       for (int i = 0; i < 30; i++) {
@@ -99,7 +115,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
          }
       }
 
-      Queue testQueueOnServer2 = server_2.locateQueue("TEST");
+      Queue testQueueOnServer2 = server_2.locateQueue(queueName);
       Assert.assertNotNull(testQueueOnServer2);
       Wait.assertEquals(0, testQueueOnServer2::getMessageCount);
 
@@ -108,7 +124,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       Session session2 = connection2.createSession(false, Session.AUTO_ACKNOWLEDGE);
       connection2.start();
 
-      MessageConsumer consumer = session2.createConsumer(session2.createQueue("TEST"));
+      MessageConsumer consumer = session2.createConsumer(session2.createQueue(queueName));
       for (int i = 0; i < 30; i++) {
          Message message = consumer.receive(5000);
          if (message instanceof TextMessage) {
