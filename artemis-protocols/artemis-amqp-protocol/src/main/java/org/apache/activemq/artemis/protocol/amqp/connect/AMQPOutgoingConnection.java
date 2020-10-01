@@ -108,7 +108,9 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    }
 
    public void stop() {
-      connection.close();
+      if (connection != null) {
+         connection.close();
+      }
       ScheduledFuture scheduledFuture = reconnectFuture;
       reconnectFuture = null;
       if (scheduledFuture != null) {
@@ -181,6 +183,11 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
          System.out.println("Connection succeeded");
 
+         // before we retry the connection we need to remove any previous links
+         // as they will need to be recreated
+         senders.clear();
+         receivers.clear();
+
          ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection);
          protonRemotingConnection = (ActiveMQProtonRemotingConnection) entry.connection;
          connection.getChannel().pipeline().addLast(new AMQPOutgoingChannelHandler(bridgesConnector.getChannelGroup(), protonRemotingConnection.getAmqpConnection().getHandler()));
@@ -232,7 +239,8 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
    public void retryConnection() {
       if (bridgeManager.isStarted() && started) {
-         if (amqpConfiguration.getReconnectAttempts() < 0 || retryCounter++ < amqpConfiguration.getReconnectAttempts()) {
+         if (amqpConfiguration.getReconnectAttempts() < 0 || retryCounter < amqpConfiguration.getReconnectAttempts()) {
+            retryCounter++;
             System.out.println("Reconnecting in " + amqpConfiguration.getRetryInterval() + ", this is the " + retryCounter + " of " + amqpConfiguration.getReconnectAttempts());
             reconnectFuture = scheduledExecutorService.schedule(() -> connectExecutor.execute(() -> doConnect()), amqpConfiguration.getRetryInterval(), TimeUnit.MILLISECONDS);
          } else {

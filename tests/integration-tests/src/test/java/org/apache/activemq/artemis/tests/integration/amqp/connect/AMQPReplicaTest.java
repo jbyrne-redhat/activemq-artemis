@@ -17,7 +17,6 @@
 
 package org.apache.activemq.artemis.tests.integration.amqp.connect;
 
-
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.DeliveryMode;
@@ -49,6 +48,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    protected static final int AMQP_PORT_2 = 5673;
    protected static final int AMQP_PORT_3 = 5674;
+   public static final int TIME_BEFORE_RESTART = 1000;
 
    ActiveMQServer server_2;
 
@@ -127,38 +127,42 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    @Test
    public void testReplicaLargeMessages() throws Exception {
-      replicaTest(true, true, false, false, false);
+      replicaTest(true, true, false, false, false, false);
    }
 
    @Test
    public void testReplicaLargeMessagesPagingEverywhere() throws Exception {
-      replicaTest(true, true, true, true, false);
+      replicaTest(true, true, true, true, false, false);
    }
-
 
    @Test
    public void testReplica() throws Exception {
-      replicaTest(false, true, false, false, false);
+      replicaTest(false, true, false, false, false, false);
    }
 
    @Test
-   public void testReplicaDeferredStartAndReconnect() throws Exception {
-      replicaTest(false, true, false, false, true);
+   public void testReplicaRestart() throws Exception {
+      replicaTest(false, true, false, false, false, true);
    }
 
    @Test
-   public void testReplicaNoAcks() throws Exception {
-      replicaTest(false, false, false, false, false);
+   public void testReplicaDeferredStart() throws Exception {
+      replicaTest(false, true, false, false, true, false);
+   }
+
+   @Test
+   public void testReplicaCopyOnly() throws Exception {
+      replicaTest(false, false, false, false, false, false);
    }
 
    @Test
    public void testReplicaPagedTarget() throws Exception {
-      replicaTest(false, true, true, false, false);
+      replicaTest(false, true, true, false, false, false);
    }
 
    @Test
    public void testReplicaPagingEverywhere() throws Exception {
-      replicaTest(false, true, true, true, false);
+      replicaTest(false, true, true, true, false, false);
    }
 
    private String getText(boolean large, int i) {
@@ -173,7 +177,12 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       }
    }
 
-   private void replicaTest(boolean largeMessage, boolean acks, boolean pagingTarget, boolean pagingSource, boolean deferredStart) throws Exception {
+   private void replicaTest(boolean largeMessage,
+                            boolean acks,
+                            boolean pagingTarget,
+                            boolean pagingSource,
+                            boolean deferredStart,
+                            boolean restartAndDisconnect) throws Exception {
       server.setIdentity("targetServer");
       if (deferredStart) {
          server.stop();
@@ -208,7 +217,6 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
          }
       }
 
-
       if (pagingSource) {
          Queue queueOnServer2 = server_2.locateQueue("TEST");
          queueOnServer2.getPagingStore().startPaging();
@@ -220,10 +228,9 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
          producer.send(message);
       }
 
-
       Queue queueOnServer1;
       if (deferredStart) {
-         Thread.sleep(1000);
+         Thread.sleep(TIME_BEFORE_RESTART);
          server.start();
          Wait.assertTrue(server::isActive);
          queueOnServer1 = locateQueue(server, "TEST");
@@ -238,7 +245,6 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Assert.assertNotNull(snfreplica);
 
       Wait.assertEquals(0, snfreplica::getMessageCount);
-
 
       Wait.assertEquals(NUMBER_OF_MESSAGES, queueOnServer1::getMessageCount);
       Queue queueOnServer2 = locateQueue(server_2, "TEST");
@@ -255,6 +261,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
          Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queueOnServer1::getMessageCount);
          // we consume on replica, as half the messages were acked
          consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true); // We consume on both servers as this is currently replicated
+         consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT_2, false);
 
          if (largeMessage) {
             validateNoFilesOnLargeDir(server.getConfiguration().getLargeMessagesDirectory(), 0);
@@ -268,6 +275,26 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
             validateNoFilesOnLargeDir(server.getConfiguration().getLargeMessagesDirectory(), 0);
             validateNoFilesOnLargeDir(server_2.getConfiguration().getLargeMessagesDirectory(), 0); // we kept half of the messages
          }
+      }
+
+      if (restartAndDisconnect) {
+         server.stop();
+
+         Thread.sleep(TIME_BEFORE_RESTART);
+
+         server.start();
+         Wait.assertTrue(server::isActive);
+
+         consumeMessages(largeMessage, 0, -1, AMQP_PORT_2, true);
+         consumeMessages(largeMessage, 0, -1, AMQP_PORT, true);
+         for (int i = 0; i < NUMBER_OF_MESSAGES; i++) {
+            Message message = session.createTextMessage(getText(largeMessage, i));
+            message.setIntProperty("i", i);
+            producer.send(message);
+         }
+
+         consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true);
+         consumeMessages(largeMessage, 0, NUMBER_OF_MESSAGES - 1, AMQP_PORT_2, true);
       }
    }
 
@@ -295,7 +322,6 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Wait.waitFor(() -> server.locateQueue(queueName) != null);
       return server.locateQueue(queueName);
    }
-
 
    private void dualReplica(boolean largeMessage, boolean pagingSource, boolean pagingTarget) throws Exception {
       server.setIdentity("server_1");
@@ -362,7 +388,6 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Wait.assertEquals(0L, replica2Queue.getPagingStore()::getAddressSize, 1000, 100);
       Wait.assertEquals(0L, replica1Queue.getPagingStore()::getAddressSize, 1000, 100);
 
-
       if (pagingTarget) {
          Assert.assertTrue(queue_server_1.getPagingStore().isPaging());
          Assert.assertTrue(queue_server_3.getPagingStore().isPaging());
@@ -381,7 +406,6 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       // Replica is async, so we need to wait acks to arrive before we finish consuming there
       Wait.assertEquals(NUMBER_OF_MESSAGES / 2, queue_server_1::getMessageCount);
 
-
       consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT, true); // We consume on both servers as this is currently replicated
       consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT_3, true); // We consume on both servers as this is currently replicated
       consumeMessages(largeMessage, NUMBER_OF_MESSAGES / 2, NUMBER_OF_MESSAGES - 1, AMQP_PORT_2, true); // We consume on both servers as this is currently replicated
@@ -392,7 +416,9 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
 
    }
 
-   /** this might be helpful for debugging */
+   /**
+    * this might be helpful for debugging
+    */
    private void printMessages(String printInfo, Queue queue) {
       System.out.println("*******************************************************************************************************************************");
       System.out.println(printInfo);
@@ -405,7 +431,11 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       System.out.println("*******************************************************************************************************************************");
    }
 
-   private void consumeMessages(boolean largeMessage, int START_ID, int LAST_ID, int port, boolean assertNull) throws JMSException {
+   private void consumeMessages(boolean largeMessage,
+                                int START_ID,
+                                int LAST_ID,
+                                int port,
+                                boolean assertNull) throws JMSException {
       ConnectionFactory cf = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + port);
       Connection conn = cf.createConnection();
       Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -418,7 +448,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
          System.out.println("port " + port + ",i::" + message.getIntProperty("i"));
          Assert.assertEquals(i, message.getIntProperty("i"));
          if (message instanceof TextMessage) {
-            Assert.assertEquals(getText(largeMessage, i), ((TextMessage)message).getText());
+            Assert.assertEquals(getText(largeMessage, i), ((TextMessage) message).getText());
          }
       }
       if (assertNull) {
