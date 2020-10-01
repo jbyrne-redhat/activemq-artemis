@@ -41,15 +41,6 @@ import org.apache.activemq.artemis.spi.core.remoting.Connection;
 import org.apache.activemq.artemis.spi.core.remoting.SessionContext;
 import org.apache.activemq.artemis.spi.core.remoting.TopologyResponseHandler;
 
-/** *
- * things todo:
- *
- * - disconnects and tests and reconnects
- * - flow control (resume / restart)
- * - async start
- *
- * Dev: ClientProtocolManager on ProtocolManager
- */
 public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientConnectionLifeCycleListener {
    private final ProtonProtocolManagerFactory protonProtocolManagerFactory;
    private final ActiveMQServer server;
