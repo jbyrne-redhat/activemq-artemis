@@ -82,25 +82,25 @@ public class ConfigurationValidationTest extends ActiveMQTestBase {
       Assert.assertEquals("test1", amqpConnectConfiguration.getName());
       Assert.assertEquals("tcp://test1:111", amqpConnectConfiguration.getUri());
 
-      Assert.assertEquals("TEST-SENDER", amqpConnectConfiguration.getConnectionElements().get(0).getMatchAddress());
+      Assert.assertEquals("TEST-SENDER", amqpConnectConfiguration.getConnectionElements().get(0).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.sender, amqpConnectConfiguration.getConnectionElements().get(0).getType());
-      Assert.assertEquals("TEST-RECEIVER", amqpConnectConfiguration.getConnectionElements().get(1).getMatchAddress());
+      Assert.assertEquals("TEST-RECEIVER", amqpConnectConfiguration.getConnectionElements().get(1).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.receiver, amqpConnectConfiguration.getConnectionElements().get(1).getType());
-      Assert.assertEquals("TEST-PEER", amqpConnectConfiguration.getConnectionElements().get(2).getMatchAddress());
+      Assert.assertEquals("TEST-PEER", amqpConnectConfiguration.getConnectionElements().get(2).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.peer, amqpConnectConfiguration.getConnectionElements().get(2).getType());
-      Assert.assertEquals("TEST-COPY", amqpConnectConfiguration.getConnectionElements().get(3).getMatchAddress());
+      Assert.assertEquals("TEST-COPY", amqpConnectConfiguration.getConnectionElements().get(3).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.copy, amqpConnectConfiguration.getConnectionElements().get(3).getType());
-      Assert.assertEquals("TEST-REPLICA", amqpConnectConfiguration.getConnectionElements().get(4).getMatchAddress());
+      Assert.assertEquals("TEST-REPLICA", amqpConnectConfiguration.getConnectionElements().get(4).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.replica, amqpConnectConfiguration.getConnectionElements().get(4).getType());
-      Assert.assertEquals("TEST-REPLICA2", amqpConnectConfiguration.getConnectionElements().get(5).getMatchAddress());
+      Assert.assertEquals("TEST-REPLICA2", amqpConnectConfiguration.getConnectionElements().get(5).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.replica, amqpConnectConfiguration.getConnectionElements().get(5).getType());
 
       amqpConnectConfiguration = fc.getAMQPConnection().get(1);
       Assert.assertEquals("test2", amqpConnectConfiguration.getName());
       Assert.assertEquals("tcp://test2:222", amqpConnectConfiguration.getUri());
-      Assert.assertEquals("TEST-REPLICA", amqpConnectConfiguration.getConnectionElements().get(0).getMatchAddress());
+      Assert.assertEquals("TEST-REPLICA", amqpConnectConfiguration.getConnectionElements().get(0).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.replica, amqpConnectConfiguration.getConnectionElements().get(0).getType());
-      Assert.assertEquals("TEST-REPLICA2", amqpConnectConfiguration.getConnectionElements().get(1).getMatchAddress());
+      Assert.assertEquals("TEST-REPLICA2", amqpConnectConfiguration.getConnectionElements().get(1).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.copy, amqpConnectConfiguration.getConnectionElements().get(1).getType());
 
    }
