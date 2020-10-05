@@ -161,7 +161,7 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
       transport.setInitialRemoteMaxFrameSize(protocolManager.getInitialRemoteMaxFrameSize());
       transport.setMaxFrameSize(maxFrameSize);
       transport.setOutboundFrameSizeLimit(maxFrameSize);
-      if (!isIncomingConnection && saslClientFactory != null) {
+      if (saslClientFactory != null) {
          handler.createClientSASL();
       }
    }

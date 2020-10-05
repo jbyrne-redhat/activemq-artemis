@@ -28,6 +28,9 @@ public class AMQPConnectConfiguration implements Serializable {
 
    String name;
    String uri;
+   String user = "x";
+   String password = "x";
+
    List<TransportConfiguration> transportConfigurations;
    int reconnectAttempts;
    int retryInterval = 5000;
@@ -76,6 +79,24 @@ public class AMQPConnectConfiguration implements Serializable {
 
    public AMQPConnectConfiguration setReconnectAttempts(int reconnectAttempts) {
       this.reconnectAttempts = reconnectAttempts;
+      return this;
+   }
+
+   public String getUser() {
+      return user;
+   }
+
+   public AMQPConnectConfiguration setUser(String user) {
+      this.user = user;
+      return this;
+   }
+
+   public String getPassword() {
+      return password;
+   }
+
+   public AMQPConnectConfiguration setPassword(String password) {
+      this.password = password;
       return this;
    }
 

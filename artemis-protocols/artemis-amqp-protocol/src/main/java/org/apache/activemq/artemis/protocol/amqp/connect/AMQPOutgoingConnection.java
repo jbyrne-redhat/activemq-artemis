@@ -18,6 +18,7 @@
 package org.apache.activemq.artemis.protocol.amqp.connect;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +59,7 @@ import org.apache.activemq.artemis.protocol.amqp.proton.AMQPSessionContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.ProtonServerSenderContext;
 import org.apache.activemq.artemis.protocol.amqp.proton.SenderInitializer;
 import org.apache.activemq.artemis.protocol.amqp.sasl.ClientSASL;
+import org.apache.activemq.artemis.protocol.amqp.sasl.ClientSASLFactory;
 import org.apache.activemq.artemis.spi.core.protocol.ConnectionEntry;
 import org.apache.activemq.artemis.spi.core.remoting.ClientConnectionLifeCycleListener;
 import org.apache.activemq.artemis.spi.core.remoting.ClientProtocolManager;
@@ -188,7 +190,19 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          senders.clear();
          receivers.clear();
 
-         ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection);
+         ClientSASLFactory saslFactory = null;
+
+         if (amqpConfiguration.getUser() != null && amqpConfiguration.getPassword() != null) {
+            saslFactory = availableMechanims -> {
+               if (availableMechanims != null && Arrays.asList(availableMechanims).contains("PLAIN")) {
+                  return new PlainSASLMechanism(amqpConfiguration.getUser(), amqpConfiguration.getPassword());
+               } else {
+                  return null;
+               }
+            };
+         }
+
+         ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection, saslFactory);
          protonRemotingConnection = (ActiveMQProtonRemotingConnection) entry.connection;
          connection.getChannel().pipeline().addLast(new AMQPOutgoingChannelHandler(bridgesConnector.getChannelGroup(), protonRemotingConnection.getAmqpConnection().getHandler()));
 
@@ -496,6 +510,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
       @Override
       public byte[] getInitialResponse() {
+         new Exception("Returning initial response for security").printStackTrace();
          return initialResponse;
       }
 

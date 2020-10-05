@@ -149,7 +149,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
 
       server_2 = createServer(AMQP_PORT_2, false);
 
-      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT).setUser("test").setPassword("test");
       amqpConnection.addElement(new AMQPConnectionElement().setMatchAddress("TEST").setType(AMQPConnectionAddressType.receiver));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
