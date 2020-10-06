@@ -271,7 +271,7 @@ public class AmqpClientTestSupport extends AmqpTestSupport {
       }
    }
 
-   protected void enableSecurity(ActiveMQServer server, String ... securityMatches) {
+   protected void enableSecurity(ActiveMQServer server, String... securityMatches) {
       ActiveMQJAASSecurityManager securityManager = (ActiveMQJAASSecurityManager) server.getSecurityManager();
 
       // User additions

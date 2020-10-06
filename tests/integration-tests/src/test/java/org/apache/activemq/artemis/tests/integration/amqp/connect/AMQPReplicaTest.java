@@ -240,7 +240,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       } else {
          queueOnServer1 = locateQueue(server, "TEST");
       }
-      Queue snfreplica = server_2.locateQueue(replica.getSnfQueue());
+      Queue snfreplica = server_2.locateQueue(replica.getSourceMirrorAddress());
 
       Assert.assertNotNull(snfreplica);
 
@@ -382,8 +382,8 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_3::getMessageCount);
       Wait.assertEquals(NUMBER_OF_MESSAGES, queue_server_1::getMessageCount);
 
-      Queue replica1Queue = server_2.locateQueue(replica1.getSnfQueue());
-      Queue replica2Queue = server_2.locateQueue(replica2.getSnfQueue());
+      Queue replica1Queue = server_2.locateQueue(replica1.getSourceMirrorAddress());
+      Queue replica2Queue = server_2.locateQueue(replica2.getSourceMirrorAddress());
 
       Wait.assertEquals(0L, replica2Queue.getPagingStore()::getAddressSize, 1000, 100);
       Wait.assertEquals(0L, replica1Queue.getPagingStore()::getAddressSize, 1000, 100);

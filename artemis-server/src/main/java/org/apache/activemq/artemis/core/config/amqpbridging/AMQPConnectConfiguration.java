@@ -46,10 +46,6 @@ public class AMQPConnectConfiguration implements Serializable {
       if (connectionElements == null) {
          connectionElements = new ArrayList<>();
       }
-      if (!(amqpConnectionElement instanceof AMQPMirrorConnectionElement) && (amqpConnectionElement.getType() == AMQPConnectionAddressType.mirror ||
-          amqpConnectionElement.getType() == AMQPConnectionAddressType.mirror)) {
-         amqpConnectionElement = new AMQPMirrorConnectionElement().setType(amqpConnectionElement.getType()).setMatchAddress(amqpConnectionElement.matchAddress);
-      }
       amqpConnectionElement.setParent(this);
 
       connectionElements.add(amqpConnectionElement);
