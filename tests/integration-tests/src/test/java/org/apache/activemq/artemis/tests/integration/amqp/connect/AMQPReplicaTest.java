@@ -32,7 +32,7 @@ import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPMirrorConnectionElement;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
@@ -60,7 +60,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.replica));
+      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.mirror));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       server_2.start();
@@ -94,7 +94,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2.setIdentity("server_2");
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.replica));
+      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.mirror));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       server_2.start();
@@ -110,7 +110,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2.setIdentity("server_2");
 
       amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.replica));
+      amqpConnection.addElement(new AMQPConnectionElement().setType(AMQPConnectionAddressType.mirror));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       server.start();
@@ -190,7 +190,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT).setReconnectAttempts(-1).setRetryInterval(100);
-      AMQPReplica replica = new AMQPReplica().setType(acks ? AMQPConnectionAddressType.replica : AMQPConnectionAddressType.copy);
+      AMQPMirrorConnectionElement replica = new AMQPMirrorConnectionElement().setType(acks ? AMQPConnectionAddressType.mirror : AMQPConnectionAddressType.mirror);
       amqpConnection.addElement(replica);
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
@@ -339,12 +339,12 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection1 = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      AMQPReplica replica1 = new AMQPReplica().setType(AMQPConnectionAddressType.replica);
+      AMQPMirrorConnectionElement replica1 = new AMQPMirrorConnectionElement().setType(AMQPConnectionAddressType.mirror);
       amqpConnection1.addElement(replica1);
       server_2.getConfiguration().addAMQPConnection(amqpConnection1);
 
       AMQPConnectConfiguration amqpConnection3 = new AMQPConnectConfiguration("test2", "tcp://localhost:" + AMQP_PORT_3);
-      AMQPReplica replica2 = new AMQPReplica().setType(AMQPConnectionAddressType.replica);
+      AMQPMirrorConnectionElement replica2 = new AMQPMirrorConnectionElement().setType(AMQPConnectionAddressType.mirror);
       amqpConnection3.addElement(replica2);
       server_2.getConfiguration().addAMQPConnection(amqpConnection3);
 

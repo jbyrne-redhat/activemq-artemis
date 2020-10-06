@@ -50,9 +50,14 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
 
    ActiveMQServer server_2;
 
+   @Override
+   protected ActiveMQServer createServer() throws Exception {
+      return createServer(AMQP_PORT, false);
+   }
 
    @Test
    public void testsSimpleConnect() throws Exception {
+      server.start();
       server_2 = createServer(AMQP_PORT_2, false);
 
       AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
@@ -73,6 +78,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
 
    public void internalTransferPush(String queueName, boolean deferCreation) throws Exception {
       server.setIdentity("targetServer");
+      server.start();
       server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString(queueName), RoutingType.ANYCAST));
       server.createQueue(new QueueConfiguration(queueName).setRoutingType(RoutingType.ANYCAST));
 
@@ -136,20 +142,39 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
          }
       }
       Assert.assertNull(consumer.receiveNoWait());
-
-
    }
-
 
    @Test
    public void testSimpleTransferPull() throws Exception {
+      internaltestSimpleTransferPull(false);
+   }
+
+   @Test
+   public void testSimpleTransferPullSecurity() throws Exception {
+      internaltestSimpleTransferPull(true);
+   }
+
+   public void internaltestSimpleTransferPull(boolean security) throws Exception {
       server.setIdentity("targetServer");
+
+      if (security) {
+         enableSecurity(server, "#");
+      }
+
+      server.start();
+
       server.addAddressInfo(new AddressInfo(SimpleString.toSimpleString("TEST"), RoutingType.ANYCAST));
       server.createQueue(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
 
       server_2 = createServer(AMQP_PORT_2, false);
 
-      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT).setUser("test").setPassword("test");
+      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT).setRetryInterval(10);
+
+      if (security) {
+         // we first do it with a wrong password. retries in place should be in place until we make it right
+         amqpConnection.setUser(fullUser).setPassword("wrongPassword");
+      }
+
       amqpConnection.addElement(new AMQPConnectionElement().setMatchAddress("TEST").setType(AMQPConnectionAddressType.receiver));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
@@ -160,7 +185,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       Wait.assertTrue(server_2::isStarted);
 
       ConnectionFactory factory = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:" + AMQP_PORT);
-      Connection connection = factory.createConnection();
+      Connection connection = factory.createConnection(fullUser, fullPass);
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
       MessageProducer producer = session.createProducer(session.createQueue("TEST"));
       producer.setDeliveryMode(DeliveryMode.PERSISTENT);
@@ -185,6 +210,15 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       connection2.start();
 
       MessageConsumer consumer = session2.createConsumer(session2.createQueue("TEST"));
+
+      if (security) {
+         Thread.sleep(500); // on this case we need to wait some time to make sure retries are kicking in.
+         // since the password is wrong, this should return null.
+         Assert.assertNull(consumer.receiveNoWait());
+         // we are fixing the password, hoping the connection will fix itself.
+         amqpConnection.setUser(fullUser).setPassword(fullPass);
+      }
+
       for (int i = 0; i < 30; i++) {
          Message message = consumer.receive(5000);
          if (message instanceof TextMessage) {
@@ -196,20 +230,6 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
          }
       }
       Assert.assertNull(consumer.receiveNoWait());
-   }
-
-   @Ignore
-   @Test
-   public void testFailedConnection() throws Exception {
-      // TODO implement this test properly
-      server_2 = createServer(AMQP_PORT_2, false);
-      server_2.getConfiguration().addConnectorConfiguration("amqp", "tcp://localhost:" + AMQP_PORT);
-      server_2.getConfiguration().addConnectorConfiguration("amqp", "tcp://localhost:" + AMQP_PORT);
-
-      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://test:61616");
-      server_2.getConfiguration().addAMQPConnection(amqpConnection);
-
-      server_2.start();
    }
 
 }

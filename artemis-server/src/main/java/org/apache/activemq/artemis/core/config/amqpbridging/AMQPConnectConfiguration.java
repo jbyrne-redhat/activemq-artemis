@@ -28,11 +28,11 @@ public class AMQPConnectConfiguration implements Serializable {
 
    String name;
    String uri;
-   String user = "x";
-   String password = "x";
+   String user;
+   String password;
 
    List<TransportConfiguration> transportConfigurations;
-   int reconnectAttempts;
+   int reconnectAttempts = -1;
    int retryInterval = 5000;
 
    List<AMQPConnectionElement> connectionElements;
@@ -46,9 +46,9 @@ public class AMQPConnectConfiguration implements Serializable {
       if (connectionElements == null) {
          connectionElements = new ArrayList<>();
       }
-      if (!(amqpConnectionElement instanceof AMQPReplica) && (amqpConnectionElement.getType() == AMQPConnectionAddressType.replica ||
-          amqpConnectionElement.getType() == AMQPConnectionAddressType.copy)) {
-         amqpConnectionElement = new AMQPReplica().setType(amqpConnectionElement.getType()).setMatchAddress(amqpConnectionElement.matchAddress);
+      if (!(amqpConnectionElement instanceof AMQPMirrorConnectionElement) && (amqpConnectionElement.getType() == AMQPConnectionAddressType.mirror ||
+          amqpConnectionElement.getType() == AMQPConnectionAddressType.mirror)) {
+         amqpConnectionElement = new AMQPMirrorConnectionElement().setType(amqpConnectionElement.getType()).setMatchAddress(amqpConnectionElement.matchAddress);
       }
       amqpConnectionElement.setParent(this);
 

@@ -24,7 +24,13 @@ import org.w3c.dom.NodeList;
 public class XMLConfigurationUtil {
 
    public static final String getAttributeValue(Node element, String attribute) {
-      return element.getAttributes().getNamedItem(attribute).getNodeValue();
+      Node node = element.getAttributes().getNamedItem(attribute);
+      if (node == null) {
+         return null;
+      } else {
+         return node.getNodeValue();
+      }
+
    }
 
    public static final String getTrimmedTextContent(Node element) {
@@ -133,6 +139,16 @@ public class XMLConfigurationUtil {
          return def;
       }
    }
+
+   public static final Boolean getBooleanAttribute(final Element e, final String name, final Boolean def) {
+      String attributeValue = e.getAttribute(name);
+      if (attributeValue == null) {
+         return def;
+      } else {
+         return Boolean.parseBoolean(attributeValue);
+      }
+   }
+
 
    public static final Boolean parameterExists(final Element e, final String name) {
       NodeList nl = e.getElementsByTagName(name);

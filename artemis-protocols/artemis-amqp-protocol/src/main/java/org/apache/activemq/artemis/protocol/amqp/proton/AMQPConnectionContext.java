@@ -32,21 +32,28 @@ import java.util.function.UnaryOperator;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoop;
+import org.apache.activemq.artemis.api.core.ActiveMQSecurityException;
+import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnection;
 import org.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants;
+import org.apache.activemq.artemis.core.security.CheckType;
+import org.apache.activemq.artemis.core.security.SecurityAuth;
 import org.apache.activemq.artemis.protocol.amqp.connect.AMQPOutgoingConnection;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPConnectionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ProtonProtocolManager;
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPException;
 import org.apache.activemq.artemis.protocol.amqp.logger.ActiveMQAMQPProtocolLogger;
+import org.apache.activemq.artemis.protocol.amqp.logger.ActiveMQAMQPProtocolMessageBundle;
 import org.apache.activemq.artemis.protocol.amqp.proton.handler.EventHandler;
 import org.apache.activemq.artemis.protocol.amqp.proton.handler.ExecutorNettyAdapter;
 import org.apache.activemq.artemis.protocol.amqp.proton.handler.ExtCapability;
 import org.apache.activemq.artemis.protocol.amqp.proton.handler.ProtonHandler;
 import org.apache.activemq.artemis.protocol.amqp.sasl.AnonymousServerSASL;
 import org.apache.activemq.artemis.protocol.amqp.sasl.ClientSASLFactory;
+import org.apache.activemq.artemis.protocol.amqp.sasl.PlainSASLResult;
 import org.apache.activemq.artemis.protocol.amqp.sasl.SASLResult;
+import org.apache.activemq.artemis.spi.core.protocol.RemotingConnection;
 import org.apache.activemq.artemis.spi.core.remoting.ReadyListener;
 import org.apache.activemq.artemis.utils.ByteUtil;
 import org.apache.activemq.artemis.utils.VersionLoader;
@@ -193,6 +200,10 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
       return protonSession;
    }
 
+   public SecurityAuth getSecurityAuth() {
+      return new LocalSecurity();
+   }
+
    public SASLResult getSASLResult() {
       return handler.getSASLResult();
    }
@@ -309,6 +320,11 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
             protonSession.addTransactionHandler(coordinator, receiver);
          } else {
             if (isReplicaTarget(receiver)) {
+               try {
+                  protonSession.getSessionSPI().check(SimpleString.toSimpleString(protocolManager.getMirrorAddress()), CheckType.SEND, getSecurityAuth());
+               } catch (ActiveMQSecurityException e) {
+                  throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.securityErrorCreatingProducer(e.getMessage());
+               }
                protonSession.addReplicaTarget(receiver);
             } else {
                protonSession.addReceiver(receiver);
@@ -321,15 +337,7 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
    }
 
    private boolean isReplicaTarget(Link link) {
-      if (link.getRemoteDesiredCapabilities() != null) {
-         for (Symbol symbol : link.getRemoteDesiredCapabilities()) {
-            if (symbol.equals(AMQPOutgoingConnection.REPLICA_TARGET_SYMBOL)) {
-               return true;
-            }
-         }
-      }
-
-      return false;
+      return link.getName() != null && link.getName().equals(protocolManager.getMirrorAddress());
    }
 
    public Symbol[] getConnectionCapabilitiesOffered() {
@@ -656,4 +664,42 @@ public class AMQPConnectionContext extends ProtonInitializable implements EventH
          log.warn("Handler is null, can't delivery " + delivery, new Exception("tracing location"));
       }
    }
+
+
+   private class LocalSecurity implements SecurityAuth {
+      @Override
+      public String getUsername() {
+         String username = null;
+         SASLResult saslResult = getSASLResult();
+         if (saslResult != null) {
+            username = saslResult.getUser();
+         }
+
+         return username;
+      }
+
+      @Override
+      public String getPassword() {
+         String password = null;
+         SASLResult saslResult = getSASLResult();
+         if (saslResult != null) {
+            if (saslResult instanceof PlainSASLResult) {
+               password = ((PlainSASLResult) saslResult).getPassword();
+            }
+         }
+
+         return password;
+      }
+
+      @Override
+      public RemotingConnection getRemotingConnection() {
+         return connectionCallback.getProtonConnectionDelegate();
+      }
+
+      @Override
+      public String getSecurityDomain() {
+         return getProtocolManager().getSecurityDomain();
+      }
+   }
+
 }

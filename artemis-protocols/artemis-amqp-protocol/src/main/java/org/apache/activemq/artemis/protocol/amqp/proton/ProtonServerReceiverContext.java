@@ -126,41 +126,7 @@ public class ProtonServerReceiverContext extends ProtonAbstractReceiver {
                }
 
                try {
-                  sessionSPI.check(address, CheckType.SEND, new SecurityAuth() {
-                     @Override
-                     public String getUsername() {
-                        String username = null;
-                        SASLResult saslResult = connection.getSASLResult();
-                        if (saslResult != null) {
-                           username = saslResult.getUser();
-                        }
-
-                        return username;
-                     }
-
-                     @Override
-                     public String getPassword() {
-                        String password = null;
-                        SASLResult saslResult = connection.getSASLResult();
-                        if (saslResult != null) {
-                           if (saslResult instanceof PlainSASLResult) {
-                              password = ((PlainSASLResult) saslResult).getPassword();
-                           }
-                        }
-
-                        return password;
-                     }
-
-                     @Override
-                     public RemotingConnection getRemotingConnection() {
-                        return connection.connectionCallback.getProtonConnectionDelegate();
-                     }
-
-                     @Override
-                     public String getSecurityDomain() {
-                        return connection.getProtocolManager().getSecurityDomain();
-                     }
-                  });
+                  sessionSPI.check(address, CheckType.SEND, connection.getSecurityAuth());
                } catch (ActiveMQSecurityException e) {
                   throw ActiveMQAMQPProtocolMessageBundle.BUNDLE.securityErrorCreatingProducer(e.getMessage());
                }

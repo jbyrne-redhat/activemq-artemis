@@ -60,7 +60,7 @@ import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPMirrorConnectionElement;
 import org.apache.activemq.artemis.core.config.federation.FederationAddressPolicyConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationDownstreamConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationPolicySet;
@@ -1897,17 +1897,27 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
          if (senderList.item(i).getNodeType() == Node.ELEMENT_NODE) {
             Element e2 = (Element)senderList.item(i);
             AMQPConnectionAddressType nodeType = AMQPConnectionAddressType.valueOf(e2.getTagName());
-            String match = e2.getAttribute("match");
             AMQPConnectionElement connectionElement;
 
-            if (nodeType == AMQPConnectionAddressType.replica ||
-                nodeType == AMQPConnectionAddressType.copy) {
-               connectionElement = new AMQPReplica();
+            if (nodeType == AMQPConnectionAddressType.mirror) {
+               boolean messageAcks = getBooleanAttribute(e2, "message-acknowledgements", true);
+               boolean queueCreation = getBooleanAttribute(e2,"queue-creation", true);
+               boolean queueRemoval = getBooleanAttribute(e2, "queue-removal", true);
+               String sourceMirrorAddress = getAttributeValue(e2, "source-mirror-address");
+               String targetMirrorAddress = getAttributeValue(e2, "target-mirror-address");
+               AMQPMirrorConnectionElement amqpMirrorConnectionElement = new AMQPMirrorConnectionElement();
+               amqpMirrorConnectionElement.setMessageAcknowledgements(messageAcks).setQueueCreation(queueCreation).setQueueRemoval(queueRemoval).
+                  setSourceMirrorAddress(sourceMirrorAddress).setTargetMirrorAddress(targetMirrorAddress);
+               connectionElement = amqpMirrorConnectionElement;
+               connectionElement.setType(AMQPConnectionAddressType.mirror);
             } else {
+               String match = getAttributeValue(e2, "match");
+               String queue = getAttributeValue(e2, "queue-name");
                connectionElement = new AMQPConnectionElement();
+               connectionElement.setMatchAddress(SimpleString.toSimpleString(match)).setType(nodeType);
+               connectionElement.setQueueName(SimpleString.toSimpleString(queue));
             }
 
-            connectionElement.setMatchAddress(SimpleString.toSimpleString(match)).setType(nodeType);
             config.addElement(connectionElement);
          }
       }

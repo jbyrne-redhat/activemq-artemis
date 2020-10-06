@@ -20,6 +20,5 @@ public enum AMQPConnectionAddressType {
    sender,
    receiver,
    peer,
-   copy,
-   replica
+   mirror
 }

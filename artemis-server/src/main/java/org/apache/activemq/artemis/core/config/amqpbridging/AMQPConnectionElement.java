@@ -24,6 +24,7 @@ import org.apache.activemq.artemis.core.postoffice.impl.AddressImpl;
 
 public class AMQPConnectionElement implements Serializable {
    SimpleString matchAddress;
+   SimpleString queueName;
    AMQPConnectionAddressType type;
    AMQPConnectConfiguration parent;
 
@@ -36,6 +37,15 @@ public class AMQPConnectionElement implements Serializable {
 
    public AMQPConnectionElement setParent(AMQPConnectConfiguration parent) {
       this.parent = parent;
+      return this;
+   }
+
+   public SimpleString getQueueName() {
+      return queueName;
+   }
+
+   public AMQPConnectionElement setQueueName(SimpleString queueName) {
+      this.queueName = queueName;
       return this;
    }
 

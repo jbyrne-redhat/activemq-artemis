@@ -80,6 +80,8 @@ public class ProtonProtocolManager extends AbstractProtocolManager<AMQPMessage, 
 
    private boolean amqpUseModifiedForTransientDeliveryErrors = AmqpSupport.AMQP_USE_MODIFIED_FOR_TRANSIENT_DELIVERY_ERRORS;
 
+   private String mirrorAddress = "$mirror";
+
    // If set true, a reject disposition will be treated as if it were an unmodified disposition with the
    // delivery-failed flag set true.
    private boolean amqpTreatRejectAsUnmodifiedDeliveryFailed = AmqpSupport.AMQP_TREAT_REJECT_AS_UNMODIFIED_DELIVERY_FAILURE;
@@ -194,6 +196,15 @@ public class ProtonProtocolManager extends AbstractProtocolManager<AMQPMessage, 
 
    public ConnectionEntry createOutgoingConnectionEntry(Connection remotingConnection, ClientSASLFactory saslFactory) {
       return internalConnectionEntry(remotingConnection, true, saslFactory);
+   }
+
+   public String getMirrorAddress() {
+      return mirrorAddress;
+   }
+
+   public ProtonProtocolManager setMirrorAddress(String mirrorAddress) {
+      this.mirrorAddress = mirrorAddress;
+      return this;
    }
 
    /**

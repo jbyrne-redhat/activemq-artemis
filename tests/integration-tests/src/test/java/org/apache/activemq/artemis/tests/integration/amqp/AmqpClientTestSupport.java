@@ -265,31 +265,39 @@ public class AmqpClientTestSupport extends AmqpTestSupport {
 
    protected void configureBrokerSecurity(ActiveMQServer server) {
       if (isSecurityEnabled()) {
-         ActiveMQJAASSecurityManager securityManager = (ActiveMQJAASSecurityManager) server.getSecurityManager();
-
-         // User additions
-         securityManager.getConfiguration().addUser(noprivUser, noprivPass);
-         securityManager.getConfiguration().addRole(noprivUser, "nothing");
-         securityManager.getConfiguration().addUser(browseUser, browsePass);
-         securityManager.getConfiguration().addRole(browseUser, "browser");
-         securityManager.getConfiguration().addUser(guestUser, guestPass);
-         securityManager.getConfiguration().addRole(guestUser, "guest");
-         securityManager.getConfiguration().addUser(fullUser, fullPass);
-         securityManager.getConfiguration().addRole(fullUser, "full");
-
-         // Configure roles
-         HierarchicalRepository<Set<Role>> securityRepository = server.getSecurityRepository();
-         HashSet<Role> value = new HashSet<>();
-         value.add(new Role("nothing", false, false, false, false, false, false, false, false, false, false));
-         value.add(new Role("browser", false, false, false, false, false, false, false, true, false, false));
-         value.add(new Role("guest", false, true, false, false, false, false, false, true, false, false));
-         value.add(new Role("full", true, true, true, true, true, true, true, true, true, true));
-         securityRepository.addMatch(getQueueName(), value);
-
-         server.getConfiguration().setSecurityEnabled(true);
+         enableSecurity(server);
       } else {
          server.getConfiguration().setSecurityEnabled(false);
       }
+   }
+
+   protected void enableSecurity(ActiveMQServer server, String ... securityMatches) {
+      ActiveMQJAASSecurityManager securityManager = (ActiveMQJAASSecurityManager) server.getSecurityManager();
+
+      // User additions
+      securityManager.getConfiguration().addUser(noprivUser, noprivPass);
+      securityManager.getConfiguration().addRole(noprivUser, "nothing");
+      securityManager.getConfiguration().addUser(browseUser, browsePass);
+      securityManager.getConfiguration().addRole(browseUser, "browser");
+      securityManager.getConfiguration().addUser(guestUser, guestPass);
+      securityManager.getConfiguration().addRole(guestUser, "guest");
+      securityManager.getConfiguration().addUser(fullUser, fullPass);
+      securityManager.getConfiguration().addRole(fullUser, "full");
+
+      // Configure roles
+      HierarchicalRepository<Set<Role>> securityRepository = server.getSecurityRepository();
+      HashSet<Role> value = new HashSet<>();
+      value.add(new Role("nothing", false, false, false, false, false, false, false, false, false, false));
+      value.add(new Role("browser", false, false, false, false, false, false, false, true, false, false));
+      value.add(new Role("guest", false, true, false, false, false, false, false, true, false, false));
+      value.add(new Role("full", true, true, true, true, true, true, true, true, true, true));
+      securityRepository.addMatch(getQueueName(), value);
+
+      for (String match : securityMatches) {
+         securityRepository.addMatch(match, value);
+      }
+
+      server.getConfiguration().setSecurityEnabled(true);
    }
 
    protected void configureAMQPAcceptorParameters(Map<String, Object> params) {

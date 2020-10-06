@@ -19,6 +19,7 @@ package org.apache.activemq.artemis.tests.unit.core.config.impl;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.FileDeploymentManager;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPMirrorConnectionElement;
 import org.apache.activemq.artemis.core.config.impl.FileConfiguration;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.utils.XMLUtil;
@@ -88,21 +89,29 @@ public class ConfigurationValidationTest extends ActiveMQTestBase {
       Assert.assertEquals(AMQPConnectionAddressType.receiver, amqpConnectConfiguration.getConnectionElements().get(1).getType());
       Assert.assertEquals("TEST-PEER", amqpConnectConfiguration.getConnectionElements().get(2).getMatchAddress().toString());
       Assert.assertEquals(AMQPConnectionAddressType.peer, amqpConnectConfiguration.getConnectionElements().get(2).getType());
-      Assert.assertEquals("TEST-COPY", amqpConnectConfiguration.getConnectionElements().get(3).getMatchAddress().toString());
-      Assert.assertEquals(AMQPConnectionAddressType.copy, amqpConnectConfiguration.getConnectionElements().get(3).getType());
-      Assert.assertEquals("TEST-REPLICA", amqpConnectConfiguration.getConnectionElements().get(4).getMatchAddress().toString());
-      Assert.assertEquals(AMQPConnectionAddressType.replica, amqpConnectConfiguration.getConnectionElements().get(4).getType());
-      Assert.assertEquals("TEST-REPLICA2", amqpConnectConfiguration.getConnectionElements().get(5).getMatchAddress().toString());
-      Assert.assertEquals(AMQPConnectionAddressType.replica, amqpConnectConfiguration.getConnectionElements().get(5).getType());
+
+      Assert.assertEquals("TEST-WITH-QUEUE-NAME", amqpConnectConfiguration.getConnectionElements().get(3).getQueueName().toString());
+      Assert.assertEquals(null, amqpConnectConfiguration.getConnectionElements().get(3).getMatchAddress());
+      Assert.assertEquals(AMQPConnectionAddressType.receiver, amqpConnectConfiguration.getConnectionElements().get(3).getType());
+
+      Assert.assertEquals(AMQPConnectionAddressType.mirror, amqpConnectConfiguration.getConnectionElements().get(4).getType());
+      AMQPMirrorConnectionElement mirrorConnectionElement = (AMQPMirrorConnectionElement)amqpConnectConfiguration.getConnectionElements().get(4);
+      Assert.assertFalse(mirrorConnectionElement.isMessageAcknowledgements());
+      Assert.assertTrue(mirrorConnectionElement.isDurable()); // queue name passed, so this is supposed to be true
+      Assert.assertFalse(mirrorConnectionElement.isQueueCreation());
+      Assert.assertFalse(mirrorConnectionElement.isQueueRemoval());
+      Assert.assertEquals("TEST-REPLICA", mirrorConnectionElement.getSourceMirrorAddress().toString());
+      Assert.assertEquals("TEST-REPLICA", mirrorConnectionElement.getTargetMirrorAddress().toString());
 
       amqpConnectConfiguration = fc.getAMQPConnection().get(1);
+      mirrorConnectionElement = (AMQPMirrorConnectionElement)amqpConnectConfiguration.getConnectionElements().get(0);
       Assert.assertEquals("test2", amqpConnectConfiguration.getName());
       Assert.assertEquals("tcp://test2:222", amqpConnectConfiguration.getUri());
-      Assert.assertEquals("TEST-REPLICA", amqpConnectConfiguration.getConnectionElements().get(0).getMatchAddress().toString());
-      Assert.assertEquals(AMQPConnectionAddressType.replica, amqpConnectConfiguration.getConnectionElements().get(0).getType());
-      Assert.assertEquals("TEST-REPLICA2", amqpConnectConfiguration.getConnectionElements().get(1).getMatchAddress().toString());
-      Assert.assertEquals(AMQPConnectionAddressType.copy, amqpConnectConfiguration.getConnectionElements().get(1).getType());
-
+      Assert.assertEquals("TARGET-REPLICA", mirrorConnectionElement.getTargetMirrorAddress().toString());
+      Assert.assertTrue(mirrorConnectionElement.isMessageAcknowledgements());
+      Assert.assertFalse(mirrorConnectionElement.isDurable()); // queue name not passed (set as null), so this is supposed to be false
+      Assert.assertTrue(mirrorConnectionElement.isQueueCreation());
+      Assert.assertTrue(mirrorConnectionElement.isQueueRemoval());
    }
 
    @Test

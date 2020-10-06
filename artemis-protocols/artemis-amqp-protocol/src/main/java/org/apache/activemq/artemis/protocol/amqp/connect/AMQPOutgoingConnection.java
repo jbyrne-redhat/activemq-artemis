@@ -19,7 +19,6 @@ package org.apache.activemq.artemis.protocol.amqp.connect;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.Message;
@@ -37,7 +37,7 @@ import org.apache.activemq.artemis.api.core.TransportConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
 import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPReplica;
+import org.apache.activemq.artemis.core.config.amqpbridging.AMQPMirrorConnectionElement;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnection;
@@ -127,9 +127,8 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       try {
 
          for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
-            if (connectionElement.getType() == AMQPConnectionAddressType.copy ||
-                connectionElement.getType() == AMQPConnectionAddressType.replica) {
-               installRemoteControl((AMQPReplica)connectionElement, server);
+            if (connectionElement.getType() == AMQPConnectionAddressType.mirror) {
+               installRemoteControl((AMQPMirrorConnectionElement)connectionElement, server);
             }
          }
       } catch (Throwable e) {
@@ -144,21 +143,33 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    }
 
    @Override
-   public void afterCreateQueue(Queue queue) throws ActiveMQException {
+   public void afterCreateQueue(Queue queue) {
       connectExecutor.execute(() -> {
-         for (AMQPConnectionElement policy : amqpConfiguration.getConnectionElements()) {
-            if (policy.getType() != AMQPConnectionAddressType.copy && policy.getType() != AMQPConnectionAddressType.replica) {
-               if (policy.match(queue.getAddress(), server.getConfiguration().getWildcardConfiguration())) {
-                  if (policy.getType() == AMQPConnectionAddressType.sender || policy.getType() == AMQPConnectionAddressType.peer) {
-                     connectSender(false, queue);
-                  }
-                  if (policy.getType() == AMQPConnectionAddressType.receiver || policy.getType() == AMQPConnectionAddressType.peer) {
-                     connectReceiver(protonRemotingConnection, session, sessionContext, queue);
-                  }
-               }
-            }
+         for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
+            validateMatching(queue, connectionElement);
          }
       });
+   }
+
+   public void validateMatching(Queue queue, AMQPConnectionElement connectionElement) {
+      if (connectionElement.getType() != AMQPConnectionAddressType.mirror) {
+         if (connectionElement.getQueueName() != null) {
+            if (queue.getName().equals(connectionElement.getQueueName())) {
+               createLink(queue, connectionElement);
+            }
+         } else if (connectionElement.match(queue.getAddress(), server.getConfiguration().getWildcardConfiguration())) {
+            createLink(queue, connectionElement);
+         }
+      }
+   }
+
+   public void createLink(Queue queue, AMQPConnectionElement connectionElement) {
+      if (connectionElement.getType() == AMQPConnectionAddressType.sender || connectionElement.getType() == AMQPConnectionAddressType.peer) {
+         connectSender(false, queue, queue.getAddress().toString());
+      }
+      if (connectionElement.getType() == AMQPConnectionAddressType.receiver || connectionElement.getType() == AMQPConnectionAddressType.peer) {
+         connectReceiver(protonRemotingConnection, session, sessionContext, queue);
+      }
    }
 
    private void doConnect() {
@@ -219,25 +230,23 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          });
 
          if (amqpConfiguration.getConnectionElements() != null) {
-            for (AMQPConnectionElement policy : amqpConfiguration.getConnectionElements()) {
-               if (policy.getType() != AMQPConnectionAddressType.copy && policy.getType() != AMQPConnectionAddressType.replica) {
-                  Collection<Binding> bindings = server.getPostOffice().getMatchingBindings(policy.getMatchAddress());
-                  for (Binding b : bindings) {
-                     if (b instanceof QueueBinding) {
-                        if (policy.getType() == AMQPConnectionAddressType.sender || policy.getType() == AMQPConnectionAddressType.peer) {
-                           connectSender(false, ((QueueBinding) b).getQueue());
-                        }
+            Stream<Binding> bindingStream = server.getPostOffice().getAllBindings();
 
-                        if (policy.getType() == AMQPConnectionAddressType.receiver || policy.getType() == AMQPConnectionAddressType.peer) {
-                           connectReceiver(protonRemotingConnection, session, sessionContext, ((QueueBinding) b).getQueue());
-                        }
-                     }
+            bindingStream.forEach(binding -> {
+               if (binding instanceof QueueBinding) {
+                  Queue queue = ((QueueBinding) binding).getQueue();
+                  for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
+                     validateMatching(queue, connectionElement);
                   }
-               } else if (policy.getType() == AMQPConnectionAddressType.replica || policy.getType() == AMQPConnectionAddressType.copy) {
-                  AMQPReplica replica = (AMQPReplica)policy;
-                  Queue queue = server.locateQueue(replica.getSnfQueue());
+               }
+            });
 
-                  connectSender(true, queue, REPLICA_TARGET_SYMBOL);
+            for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
+               if (connectionElement.getType() == AMQPConnectionAddressType.mirror) {
+                  AMQPMirrorConnectionElement replica = (AMQPMirrorConnectionElement)connectionElement;
+                  Queue queue = server.locateQueue(replica.getSourceMirrorAddress());
+
+                  connectSender(true, queue, protonProtocolManager.getMirrorAddress(), REPLICA_TARGET_SYMBOL);
                }
             }
          }
@@ -268,18 +277,27 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
     *  It is returning the snfQueue to the replica, and I needed isolation from the actual instance.
     *  During development I had a mistake where I used a property from the Object,
     *  so, I needed this isolation for my organization and making sure nothing would be shared. */
-   private static QueueBinding installRemoteControl(AMQPReplica replicaConfig, ActiveMQServer server) throws Exception {
+   private static QueueBinding installRemoteControl(AMQPMirrorConnectionElement replicaConfig, ActiveMQServer server) throws Exception {
 
-      AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getSnfQueue());
+      AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getSourceMirrorAddress());
       if (addressInfo == null) {
-         addressInfo = new AddressInfo(replicaConfig.getSnfQueue()).addRoutingType(RoutingType.ANYCAST).setAutoCreated(false);
+         addressInfo = new AddressInfo(replicaConfig.getSourceMirrorAddress()).addRoutingType(RoutingType.ANYCAST).setAutoCreated(false).setTemporary(!replicaConfig.isDurable());
          server.addAddressInfo(addressInfo);
       }
 
-      Queue remoteControlQueue = server.createQueue(new QueueConfiguration(replicaConfig.getSnfQueue()).setAddress(replicaConfig.getSnfQueue()).setRoutingType(RoutingType.ANYCAST).setDurable(false), true);
+      if (addressInfo.getRoutingType() != RoutingType.ANYCAST) {
+         throw new IllegalArgumentException("sourceMirrorAddress is not ANYCAST");
+      }
+
+      Queue remoteControlQueue = server.locateQueue(replicaConfig.getQueueName());
+
+      if (remoteControlQueue == null) {
+         server.createQueue(new QueueConfiguration(replicaConfig.getSourceMirrorAddress()).setAddress(replicaConfig.getSourceMirrorAddress()).setRoutingType(RoutingType.ANYCAST).setDurable(replicaConfig.isDurable()), true);
+      }
+
       remoteControlQueue.setRemoteControl(true);
 
-      QueueBinding snfReplicaQueueBinding = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSnfQueue());
+      QueueBinding snfReplicaQueueBinding = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSourceMirrorAddress());
       if (snfReplicaQueueBinding == null) {
          logger.warn("Queue does not exist even after creation! " + replicaConfig);
          throw new IllegalAccessException("Cannot start replica");
@@ -287,12 +305,12 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
       Queue snfQueue = snfReplicaQueueBinding.getQueue();
 
-      if (!snfQueue.getAddress().equals(replicaConfig.getSnfQueue())) {
+      if (!snfQueue.getAddress().equals(replicaConfig.getSourceMirrorAddress())) {
          logger.warn("Queue " + snfQueue + " belong to a different address (" + snfQueue.getAddress() + "), while we expected it to be " + addressInfo.getName());
          throw new IllegalAccessException("Cannot start replica");
       }
 
-      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(snfQueue, server, replicaConfig.isAcks());
+      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(snfQueue, server, replicaConfig.isMessageAcknowledgements());
 
       server.scanAddresses(newPartition);
 
@@ -355,6 +373,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
    private void connectSender(boolean remoteControl,
                                 Queue queue,
+                                String targetName,
                                 Symbol... capabilities) {
       // TODO: Adding log.debug here
       if (logger.isDebugEnabled()) {
@@ -369,7 +388,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          }
       }
 
-      Sender sender = session.sender(queue.getName().toString());
+      Sender sender = session.sender(targetName);
       Target target = new Target();
       target.setAddress(queue.getAddress().toString());
       sender.setTarget(target);
@@ -510,7 +529,6 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
       @Override
       public byte[] getInitialResponse() {
-         new Exception("Returning initial response for security").printStackTrace();
          return initialResponse;
       }
 
