@@ -956,21 +956,21 @@ public class PagingStoreImpl implements PagingStore {
 
    @Override
    public void durableDown(Message message, int durableCount) {
-      refDown(message, durableCount);
+      // refDown(message, durableCount);
    }
 
    @Override
    public void durableUp(Message message, int durableCount) {
-      refUp(message, durableCount);
+      // refUp(message, durableCount);
    }
 
    @Override
    public void refUp(Message message, int count) {
       if (count == 1) {
-         this.addSize(message.getMemoryEstimate() + MessageReferenceImpl.getMemoryEstimate());
-      } else {
-         this.addSize(MessageReferenceImpl.getMemoryEstimate());
+         PagingStore addressStore = pagingManager.getPageStore(message.getAddressSimpleString());
+         addressStore.addSize(message.getMemoryEstimate());
       }
+      this.addSize(MessageReferenceImpl.getMemoryEstimate());
    }
 
    @Override
@@ -981,11 +981,10 @@ public class PagingStoreImpl implements PagingStore {
       }
 
       if (count == 0) {
-         this.addSize(-message.getMemoryEstimate() - MessageReferenceImpl.getMemoryEstimate());
-
-      } else {
-         this.addSize(-MessageReferenceImpl.getMemoryEstimate());
+         PagingStore addressStore = pagingManager.getPageStore(message.getAddressSimpleString());
+         addressStore.addSize(-message.getMemoryEstimate());
       }
+      this.addSize(-MessageReferenceImpl.getMemoryEstimate());
 
 
    }

@@ -1457,6 +1457,7 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
 
       for (Map.Entry<SimpleString, RouteContextList> entry : context.getContexListing().entrySet()) {
          PagingStore store = pagingManager.getPageStore(entry.getKey());
+         System.out.println("Store::" + store);
 
          if (store != null && storageManager.addToPage(store, message, context.getTransaction(), entry.getValue())) {
             if (message.isLargeMessage()) {

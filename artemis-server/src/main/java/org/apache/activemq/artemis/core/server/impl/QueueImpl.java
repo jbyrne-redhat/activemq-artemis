@@ -972,7 +972,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    public int durableUp(Message message) {
       int count = message.durableUp();
       if (pagingStore != null) {
-         pagingStore.durableUp(message, count);
+         // TODO I think I need a new atomic counter for both sides
+         pagingStore.durableUp(message, count + message.getRefCount());
       }
       return count;
    }
@@ -981,7 +982,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    public int durableDown(Message message) {
       int count = message.durableDown();
       if (pagingStore != null) {
-         pagingStore.durableDown(message, count);
+         pagingStore.durableDown(message, count + message.getRefCount());
       }
       return count;
    }
@@ -990,7 +991,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    public void refUp(Message message) {
       int count = message.refUp();
       if (pagingStore != null) {
-         pagingStore.refUp(message, count);
+         pagingStore.refUp(message, count + message.getDurableCount());
       }
 
    }
@@ -999,7 +1000,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    public void refDown(Message message) {
       int count = message.refDown();
       if (pagingStore != null) {
-         pagingStore.refDown(message, count);
+         pagingStore.refDown(message, count + message.getDurableCount());
       }
    }
 
