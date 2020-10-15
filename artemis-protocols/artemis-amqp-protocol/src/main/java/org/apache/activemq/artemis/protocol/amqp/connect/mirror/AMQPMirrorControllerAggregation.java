@@ -29,6 +29,7 @@ import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 
+/** this will be used when there are multiple replicas in use. */
 public class AMQPMirrorControllerAggregation implements MirrorController, ActiveMQComponent {
 
 
