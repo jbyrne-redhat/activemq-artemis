@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.core.config.amqpbridging;
+package org.apache.activemq.artemis.core.config.amqpBrokerConnectivity;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.utils.RandomUtil;
 
-public class AMQPMirrorConnectionElement extends AMQPConnectionElement {
+public class AMQPMirrorBrokerConnectionElement extends AMQPBrokerConnectionElement {
 
    SimpleString sourceMirrorAddress;
 
@@ -33,8 +33,8 @@ public class AMQPMirrorConnectionElement extends AMQPConnectionElement {
 
    boolean messageAcknowledgements = true;
 
-   public AMQPMirrorConnectionElement() {
-      this.setType(AMQPConnectionAddressType.mirror);
+   public AMQPMirrorBrokerConnectionElement() {
+      this.setType(AMQPBrokerConnectionAddressType.mirror);
    }
 
    /** There is no setter for this property.
@@ -43,10 +43,10 @@ public class AMQPMirrorConnectionElement extends AMQPConnectionElement {
       return durable;
    }
 
-   public AMQPMirrorConnectionElement setSourceMirrorAddress(String mirrorAddress) {
+   public AMQPMirrorBrokerConnectionElement setSourceMirrorAddress(String mirrorAddress) {
       return this.setSourceMirrorAddress(SimpleString.toSimpleString(mirrorAddress));
    }
-   public AMQPMirrorConnectionElement setSourceMirrorAddress(SimpleString souceMirrorAddress) {
+   public AMQPMirrorBrokerConnectionElement setSourceMirrorAddress(SimpleString souceMirrorAddress) {
       this.sourceMirrorAddress = souceMirrorAddress;
       this.durable = sourceMirrorAddress != null;
       return this;
@@ -63,11 +63,11 @@ public class AMQPMirrorConnectionElement extends AMQPConnectionElement {
       return targetMirrorAddress;
    }
 
-   public AMQPMirrorConnectionElement setTargetMirrorAddress(String targetMirrorAddress) {
+   public AMQPMirrorBrokerConnectionElement setTargetMirrorAddress(String targetMirrorAddress) {
       return this.setTargetMirrorAddress(SimpleString.toSimpleString(targetMirrorAddress));
    }
 
-   public AMQPMirrorConnectionElement setTargetMirrorAddress(SimpleString targetMirrorAddress) {
+   public AMQPMirrorBrokerConnectionElement setTargetMirrorAddress(SimpleString targetMirrorAddress) {
       this.targetMirrorAddress = targetMirrorAddress;
       return this;
    }
@@ -76,7 +76,7 @@ public class AMQPMirrorConnectionElement extends AMQPConnectionElement {
       return queueCreation;
    }
 
-   public AMQPMirrorConnectionElement setQueueCreation(boolean queueCreation) {
+   public AMQPMirrorBrokerConnectionElement setQueueCreation(boolean queueCreation) {
       this.queueCreation = queueCreation;
       return this;
    }
@@ -85,13 +85,13 @@ public class AMQPMirrorConnectionElement extends AMQPConnectionElement {
       return queueRemoval;
    }
 
-   public AMQPMirrorConnectionElement setQueueRemoval(boolean queueRemoval) {
+   public AMQPMirrorBrokerConnectionElement setQueueRemoval(boolean queueRemoval) {
       this.queueRemoval = queueRemoval;
       return this;
    }
 
    @Override
-   public AMQPMirrorConnectionElement setType(AMQPConnectionAddressType type) {
+   public AMQPMirrorBrokerConnectionElement setType(AMQPBrokerConnectionAddressType type) {
       super.setType(type);
       return this;
    }
@@ -100,7 +100,7 @@ public class AMQPMirrorConnectionElement extends AMQPConnectionElement {
       return messageAcknowledgements;
    }
 
-   public AMQPMirrorConnectionElement setMessageAcknowledgements(boolean messageAcknowledgements) {
+   public AMQPMirrorBrokerConnectionElement setMessageAcknowledgements(boolean messageAcknowledgements) {
       this.messageAcknowledgements = messageAcknowledgements;
       return this;
    }

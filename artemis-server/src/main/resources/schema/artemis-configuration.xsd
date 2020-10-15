@@ -610,10 +610,11 @@
             </xsd:annotation>
          </xsd:element>
 
-         <xsd:element name="amqp-connections" type="amqpConnectType" maxOccurs="1" minOccurs="0">
+         <xsd:element name="broker-connections" type="brokerConnectType" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
                <xsd:documentation>
-                  a list of AMQP Connection
+                  A list of connections the broker will make towards other servers.
+                  Currently the only connection type supported is amqpConnection
                </xsd:documentation>
             </xsd:annotation>
          </xsd:element>
@@ -2005,7 +2006,7 @@
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
 
-   <xsd:complexType name="amqpConnectType">
+   <xsd:complexType name="brokerConnectType">
       <xsd:sequence maxOccurs="unbounded">
         <xsd:element name="amqp-connection" type="amqp-connectionUriType"/>
       </xsd:sequence>

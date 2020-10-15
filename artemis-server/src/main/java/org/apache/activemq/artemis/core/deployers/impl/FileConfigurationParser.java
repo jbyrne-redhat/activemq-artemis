@@ -45,7 +45,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.TransportConfiguration;
 import org.apache.activemq.artemis.api.core.UDPBroadcastEndpointFactory;
 import org.apache.activemq.artemis.api.core.client.ActiveMQClient;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
 import org.apache.activemq.artemis.core.config.BridgeConfiguration;
 import org.apache.activemq.artemis.core.config.ClusterConnectionConfiguration;
 import org.apache.activemq.artemis.core.config.Configuration;
@@ -58,9 +58,9 @@ import org.apache.activemq.artemis.core.config.MetricsConfiguration;
 import org.apache.activemq.artemis.core.config.ScaleDownConfiguration;
 import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPMirrorConnectionElement;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionElement;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionAddressType;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPMirrorBrokerConnectionElement;
 import org.apache.activemq.artemis.core.config.federation.FederationAddressPolicyConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationDownstreamConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationPolicySet;
@@ -592,7 +592,7 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       }
 
 
-      NodeList ccAMQPConnections = e.getElementsByTagName("amqp-connections");
+      NodeList ccAMQPConnections = e.getElementsByTagName("broker-connections");
 
       if (ccAMQPConnections != null) {
          NodeList ccAMQConnectionsURI = e.getElementsByTagName("amqp-connection");
@@ -1886,7 +1886,7 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
 
       getInteger(e, "local-bind-port", -1, Validators.MINUS_ONE_OR_GT_ZERO);
 
-      AMQPConnectConfiguration config = new AMQPConnectConfiguration(name, uri);
+      AMQPBrokerConnectConfiguration config = new AMQPBrokerConnectConfiguration(name, uri);
       config.parseURI();
       config.setRetryInterval(retryInterval).setReconnectAttempts(reconnectAttemps).setUser(user).setPassword(password);
 
@@ -1897,24 +1897,24 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       for (int i = 0; i < senderList.getLength(); i++) {
          if (senderList.item(i).getNodeType() == Node.ELEMENT_NODE) {
             Element e2 = (Element)senderList.item(i);
-            AMQPConnectionAddressType nodeType = AMQPConnectionAddressType.valueOf(e2.getTagName());
-            AMQPConnectionElement connectionElement;
+            AMQPBrokerConnectionAddressType nodeType = AMQPBrokerConnectionAddressType.valueOf(e2.getTagName());
+            AMQPBrokerConnectionElement connectionElement;
 
-            if (nodeType == AMQPConnectionAddressType.mirror) {
+            if (nodeType == AMQPBrokerConnectionAddressType.mirror) {
                boolean messageAcks = getBooleanAttribute(e2, "message-acknowledgements", true);
                boolean queueCreation = getBooleanAttribute(e2,"queue-creation", true);
                boolean queueRemoval = getBooleanAttribute(e2, "queue-removal", true);
                String sourceMirrorAddress = getAttributeValue(e2, "source-mirror-address");
                String targetMirrorAddress = getAttributeValue(e2, "target-mirror-address");
-               AMQPMirrorConnectionElement amqpMirrorConnectionElement = new AMQPMirrorConnectionElement();
+               AMQPMirrorBrokerConnectionElement amqpMirrorConnectionElement = new AMQPMirrorBrokerConnectionElement();
                amqpMirrorConnectionElement.setMessageAcknowledgements(messageAcks).setQueueCreation(queueCreation).setQueueRemoval(queueRemoval).
                   setSourceMirrorAddress(sourceMirrorAddress).setTargetMirrorAddress(targetMirrorAddress);
                connectionElement = amqpMirrorConnectionElement;
-               connectionElement.setType(AMQPConnectionAddressType.mirror);
+               connectionElement.setType(AMQPBrokerConnectionAddressType.mirror);
             } else {
                String match = getAttributeValue(e2, "match");
                String queue = getAttributeValue(e2, "queue-name");
-               connectionElement = new AMQPConnectionElement();
+               connectionElement = new AMQPBrokerConnectionElement();
                connectionElement.setMatchAddress(SimpleString.toSimpleString(match)).setType(nodeType);
                connectionElement.setQueueName(SimpleString.toSimpleString(queue));
             }

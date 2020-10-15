@@ -34,10 +34,10 @@ import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.TransportConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPMirrorConnectionElement;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionElement;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionAddressType;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPMirrorBrokerConnectionElement;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnection;
@@ -79,7 +79,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
    private static final Logger logger = Logger.getLogger(AMQPOutgoingConnection.class);
 
-   private final AMQPConnectConfiguration amqpConfiguration;
+   private final AMQPBrokerConnectConfiguration amqpConfiguration;
    private final ProtonProtocolManager protonProtocolManager;
    private final ActiveMQServer server;
    private final NettyConnector bridgesConnector;
@@ -105,7 +105,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
     *  the actual connection will come from the amqpConnection configuration*/
    int port;
 
-   public AMQPOutgoingConnection(AMQPOutgoingConnectionManager bridgeManager, AMQPConnectConfiguration amqpConfiguration,
+   public AMQPOutgoingConnection(AMQPOutgoingConnectionManager bridgeManager, AMQPBrokerConnectConfiguration amqpConfiguration,
                                  ProtonProtocolManager protonProtocolManager,
                                  ActiveMQServer server,
                                  NettyConnector bridgesConnector) {
@@ -135,9 +135,9 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       server.getConfiguration().registerBrokerPlugin(this);
       try {
 
-         for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
-            if (connectionElement.getType() == AMQPConnectionAddressType.mirror) {
-               installRemoteControl((AMQPMirrorConnectionElement)connectionElement, server);
+         for (AMQPBrokerConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
+            if (connectionElement.getType() == AMQPBrokerConnectionAddressType.mirror) {
+               installRemoteControl((AMQPMirrorBrokerConnectionElement)connectionElement, server);
             }
          }
       } catch (Throwable e) {
@@ -154,14 +154,14 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    @Override
    public void afterCreateQueue(Queue queue) {
       connectExecutor.execute(() -> {
-         for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
+         for (AMQPBrokerConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
             validateMatching(queue, connectionElement);
          }
       });
    }
 
-   public void validateMatching(Queue queue, AMQPConnectionElement connectionElement) {
-      if (connectionElement.getType() != AMQPConnectionAddressType.mirror) {
+   public void validateMatching(Queue queue, AMQPBrokerConnectionElement connectionElement) {
+      if (connectionElement.getType() != AMQPBrokerConnectionAddressType.mirror) {
          if (connectionElement.getQueueName() != null) {
             if (queue.getName().equals(connectionElement.getQueueName())) {
                createLink(queue, connectionElement);
@@ -172,15 +172,15 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       }
    }
 
-   public void createLink(Queue queue, AMQPConnectionElement connectionElement) {
-      if (connectionElement.getType() == AMQPConnectionAddressType.peer) {
+   public void createLink(Queue queue, AMQPBrokerConnectionElement connectionElement) {
+      if (connectionElement.getType() == AMQPBrokerConnectionAddressType.peer) {
          connectSender(false, queue, queue.getAddress().toString(), Symbol.valueOf("qd.waypoint"));
          connectReceiver(protonRemotingConnection, session, sessionContext, queue, Symbol.valueOf("qd.waypoint"));
       } else {
-         if (connectionElement.getType() == AMQPConnectionAddressType.sender) {
+         if (connectionElement.getType() == AMQPBrokerConnectionAddressType.sender) {
             connectSender(false, queue, queue.getAddress().toString());
          }
-         if (connectionElement.getType() == AMQPConnectionAddressType.receiver) {
+         if (connectionElement.getType() == AMQPBrokerConnectionAddressType.receiver) {
             connectReceiver(protonRemotingConnection, session, sessionContext, queue);
          }
       }
@@ -245,15 +245,15 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
             bindingStream.forEach(binding -> {
                if (binding instanceof QueueBinding) {
                   Queue queue = ((QueueBinding) binding).getQueue();
-                  for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
+                  for (AMQPBrokerConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
                      validateMatching(queue, connectionElement);
                   }
                }
             });
 
-            for (AMQPConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
-               if (connectionElement.getType() == AMQPConnectionAddressType.mirror) {
-                  AMQPMirrorConnectionElement replica = (AMQPMirrorConnectionElement)connectionElement;
+            for (AMQPBrokerConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
+               if (connectionElement.getType() == AMQPBrokerConnectionAddressType.mirror) {
+                  AMQPMirrorBrokerConnectionElement replica = (AMQPMirrorBrokerConnectionElement)connectionElement;
                   Queue queue = server.locateQueue(replica.getSourceMirrorAddress());
 
                   connectSender(true, queue, protonProtocolManager.getMirrorAddress());
@@ -293,7 +293,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
     *  It is returning the snfQueue to the replica, and I needed isolation from the actual instance.
     *  During development I had a mistake where I used a property from the Object,
     *  so, I needed this isolation for my organization and making sure nothing would be shared. */
-   private static QueueBinding installRemoteControl(AMQPMirrorConnectionElement replicaConfig, ActiveMQServer server) throws Exception {
+   private static QueueBinding installRemoteControl(AMQPMirrorBrokerConnectionElement replicaConfig, ActiveMQServer server) throws Exception {
 
       AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getSourceMirrorAddress());
       if (addressInfo == null) {

@@ -24,7 +24,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
 import org.apache.activemq.artemis.core.server.metrics.ActiveMQMetricsPlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerFederationPlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerAddressPlugin;
@@ -484,9 +484,9 @@ public interface Configuration {
 
    Configuration clearClusterConfigurations();
 
-   Configuration addAMQPConnection(AMQPConnectConfiguration amqpConnectConfiguration);
+   Configuration addAMQPConnection(AMQPBrokerConnectConfiguration amqpBrokerConnectConfiguration);
 
-   List<AMQPConnectConfiguration> getAMQPConnection();
+   List<AMQPBrokerConnectConfiguration> getAMQPConnection();
 
    /**
     * Returns the queues configured for this server.

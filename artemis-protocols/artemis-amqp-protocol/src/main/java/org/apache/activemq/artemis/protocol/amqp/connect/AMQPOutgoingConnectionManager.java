@@ -26,7 +26,7 @@ import io.netty.channel.ChannelPipeline;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.Interceptor;
 import org.apache.activemq.artemis.api.core.client.ClientSessionFactory;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnection;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnector;
 import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnectorFactory;
@@ -46,11 +46,11 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
    private final ActiveMQServer server;
    private volatile boolean started = false;
 
-   List<AMQPConnectConfiguration> amqpConnectionsConfig;
+   List<AMQPBrokerConnectConfiguration> amqpConnectionsConfig;
    List<AMQPOutgoingConnection> amqpOutgoingConnections;
    ProtonProtocolManager protonProtocolManager;
 
-   public AMQPOutgoingConnectionManager(ProtonProtocolManagerFactory factory, List<AMQPConnectConfiguration> amqpConnectionsConfig, ActiveMQServer server) {
+   public AMQPOutgoingConnectionManager(ProtonProtocolManagerFactory factory, List<AMQPBrokerConnectConfiguration> amqpConnectionsConfig, ActiveMQServer server) {
       this.amqpConnectionsConfig = amqpConnectionsConfig;
       this.server = server;
       this.protonProtocolManagerFactory = factory;
@@ -71,7 +71,7 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
       amqpOutgoingConnections = new ArrayList<>();
 
 
-      for (AMQPConnectConfiguration config : amqpConnectionsConfig) {
+      for (AMQPBrokerConnectConfiguration config : amqpConnectionsConfig) {
          System.out.println("Connecting " + config);
          AMQPOutgoingConnection bridgeConnection = new AMQPOutgoingConnection(this, config, protonProtocolManager, server, bridgesConnector);
          amqpOutgoingConnections.add(bridgeConnection);

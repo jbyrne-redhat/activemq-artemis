@@ -31,9 +31,9 @@ import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.config.CoreAddressConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionElement;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionAddressType;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
@@ -59,7 +59,7 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
       server.start();
       server_2 = createServer(AMQP_PORT_2, false);
 
-      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      AMQPBrokerConnectConfiguration amqpConnection = new AMQPBrokerConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
 
       server_2.start();
@@ -83,8 +83,8 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
 
       server_2 = createServer(AMQP_PORT_2, false);
 
-      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
-      amqpConnection.addElement(new AMQPConnectionElement().setMatchAddress(queueName).setType(AMQPConnectionAddressType.sender));
+      AMQPBrokerConnectConfiguration amqpConnection = new AMQPBrokerConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT);
+      amqpConnection.addElement(new AMQPBrokerConnectionElement().setMatchAddress(queueName).setType(AMQPBrokerConnectionAddressType.sender));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       if (!deferCreation) {
          server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName(queueName).addRoutingType(RoutingType.ANYCAST));
@@ -167,14 +167,14 @@ public class AMQPBridgeTest extends AmqpClientTestSupport {
 
       server_2 = createServer(AMQP_PORT_2, false);
 
-      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT).setRetryInterval(10);
+      AMQPBrokerConnectConfiguration amqpConnection = new AMQPBrokerConnectConfiguration("test", "tcp://localhost:" + AMQP_PORT).setRetryInterval(10);
 
       if (security) {
          // we first do it with a wrong password. retries in place should be in place until we make it right
          amqpConnection.setUser(fullUser).setPassword("wrongPassword");
       }
 
-      amqpConnection.addElement(new AMQPConnectionElement().setMatchAddress("TEST").setType(AMQPConnectionAddressType.receiver));
+      amqpConnection.addElement(new AMQPBrokerConnectionElement().setMatchAddress("TEST").setType(AMQPBrokerConnectionAddressType.receiver));
       server_2.getConfiguration().addAMQPConnection(amqpConnection);
       server_2.getConfiguration().addAddressConfiguration(new CoreAddressConfiguration().setName("TEST").addRoutingType(RoutingType.ANYCAST));
       server_2.getConfiguration().addQueueConfiguration(new QueueConfiguration("TEST").setRoutingType(RoutingType.ANYCAST));
