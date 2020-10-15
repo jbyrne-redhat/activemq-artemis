@@ -27,9 +27,9 @@ import java.net.URL;
 
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.RoutingType;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionAddressType;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectionElement;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionAddressType;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectionElement;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.tests.integration.amqp.AmqpClientTestSupport;
@@ -79,8 +79,8 @@ public class QpidRouterPeerTest extends AmqpClientTestSupport {
 
    @Test
    public void testQpidRouter() throws Exception {
-      AMQPConnectConfiguration amqpConnection = new AMQPConnectConfiguration("test", "tcp://localhost:24621").setRetryInterval(10).setReconnectAttempts(-1);
-      amqpConnection.addElement(new AMQPConnectionElement().setMatchAddress("queue.test").setType(AMQPConnectionAddressType.peer));
+      AMQPBrokerConnectConfiguration amqpConnection = new AMQPBrokerConnectConfiguration("test", "tcp://localhost:24621").setRetryInterval(10).setReconnectAttempts(-1);
+      amqpConnection.addElement(new AMQPBrokerConnectionElement().setMatchAddress("queue.test").setType(AMQPBrokerConnectionAddressType.peer));
       server.getConfiguration().addAMQPConnection(amqpConnection);
       server.start();
       server.addAddressInfo(new AddressInfo("queue.test").addRoutingType(RoutingType.ANYCAST).setAutoCreated(true).setTemporary(false));

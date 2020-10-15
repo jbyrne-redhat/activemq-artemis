@@ -46,7 +46,7 @@ import org.apache.activemq.artemis.api.core.DiscoveryGroupConfiguration;
 import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.TransportConfiguration;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
 import org.apache.activemq.artemis.core.config.BridgeConfiguration;
 import org.apache.activemq.artemis.core.config.ClusterConnectionConfiguration;
 import org.apache.activemq.artemis.core.config.Configuration;
@@ -167,7 +167,7 @@ public class ConfigurationImpl implements Configuration, Serializable {
 
    protected List<ClusterConnectionConfiguration> clusterConfigurations = new ArrayList<>();
 
-   protected List<AMQPConnectConfiguration> amqpConnectConfigurations = new ArrayList<>();
+   protected List<AMQPBrokerConnectConfiguration> amqpBrokerConnectConfigurations = new ArrayList<>();
 
    protected List<FederationConfiguration> federationConfigurations = new ArrayList<>();
 
@@ -732,14 +732,14 @@ public class ConfigurationImpl implements Configuration, Serializable {
    }
 
    @Override
-   public ConfigurationImpl addAMQPConnection(AMQPConnectConfiguration amqpConnectConfiguration) {
-      this.amqpConnectConfigurations.add(amqpConnectConfiguration);
+   public ConfigurationImpl addAMQPConnection(AMQPBrokerConnectConfiguration amqpBrokerConnectConfiguration) {
+      this.amqpBrokerConnectConfigurations.add(amqpBrokerConnectConfiguration);
       return this;
    }
 
    @Override
-   public List<AMQPConnectConfiguration> getAMQPConnection() {
-      return this.amqpConnectConfigurations;
+   public List<AMQPBrokerConnectConfiguration> getAMQPConnection() {
+      return this.amqpBrokerConnectConfigurations;
    }
 
    @Override

@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.apache.activemq.artemis.api.core.BaseInterceptor;
 import org.apache.activemq.artemis.api.core.Message;
-import org.apache.activemq.artemis.core.config.amqpbridging.AMQPConnectConfiguration;
+import org.apache.activemq.artemis.core.config.amqpBrokerConnectivity.AMQPBrokerConnectConfiguration;
 import org.apache.activemq.artemis.core.persistence.Persister;
 import org.apache.activemq.artemis.core.server.ActiveMQComponent;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
@@ -76,7 +76,7 @@ public class ProtonProtocolManagerFactory extends AbstractProtocolManagerFactory
     *  As the broker may choose to not load the AMQP Protocol */
    @Override
    public void loadProtocolServices(ActiveMQServer server, List<ActiveMQComponent> services) {
-      List<AMQPConnectConfiguration> amqpServicesConfiguration = server.getConfiguration().getAMQPConnection();
+      List<AMQPBrokerConnectConfiguration> amqpServicesConfiguration = server.getConfiguration().getAMQPConnection();
       if (amqpServicesConfiguration != null && amqpServicesConfiguration.size() > 0) {
          AMQPOutgoingConnectionManager bridgeService = new AMQPOutgoingConnectionManager(this, amqpServicesConfiguration, server);
          services.add(bridgeService);

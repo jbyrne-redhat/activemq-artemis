@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.core.config.amqpbridging;
+package org.apache.activemq.artemis.core.config.amqpBrokerConnectivity;
 
 import java.io.Serializable;
 
@@ -22,20 +22,20 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
 import org.apache.activemq.artemis.core.postoffice.impl.AddressImpl;
 
-public class AMQPConnectionElement implements Serializable {
+public class AMQPBrokerConnectionElement implements Serializable {
    SimpleString matchAddress;
    SimpleString queueName;
-   AMQPConnectionAddressType type;
-   AMQPConnectConfiguration parent;
+   AMQPBrokerConnectionAddressType type;
+   AMQPBrokerConnectConfiguration parent;
 
-   public AMQPConnectionElement() {
+   public AMQPBrokerConnectionElement() {
    }
 
-   public AMQPConnectConfiguration getParent() {
+   public AMQPBrokerConnectConfiguration getParent() {
       return parent;
    }
 
-   public AMQPConnectionElement setParent(AMQPConnectConfiguration parent) {
+   public AMQPBrokerConnectionElement setParent(AMQPBrokerConnectConfiguration parent) {
       this.parent = parent;
       return this;
    }
@@ -44,7 +44,7 @@ public class AMQPConnectionElement implements Serializable {
       return queueName;
    }
 
-   public AMQPConnectionElement setQueueName(SimpleString queueName) {
+   public AMQPBrokerConnectionElement setQueueName(SimpleString queueName) {
       this.queueName = queueName;
       return this;
    }
@@ -59,20 +59,20 @@ public class AMQPConnectionElement implements Serializable {
       return thisAddress.matches(otherAddress);
    }
 
-   public AMQPConnectionElement setMatchAddress(String matchAddress) {
+   public AMQPBrokerConnectionElement setMatchAddress(String matchAddress) {
       return this.setMatchAddress(SimpleString.toSimpleString(matchAddress));
    }
 
-   public AMQPConnectionElement setMatchAddress(SimpleString matchAddress) {
+   public AMQPBrokerConnectionElement setMatchAddress(SimpleString matchAddress) {
       this.matchAddress = matchAddress;
       return this;
    }
 
-   public AMQPConnectionAddressType getType() {
+   public AMQPBrokerConnectionAddressType getType() {
       return type;
    }
 
-   public AMQPConnectionElement setType(AMQPConnectionAddressType type) {
+   public AMQPBrokerConnectionElement setType(AMQPBrokerConnectionAddressType type) {
       this.type = type;
       return this;
    }
