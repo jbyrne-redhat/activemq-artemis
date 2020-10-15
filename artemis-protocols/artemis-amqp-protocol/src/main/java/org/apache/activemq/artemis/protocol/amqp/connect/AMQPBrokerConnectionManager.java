@@ -41,16 +41,16 @@ import org.apache.activemq.artemis.spi.core.remoting.Connection;
 import org.apache.activemq.artemis.spi.core.remoting.SessionContext;
 import org.apache.activemq.artemis.spi.core.remoting.TopologyResponseHandler;
 
-public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientConnectionLifeCycleListener {
+public class AMQPBrokerConnectionManager implements ActiveMQComponent, ClientConnectionLifeCycleListener {
    private final ProtonProtocolManagerFactory protonProtocolManagerFactory;
    private final ActiveMQServer server;
    private volatile boolean started = false;
 
    List<AMQPBrokerConnectConfiguration> amqpConnectionsConfig;
-   List<AMQPOutgoingConnection> amqpOutgoingConnections;
+   List<AMQPBrokerConnection> amqpOutgoingConnections;
    ProtonProtocolManager protonProtocolManager;
 
-   public AMQPOutgoingConnectionManager(ProtonProtocolManagerFactory factory, List<AMQPBrokerConnectConfiguration> amqpConnectionsConfig, ActiveMQServer server) {
+   public AMQPBrokerConnectionManager(ProtonProtocolManagerFactory factory, List<AMQPBrokerConnectConfiguration> amqpConnectionsConfig, ActiveMQServer server) {
       this.amqpConnectionsConfig = amqpConnectionsConfig;
       this.server = server;
       this.protonProtocolManagerFactory = factory;
@@ -73,13 +73,13 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
 
       for (AMQPBrokerConnectConfiguration config : amqpConnectionsConfig) {
          System.out.println("Connecting " + config);
-         AMQPOutgoingConnection bridgeConnection = new AMQPOutgoingConnection(this, config, protonProtocolManager, server, bridgesConnector);
+         AMQPBrokerConnection bridgeConnection = new AMQPBrokerConnection(this, config, protonProtocolManager, server, bridgesConnector);
          amqpOutgoingConnections.add(bridgeConnection);
          bridgeConnection.connect();
       }
    }
 
-   public void connected(NettyConnection nettyConnection, AMQPOutgoingConnection bridgeConnection) {
+   public void connected(NettyConnection nettyConnection, AMQPBrokerConnection bridgeConnection) {
       // TODO: I don't know if I need this
       // amqpBridgeConnectionsMap.put(nettyConnection.getID(), bridgeConnection);
    }
@@ -88,7 +88,7 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
    public void stop() throws Exception {
       if (started) {
          started = false;
-         for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
+         for (AMQPBrokerConnection connection : amqpOutgoingConnections) {
             connection.stop();
 
          }
@@ -109,7 +109,7 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
 
    @Override
    public void connectionDestroyed(Object connectionID) {
-      for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
+      for (AMQPBrokerConnection connection : amqpOutgoingConnections) {
          if (connection.getConnection().getID().equals(connectionID)) {
             connection.connectionDestroyed(connectionID);
          }
@@ -118,7 +118,7 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
 
    @Override
    public void connectionException(Object connectionID, ActiveMQException me) {
-      for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
+      for (AMQPBrokerConnection connection : amqpOutgoingConnections) {
          if (connection.getConnection().getID().equals(connectionID)) {
             connection.connectionException(connectionID, me);
          }
@@ -128,7 +128,7 @@ public class AMQPOutgoingConnectionManager implements ActiveMQComponent, ClientC
 
    @Override
    public void connectionReadyForWrites(Object connectionID, boolean ready) {
-      for (AMQPOutgoingConnection connection : amqpOutgoingConnections) {
+      for (AMQPBrokerConnection connection : amqpOutgoingConnections) {
          if (connection.getConnection().getID().equals(connectionID)) {
             connection.connectionReadyForWrites(connectionID, ready);
          }

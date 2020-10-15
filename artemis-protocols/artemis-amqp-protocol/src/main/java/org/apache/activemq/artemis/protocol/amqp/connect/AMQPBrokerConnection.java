@@ -53,6 +53,8 @@ import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ActiveMQProtonRemotingConnection;
 import org.apache.activemq.artemis.protocol.amqp.broker.ProtonProtocolManager;
+import org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerAggregation;
+import org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource;
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPIllegalStateException;
 import org.apache.activemq.artemis.protocol.amqp.logger.ActiveMQAMQPProtocolLogger;
 import org.apache.activemq.artemis.protocol.amqp.proton.AMQPConnectionContext;
@@ -75,9 +77,9 @@ import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.Session;
 import org.jboss.logging.Logger;
 
-public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener, ActiveMQServerQueuePlugin {
+public class AMQPBrokerConnection implements ClientConnectionLifeCycleListener, ActiveMQServerQueuePlugin {
 
-   private static final Logger logger = Logger.getLogger(AMQPOutgoingConnection.class);
+   private static final Logger logger = Logger.getLogger(AMQPBrokerConnection.class);
 
    private final AMQPBrokerConnectConfiguration amqpConfiguration;
    private final ProtonProtocolManager protonProtocolManager;
@@ -88,7 +90,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
    AMQPSessionContext sessionContext;
    ActiveMQProtonRemotingConnection protonRemotingConnection;
    private volatile boolean started = false;
-   private final AMQPOutgoingConnectionManager bridgeManager;
+   private final AMQPBrokerConnectionManager bridgeManager;
    private int retryCounter = 0;
    private volatile ScheduledFuture reconnectFuture;
    Map<Queue, Sender> senders = new HashMap<>();
@@ -105,10 +107,10 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
     *  the actual connection will come from the amqpConnection configuration*/
    int port;
 
-   public AMQPOutgoingConnection(AMQPOutgoingConnectionManager bridgeManager, AMQPBrokerConnectConfiguration amqpConfiguration,
-                                 ProtonProtocolManager protonProtocolManager,
-                                 ActiveMQServer server,
-                                 NettyConnector bridgesConnector) {
+   public AMQPBrokerConnection(AMQPBrokerConnectionManager bridgeManager, AMQPBrokerConnectConfiguration amqpConfiguration,
+                               ProtonProtocolManager protonProtocolManager,
+                               ActiveMQServer server,
+                               NettyConnector bridgesConnector) {
       this.bridgeManager = bridgeManager;
       this.amqpConfiguration = amqpConfiguration;
       this.protonProtocolManager = protonProtocolManager;
@@ -225,7 +227,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
          ConnectionEntry entry = protonProtocolManager.createOutgoingConnectionEntry(connection, saslFactory);
          protonRemotingConnection = (ActiveMQProtonRemotingConnection) entry.connection;
-         connection.getChannel().pipeline().addLast(new AMQPOutgoingChannelHandler(bridgesConnector.getChannelGroup(), protonRemotingConnection.getAmqpConnection().getHandler()));
+         connection.getChannel().pipeline().addLast(new AMQPBrokerConnectionChannelHandler(bridgesConnector.getChannelGroup(), protonRemotingConnection.getAmqpConnection().getHandler()));
 
          protonRemotingConnection.getAmqpConnection().runLater(() -> {
             protonRemotingConnection.getAmqpConnection().open();
