@@ -78,84 +78,92 @@ public class QpidDispatchPeerTest extends AmqpClientTestSupport {
    }
 
    @Test
-   public void testSingleQueue() throws Exception {
-      AMQPBrokerConnectConfiguration amqpConnection = new AMQPBrokerConnectConfiguration("test", "tcp://localhost:24621").setRetryInterval(10).setReconnectAttempts(-1);
-      amqpConnection.addElement(new AMQPBrokerConnectionElement().setMatchAddress("queue.test").setType(AMQPBrokerConnectionAddressType.peer));
-      server.getConfiguration().addAMQPConnection(amqpConnection);
-      server.start();
-      server.addAddressInfo(new AddressInfo("queue.test").addRoutingType(RoutingType.ANYCAST).setAutoCreated(true).setTemporary(false));
-      server.createQueue(new QueueConfiguration("queue.test").setAddress("queue.test").setRoutingType(RoutingType.ANYCAST));
-
-      ConnectionFactory factoryProducer = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:24622");
-      Connection connection = null;
-
-      for (int i = 0; i < 100; i++) {
-         try {
-            // Some retry
-            connection = factoryProducer.createConnection();
-            break;
-         } catch (Exception e) {
-            Thread.sleep(10);
-         }
-      }
-      Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-      Queue queue = session.createQueue("queue.test");
-      MessageProducer producer = session.createProducer(queue);
-
-      org.apache.activemq.artemis.core.server.Queue testQueueOnServer = server.locateQueue("queue.test");
-
-      for (int i = 0; i < 100; i++) {
-         producer.send(session.createTextMessage("hello " + i));
-      }
-
-      Wait.assertEquals(100, testQueueOnServer::getMessageCount);
-
-      connection.close();
-
-      System.out.println("*******************************************************************************************************************************");
-      System.out.println("Creating consumer");
-
-      ConnectionFactory factoryConsumer = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:24622");
-      Connection connectionConsumer = factoryConsumer.createConnection();
-      Session sessionConsumer = connectionConsumer.createSession(false, Session.AUTO_ACKNOWLEDGE);
-      Queue queueConsumer = sessionConsumer.createQueue("queue.test");
-      MessageConsumer consumer = sessionConsumer.createConsumer(queueConsumer);
-      connectionConsumer.start();
-
-      try {
-         for (int i = 0; i < 100; i++) {
-            TextMessage received = (TextMessage) consumer.receive(5000);
-            if (received == null) {
-               System.out.println("*******************************************************************************************************************************");
-               System.out.println("qdstat after message timed out:");
-               ExecuteUtil.runCommand(true, "qdstat", "-b", "127.0.0.1:24622", "-l");
-               System.out.println("*******************************************************************************************************************************");
-            }
-            Assert.assertNotNull(received);
-            Assert.assertEquals("hello " + i, received.getText());
-         }
-      } finally {
-         try {
-            connectionConsumer.close();
-         } catch (Throwable ignored) {
-
-         }
-      }
+   public void testWithMatching() throws Exception {
+      internalMultipleQueues(true);
    }
 
-
    @Test
-   public void testMultipleQueues() throws Exception {
+   public void testwithQueueName() throws Exception {
+      internalMultipleQueues(false);
+   }
+
+   private void internalMultipleQueues(boolean useMatching) throws Exception {
+      final int numberOfMessages = 10;
+      final int numberOfQueues = 10;
       AMQPBrokerConnectConfiguration amqpConnection = new AMQPBrokerConnectConfiguration("test", "tcp://localhost:24621").setRetryInterval(10).setReconnectAttempts(-1);
-      amqpConnection.addElement(new AMQPBrokerConnectionElement().setMatchAddress("queue.#").setType(AMQPBrokerConnectionAddressType.peer));
+      if (useMatching) {
+         amqpConnection.addElement(new AMQPBrokerConnectionElement().setMatchAddress("queue.#").setType(AMQPBrokerConnectionAddressType.peer));
+      } else {
+         for (int i = 0; i < numberOfQueues; i++) {
+            amqpConnection.addElement(new AMQPBrokerConnectionElement().setQueueName("queue.test" + i).setType(AMQPBrokerConnectionAddressType.peer));
+         }
+      }
       server.getConfiguration().addAMQPConnection(amqpConnection);
       server.start();
-      server.addAddressInfo(new AddressInfo("queue.test").addRoutingType(RoutingType.ANYCAST).setAutoCreated(true).setTemporary(false));
-      server.createQueue(new QueueConfiguration("queue.test").setAddress("queue.test").setRoutingType(RoutingType.ANYCAST));
+      for (int i = 0; i < numberOfQueues; i++) {
+         server.addAddressInfo(new AddressInfo("queue.test" + i).addRoutingType(RoutingType.ANYCAST).setAutoCreated(false).setTemporary(false));
+         server.createQueue(new QueueConfiguration("queue.test" + i).setAddress("queue.test" + i).setRoutingType(RoutingType.ANYCAST));
+      }
 
-      ConnectionFactory factoryProducer = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:24622");
-      Connection connection = null;
+      for (int dest = 0; dest < numberOfQueues; dest++) {
+         ConnectionFactory factoryProducer = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:24622");
+         Connection connection = null;
 
+         connection = createConnectionDumbRetry(factoryProducer, connection);
+
+         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+         Queue queue = session.createQueue("queue.test" + dest);
+         MessageProducer producer = session.createProducer(queue);
+
+         org.apache.activemq.artemis.core.server.Queue testQueueOnServer = server.locateQueue("queue.test" + dest);
+
+         for (int i = 0; i < numberOfMessages; i++) {
+            producer.send(session.createTextMessage("hello " + i));
+         }
+
+         Wait.assertEquals(numberOfMessages, testQueueOnServer::getMessageCount);
+         connection.close();
+      }
+
+
+
+      System.out.println("*******************************************************************************************************************************");
+      System.out.println("Creating consumer");
+
+      for (int dest = 0; dest < numberOfQueues; dest++) {
+         ConnectionFactory factoryConsumer = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:24622");
+         Connection connectionConsumer = factoryConsumer.createConnection();
+         Session sessionConsumer = connectionConsumer.createSession(false, Session.AUTO_ACKNOWLEDGE);
+         Queue queueConsumer = sessionConsumer.createQueue("queue.test" + dest);
+         MessageConsumer consumer = sessionConsumer.createConsumer(queueConsumer);
+         connectionConsumer.start();
+
+         try {
+            for (int i = 0; i < numberOfMessages; i++) {
+               TextMessage received = (TextMessage) consumer.receive(5000);
+               if (received == null) {
+                  System.out.println("*******************************************************************************************************************************");
+                  System.out.println("qdstat after message timed out:");
+                  ExecuteUtil.runCommand(true, "qdstat", "-b", "127.0.0.1:24622", "-l");
+                  System.out.println("*******************************************************************************************************************************");
+               }
+               Assert.assertNotNull(received);
+               Assert.assertEquals("hello " + i, received.getText());
+            }
+         } finally {
+            try {
+               connectionConsumer.close();
+            } catch (Throwable ignored) {
+
+            }
+         }
+         org.apache.activemq.artemis.core.server.Queue testQueueOnServer = server.locateQueue("queue.test" + dest);
+         Wait.assertEquals(0, testQueueOnServer::getMessageCount);
+      }
+
+   }
+
+   private Connection createConnectionDumbRetry(ConnectionFactory factoryProducer, Connection connection) throws InterruptedException {
       for (int i = 0; i < 100; i++) {
          try {
             // Some retry
@@ -165,50 +173,7 @@ public class QpidDispatchPeerTest extends AmqpClientTestSupport {
             Thread.sleep(10);
          }
       }
-      Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-      Queue queue = session.createQueue("queue.test");
-      MessageProducer producer = session.createProducer(queue);
-
-      org.apache.activemq.artemis.core.server.Queue testQueueOnServer = server.locateQueue("queue.test");
-
-      for (int i = 0; i < 100; i++) {
-         producer.send(session.createTextMessage("hello " + i));
-      }
-
-      Wait.assertEquals(100, testQueueOnServer::getMessageCount);
-
-      connection.close();
-
-      System.out.println("*******************************************************************************************************************************");
-      System.out.println("Creating consumer");
-
-      ConnectionFactory factoryConsumer = CFUtil.createConnectionFactory("AMQP", "tcp://localhost:24622");
-      Connection connectionConsumer = factoryConsumer.createConnection();
-      Session sessionConsumer = connectionConsumer.createSession(false, Session.AUTO_ACKNOWLEDGE);
-      Queue queueConsumer = sessionConsumer.createQueue("queue.test");
-      MessageConsumer consumer = sessionConsumer.createConsumer(queueConsumer);
-      connectionConsumer.start();
-
-      try {
-         for (int i = 0; i < 100; i++) {
-            TextMessage received = (TextMessage) consumer.receive(5000);
-            if (received == null) {
-               System.out.println("*******************************************************************************************************************************");
-               System.out.println("qdstat after message timed out:");
-               ExecuteUtil.runCommand(true, "qdstat", "-b", "127.0.0.1:24622", "-l");
-               System.out.println("*******************************************************************************************************************************");
-            }
-            Assert.assertNotNull(received);
-            Assert.assertEquals("hello " + i, received.getText());
-         }
-      } finally {
-         try {
-            connectionConsumer.close();
-         } catch (Throwable ignored) {
-
-         }
-      }
-
+      return connection;
    }
 
 }
