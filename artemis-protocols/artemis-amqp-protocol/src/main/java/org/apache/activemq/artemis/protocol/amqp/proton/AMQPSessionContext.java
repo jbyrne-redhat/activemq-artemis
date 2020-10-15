@@ -25,7 +25,7 @@ import org.apache.activemq.artemis.api.core.ActiveMQSecurityException;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ServerProducer;
 import org.apache.activemq.artemis.core.server.impl.ServerProducerImpl;
-import org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlTarget;
+import org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerTarget;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.client.ProtonClientSenderContext;
 import org.apache.activemq.artemis.protocol.amqp.exceptions.ActiveMQAMQPException;
@@ -218,7 +218,7 @@ public class AMQPSessionContext extends ProtonInitializable {
 
    public void addReplicaTarget(Receiver receiver) throws Exception {
       try {
-         AMQPRemoteControlTarget protonReceiver = new AMQPRemoteControlTarget(sessionSPI, connection, this, receiver, server);
+         AMQPMirrorControllerTarget protonReceiver = new AMQPMirrorControllerTarget(sessionSPI, connection, this, receiver, server);
          protonReceiver.initialize();
          receivers.put(receiver, protonReceiver);
          ServerProducer serverProducer = new ServerProducerImpl(receiver.getName(), "AMQP", receiver.getTarget().getAddress());

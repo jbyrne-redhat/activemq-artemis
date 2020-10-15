@@ -27,18 +27,18 @@ import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 
-public class AMQPRemoteControlsAggregation implements RemoteControl, ActiveMQComponent {
+public class AMQPMirrorControllerAggregation implements MirrorController, ActiveMQComponent {
 
 
-   List<AMQPRemoteControlsSource> partitions = new ArrayList<>();
+   List<AMQPMirrorControllerSource> partitions = new ArrayList<>();
 
-   public void addPartition(AMQPRemoteControlsSource partition) {
+   public void addPartition(AMQPMirrorControllerSource partition) {
       this.partitions.add(partition);
    }
 
-   public void removeParition(AMQPRemoteControlsSource partition) {
+   public void removeParition(AMQPMirrorControllerSource partition) {
       this.partitions.remove(partition);
    }
 
@@ -60,7 +60,7 @@ public class AMQPRemoteControlsAggregation implements RemoteControl, ActiveMQCom
 
    @Override
    public void addAddress(AddressInfo addressInfo) throws Exception {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.addAddress(addressInfo);
       }
 
@@ -68,56 +68,49 @@ public class AMQPRemoteControlsAggregation implements RemoteControl, ActiveMQCom
 
    @Override
    public void deleteAddress(AddressInfo addressInfo) throws Exception {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.deleteAddress(addressInfo);
       }
    }
 
    @Override
    public void createQueue(QueueConfiguration queueConfiguration) throws Exception {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.createQueue(queueConfiguration);
       }
    }
 
    @Override
    public void deleteQueue(SimpleString addressName, SimpleString queueName) throws Exception {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.deleteQueue(addressName, queueName);
       }
    }
 
    @Override
    public void sendMessage(Message message, RoutingContext context, List<MessageReference> refs) {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.sendMessage(message, context, refs);
       }
    }
 
    @Override
-   public void routingDone(List<MessageReference> refs, boolean direct) {
-      for (RemoteControl partition : partitions) {
-         partition.routingDone(refs, direct);
-      }
-   }
-
-   @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) throws Exception {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.postAcknowledge(ref, reason);
       }
    }
 
    @Override
    public void startAddressScan() throws Exception {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.startAddressScan();
       }
    }
 
    @Override
    public void endAddressScan() throws Exception {
-      for (RemoteControl partition : partitions) {
+      for (MirrorController partition : partitions) {
          partition.startAddressScan();
       }
    }

@@ -69,7 +69,7 @@ import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
 import org.apache.activemq.artemis.core.server.management.Notification;
 import org.apache.activemq.artemis.core.server.management.NotificationListener;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepositoryChangeListener;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
@@ -152,7 +152,7 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
 
    private final ActiveMQServer server;
 
-   private RemoteControl remoteControlSource;
+   private MirrorController mirrorControllerSource;
 
    public PostOfficeImpl(final ActiveMQServer server,
                          final StorageManager storageManager,
@@ -233,21 +233,21 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
    }
 
    @Override
-   public RemoteControl getRemoteControlSource() {
-      return remoteControlSource;
+   public MirrorController getMirrorControlSource() {
+      return mirrorControllerSource;
    }
 
    @Override
-   public PostOfficeImpl setRemoteControlSource(RemoteControl remoteControlSource) {
-      this.remoteControlSource = remoteControlSource;
+   public PostOfficeImpl setMirrorControlSource(MirrorController mirrorControllerSource) {
+      this.mirrorControllerSource = mirrorControllerSource;
       return this;
    }
 
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) {
-      if (remoteControlSource != null) {
+      if (mirrorControllerSource != null) {
          try {
-            remoteControlSource.postAcknowledge(ref, reason);
+            mirrorControllerSource.postAcknowledge(ref, reason);
          } catch (Exception e) {
             logger.warn(e.getMessage(), e);
          }
@@ -255,8 +255,8 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
    }
 
    @Override
-   public void scanAddresses(RemoteControl remoteControl) throws Exception {
-      addressManager.scanAddresses(remoteControl);
+   public void scanAddresses(MirrorController mirrorController) throws Exception {
+      addressManager.scanAddresses(mirrorController);
 
    }
 
@@ -489,8 +489,8 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
             server.callBrokerAddressPlugins(plugin -> plugin.beforeAddAddress(addressInfo, reload));
          }
 
-         if (remoteControlSource != null) {
-            remoteControlSource.addAddress(addressInfo);
+         if (mirrorControllerSource != null) {
+            mirrorControllerSource.addAddress(addressInfo);
          }
 
          boolean result;
@@ -827,8 +827,8 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
          managementService.unregisterAddress(address);
          final AddressInfo addressInfo = addressManager.removeAddressInfo(address);
 
-         if (remoteControlSource != null && addressInfo != null) {
-            remoteControlSource.deleteAddress(addressInfo);
+         if (mirrorControllerSource != null && addressInfo != null) {
+            mirrorControllerSource.deleteAddress(addressInfo);
          }
 
          removeRetroactiveResources(address);
@@ -1581,9 +1581,9 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
          }
       }
 
-      if (remoteControlSource != null && !context.isRemoteControl()) {
-         // we check for isRemoteControl as to avoid recursive loop from there
-         remoteControlSource.sendMessage(message, context, refs);
+      if (mirrorControllerSource != null && !context.isMirrorController()) {
+         // we check for isMorrorController as to avoid recursive loop from there
+         mirrorControllerSource.sendMessage(message, context, refs);
       }
 
 
@@ -1601,9 +1601,6 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
             @Override
             public void done() {
                context.processReferences(refs, direct);
-               if (remoteControlSource != null) {
-                  remoteControlSource.routingDone(refs, direct);
-               }
             }
          });
       }

@@ -49,7 +49,7 @@ import org.apache.activemq.artemis.core.server.Consumer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
 import org.apache.activemq.artemis.protocol.amqp.broker.ActiveMQProtonRemotingConnection;
 import org.apache.activemq.artemis.protocol.amqp.broker.ProtonProtocolManager;
@@ -137,7 +137,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
          for (AMQPBrokerConnectionElement connectionElement : amqpConfiguration.getConnectionElements()) {
             if (connectionElement.getType() == AMQPBrokerConnectionAddressType.mirror) {
-               installRemoteControl((AMQPMirrorBrokerConnectionElement)connectionElement, server);
+               installMirrorController((AMQPMirrorBrokerConnectionElement)connectionElement, server);
             }
          }
       } catch (Throwable e) {
@@ -293,7 +293,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
     *  It is returning the snfQueue to the replica, and I needed isolation from the actual instance.
     *  During development I had a mistake where I used a property from the Object,
     *  so, I needed this isolation for my organization and making sure nothing would be shared. */
-   private static QueueBinding installRemoteControl(AMQPMirrorBrokerConnectionElement replicaConfig, ActiveMQServer server) throws Exception {
+   private static QueueBinding installMirrorController(AMQPMirrorBrokerConnectionElement replicaConfig, ActiveMQServer server) throws Exception {
 
       AddressInfo addressInfo = server.getAddressInfo(replicaConfig.getSourceMirrorAddress());
       if (addressInfo == null) {
@@ -311,7 +311,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          remoteControlQueue = server.createQueue(new QueueConfiguration(replicaConfig.getSourceMirrorAddress()).setAddress(replicaConfig.getSourceMirrorAddress()).setRoutingType(RoutingType.ANYCAST).setDurable(replicaConfig.isDurable()), true);
       }
 
-      remoteControlQueue.setRemoteControl(true);
+      remoteControlQueue.setMirrorController(true);
 
       QueueBinding snfReplicaQueueBinding = (QueueBinding)server.getPostOffice().getBinding(replicaConfig.getSourceMirrorAddress());
       if (snfReplicaQueueBinding == null) {
@@ -326,24 +326,24 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
          throw new IllegalAccessException("Cannot start replica");
       }
 
-      AMQPRemoteControlsSource newPartition = new AMQPRemoteControlsSource(snfQueue, server, replicaConfig.isMessageAcknowledgements());
+      AMQPMirrorControllerSource newPartition = new AMQPMirrorControllerSource(snfQueue, server, replicaConfig.isMessageAcknowledgements());
 
       server.scanAddresses(newPartition);
 
-      RemoteControl currentRemoteControl = server.getRemoteControl();
+      MirrorController currentMirrorController = server.getMirrorController();
 
-      if (currentRemoteControl == null) {
-         server.installRemoteControl(newPartition);
+      if (currentMirrorController == null) {
+         server.installMirrorController(newPartition);
       } else {
          // Replace a standard implementation by an aggregated supporting multiple targets
-         if (currentRemoteControl instanceof AMQPRemoteControlsSource) {
+         if (currentMirrorController instanceof AMQPMirrorControllerSource) {
             // replacing the simple remote control for an aggregator
-            AMQPRemoteControlsAggregation remoteAggregation = new AMQPRemoteControlsAggregation();
-            remoteAggregation.addPartition((AMQPRemoteControlsSource)currentRemoteControl);
-            currentRemoteControl = remoteAggregation;
-            server.installRemoteControl(remoteAggregation);
+            AMQPMirrorControllerAggregation remoteAggregation = new AMQPMirrorControllerAggregation();
+            remoteAggregation.addPartition((AMQPMirrorControllerSource) currentMirrorController);
+            currentMirrorController = remoteAggregation;
+            server.installMirrorController(remoteAggregation);
          }
-         ((AMQPRemoteControlsAggregation)currentRemoteControl).addPartition(newPartition);
+         ((AMQPMirrorControllerAggregation) currentMirrorController).addPartition(newPartition);
       }
 
       return snfReplicaQueueBinding;
@@ -437,7 +437,7 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
 
       ProtonServerSenderContext senderContext;
       if (remoteControl) {
-         senderContext = new RemoteControlServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
+         senderContext = new MirrorControlServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
       } else {
          senderContext = new ProtonServerSenderContext(protonRemotingConnection.getAmqpConnection(), sender, sessionContext, sessionContext.getSessionSPI(), outgoingInitializer);
       }
@@ -454,13 +454,13 @@ public class AMQPOutgoingConnection implements ClientConnectionLifeCycleListener
       });
    }
 
-   static class RemoteControlServerSenderContext extends ProtonServerSenderContext {
+   static class MirrorControlServerSenderContext extends ProtonServerSenderContext {
 
-      RemoteControlServerSenderContext(AMQPConnectionContext connection,
-                                                 Sender sender,
-                                                 AMQPSessionContext protonSession,
-                                                 AMQPSessionCallback server,
-                                                 SenderInitializer senderInitializer) {
+      MirrorControlServerSenderContext(AMQPConnectionContext connection,
+                                       Sender sender,
+                                       AMQPSessionContext protonSession,
+                                       AMQPSessionCallback server,
+                                       SenderInitializer senderInitializer) {
          super(connection, sender, protonSession, server, senderInitializer);
       }
 

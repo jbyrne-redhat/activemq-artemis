@@ -68,7 +68,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerResourcePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugin;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.core.transaction.ResourceManager;
@@ -134,15 +134,15 @@ public interface ActiveMQServer extends ServiceComponent {
 
    Configuration getConfiguration();
 
-   void installRemoteControl(RemoteControl remoteControl);
+   void installMirrorController(MirrorController mirrorController);
 
    /** This method will scan all queues and addresses.
     * it is supposed to be called before the remoteControl is started */
-   void scanAddresses(RemoteControl remoteControl) throws Exception;
+   void scanAddresses(MirrorController mirrorController) throws Exception;
 
-   RemoteControl getRemoteControl();
+   MirrorController getMirrorController();
 
-   void removeRemoteControl();
+   void removeMirrorControl();
 
    ServiceRegistry getServiceRegistry();
 

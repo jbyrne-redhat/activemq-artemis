@@ -34,7 +34,7 @@ import org.apache.activemq.artemis.core.config.Configuration;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ActiveMQServers;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
-import org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource;
+import org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.tests.util.CFUtil;
 import org.apache.activemq.transport.amqp.client.AmqpClient;
@@ -46,7 +46,7 @@ import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class RemoteControlBasicTest extends ActiveMQTestBase {
+public class MirrorControllerBasicTest extends ActiveMQTestBase {
 
    ActiveMQServer server;
 
@@ -91,8 +91,8 @@ public class RemoteControlBasicTest extends ActiveMQTestBase {
       server.addAddressInfo(new AddressInfo("test").addRoutingType(RoutingType.ANYCAST));
       server.createQueue(new QueueConfiguration("test").setAddress("test").setRoutingType(RoutingType.ANYCAST));
 
-      Message message = AMQPRemoteControlsSource.createMessage("test", SimpleString.toSimpleString("ad1"), SimpleString.toSimpleString("qu1"), "test", "body-test");
-      AMQPRemoteControlsSource.route(server, message);
+      Message message = AMQPMirrorControllerSource.createMessage("test", SimpleString.toSimpleString("ad1"), SimpleString.toSimpleString("qu1"), "test", "body-test");
+      AMQPMirrorControllerSource.route(server, message);
 
       AmqpClient client = new AmqpClient(new URI("tcp://localhost:61616"), null, null);
       AmqpConnection connection = client.connect();
@@ -103,9 +103,9 @@ public class RemoteControlBasicTest extends ActiveMQTestBase {
 
       AmqpValue value = (AmqpValue)amqpMessage.getWrappedMessage().getBody();
       Assert.assertEquals("body-test", (String)value.getValue());
-      Assert.assertEquals("ad1",amqpMessage.getMessageAnnotation(AMQPRemoteControlsSource.ADDRESS.toString()));
-      Assert.assertEquals("qu1", amqpMessage.getMessageAnnotation(AMQPRemoteControlsSource.QUEUE.toString()));
-      Assert.assertEquals("test", amqpMessage.getMessageAnnotation(AMQPRemoteControlsSource.EVENT_TYPE.toString()));
+      Assert.assertEquals("ad1",amqpMessage.getMessageAnnotation(AMQPMirrorControllerSource.ADDRESS.toString()));
+      Assert.assertEquals("qu1", amqpMessage.getMessageAnnotation(AMQPMirrorControllerSource.QUEUE.toString()));
+      Assert.assertEquals("test", amqpMessage.getMessageAnnotation(AMQPMirrorControllerSource.EVENT_TYPE.toString()));
 
       connection.close();
 

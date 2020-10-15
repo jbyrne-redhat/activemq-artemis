@@ -35,7 +35,7 @@ import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.cluster.impl.MessageLoadBalancingType;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 
 /**
@@ -213,12 +213,12 @@ public interface PostOffice extends ActiveMQComponent {
 
    void updateMessageLoadBalancingTypeForAddress(SimpleString  address, MessageLoadBalancingType messageLoadBalancingType) throws Exception;
 
-   RemoteControl getRemoteControlSource();
+   MirrorController getMirrorControlSource();
 
-   PostOffice setRemoteControlSource(RemoteControl remoteControlSource);
+   PostOffice setMirrorControlSource(MirrorController mirrorControllerSource);
 
    void postAcknowledge(MessageReference ref, AckReason reason);
 
-   default void scanAddresses(RemoteControl remoteControl) throws Exception {
+   default void scanAddresses(MirrorController mirrorController) throws Exception {
    }
 }

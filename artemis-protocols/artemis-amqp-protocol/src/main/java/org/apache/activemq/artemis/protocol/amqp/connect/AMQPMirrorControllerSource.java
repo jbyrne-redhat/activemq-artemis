@@ -34,7 +34,7 @@ import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPMessage;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPStandardMessage;
@@ -51,9 +51,9 @@ import org.apache.qpid.proton.codec.EncoderImpl;
 import org.apache.qpid.proton.codec.WritableBuffer;
 import org.jboss.logging.Logger;
 
-public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponent {
+public class AMQPMirrorControllerSource implements MirrorController, ActiveMQComponent {
 
-   private static final Logger logger = Logger.getLogger(AMQPRemoteControlsSource.class);
+   private static final Logger logger = Logger.getLogger(AMQPMirrorControllerSource.class);
 
    public static final Symbol EVENT_TYPE = Symbol.getSymbol("ma.EVENT_TYPE");
    public static final Symbol ADDRESS = Symbol.getSymbol("ma.ADDRESS");
@@ -71,7 +71,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
    // Delivery annotation property used on remote control routing and Ack
    public static final Symbol INTERNAL_ID = Symbol.getSymbol("ma.INTERNAL_ID");
 
-   private static final ThreadLocal<RemoteControlRouting> remoteControlRouting = ThreadLocal.withInitial(() -> new RemoteControlRouting(null));
+   private static final ThreadLocal<MirrorControlRouting> remoteControlRouting = ThreadLocal.withInitial(() -> new MirrorControlRouting(null));
 
    final Queue snfQueue;
    final ActiveMQServer server;
@@ -92,7 +92,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
       return started;
    }
 
-   public AMQPRemoteControlsSource(Queue snfQueue, ActiveMQServer server, boolean acks) {
+   public AMQPMirrorControllerSource(Queue snfQueue, ActiveMQServer server, boolean acks) {
       this.snfQueue = snfQueue;
       this.server = server;
       this.acks = acks;
@@ -164,7 +164,7 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    @Override
    public void postAcknowledge(MessageReference ref, AckReason reason) throws Exception {
-      if (acks && !ref.getQueue().isRemoteControl()) { // we don't call postACK on snfqueues, otherwise we would get infinite loop because of this feedback
+      if (acks && !ref.getQueue().isMirrorController()) { // we don't call postACK on snfqueues, otherwise we would get infinite loop because of this feedback
          Message message = createMessage(ref.getQueue().getAddress(), ref.getQueue().getName(), POST_ACK, ref.getMessage().getMessageID());
          route(server, message);
          ref.getMessage().usageDown();
@@ -222,26 +222,19 @@ public class AMQPRemoteControlsSource implements RemoteControl, ActiveMQComponen
 
    public static void route(ActiveMQServer server, Message message) throws Exception {
       message.setMessageID(server.getStorageManager().generateID());
-      RemoteControlRouting ctx = remoteControlRouting.get();
+      MirrorControlRouting ctx = remoteControlRouting.get();
       ctx.clear();
       server.getPostOffice().route(message, ctx, false);
    }
 
-   @Override
-   public void routingDone(List<MessageReference> refs, boolean direct) {
-      /*for (MessageReference ref : refs) {
-         ref.getQueue().deliverAsync();
-      }*/
-   }
+   private static class MirrorControlRouting extends RoutingContextImpl {
 
-   private static class RemoteControlRouting extends RoutingContextImpl {
-
-      RemoteControlRouting(Transaction transaction) {
+      MirrorControlRouting(Transaction transaction) {
          super(transaction);
       }
 
       @Override
-      public boolean isRemoteControl() {
+      public boolean isMirrorController() {
          return true;
       }
    }
