@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.protocol.amqp.connect;
+package org.apache.activemq.artemis.protocol.amqp.connect.mirror;
 
 import java.util.HashMap;
 import java.util.List;
@@ -50,17 +50,17 @@ import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.Receiver;
 import org.jboss.logging.Logger;
 
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.EVENT_TYPE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.POST_ACK;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADD_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.DELETE_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.CREATE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.DELETE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.INTERNAL_ID;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADDRESS_SCAN_START;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADDRESS_SCAN_END;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.EVENT_TYPE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.POST_ACK;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.ADD_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.DELETE_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.CREATE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.DELETE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.INTERNAL_ID;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.ADDRESS_SCAN_START;
+import static org.apache.activemq.artemis.protocol.amqp.connect.mirror.AMQPMirrorControllerSource.ADDRESS_SCAN_END;
 
 public class AMQPMirrorControllerTarget extends ProtonAbstractReceiver implements MirrorController {
 

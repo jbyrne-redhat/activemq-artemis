@@ -28,7 +28,7 @@ import org.apache.activemq.artemis.protocol.amqp.proton.handler.ProtonHandler;
 /**
  * Common handler implementation for client and server side handler.
  */
-public class AMQPOutgoingChannelHandler extends ChannelDuplexHandler {
+public class AMQPBrokerConnectionChannelHandler extends ChannelDuplexHandler {
 
    private final ChannelGroup group;
 
@@ -40,8 +40,8 @@ public class AMQPOutgoingChannelHandler extends ChannelDuplexHandler {
 
    //private final Executor listenerExecutor;
 
-   protected AMQPOutgoingChannelHandler(final ChannelGroup group,
-                                        final ProtonHandler handler/*,
+   protected AMQPBrokerConnectionChannelHandler(final ChannelGroup group,
+                                                final ProtonHandler handler/*,
                                   final BaseConnectionLifeCycleListener<?> listener,
                                   final Executor listenerExecutor */) {
       this.group = group;
