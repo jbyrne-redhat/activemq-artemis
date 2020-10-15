@@ -36,9 +36,9 @@ public interface RoutingContext {
    */
    boolean isReusable();
 
-   /** If the routing is from RemoteControl, we don't redo remotecontrol
+   /** If the routing is from MirrorController, we don't redo remoteController
     *  to avoid*/
-   boolean isRemoteControl();
+   boolean isMirrorController();
 
    int getPreviousBindingsVersion();
 

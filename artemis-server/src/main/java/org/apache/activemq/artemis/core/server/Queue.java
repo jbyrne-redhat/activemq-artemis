@@ -167,11 +167,11 @@ public interface Queue extends Bindable,CriticalComponent {
 
    long getRingSize();
 
-   default boolean isRemoteControl() {
+   default boolean isMirrorController() {
       return false;
    }
 
-   default void setRemoteControl(boolean remoteControl) {
+   default void setMirrorController(boolean remoteControl) {
    }
 
     /**

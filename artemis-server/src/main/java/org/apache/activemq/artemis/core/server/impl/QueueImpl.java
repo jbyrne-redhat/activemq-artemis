@@ -720,12 +720,12 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    }
 
    @Override
-   public boolean isRemoteControl() {
+   public boolean isMirrorController() {
       return remoteControl;
    }
 
    @Override
-   public void setRemoteControl(boolean remoteControl) {
+   public void setMirrorController(boolean remoteControl) {
       this.remoteControl = remoteControl;
    }
 

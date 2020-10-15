@@ -172,7 +172,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugi
 import org.apache.activemq.artemis.core.server.reload.ReloadCallback;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadManagerImpl;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.core.server.transformer.Transformer;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.impl.AddressFullMessagePolicy;
@@ -294,7 +294,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
    private volatile ManagementService managementService;
 
-   private volatile RemoteControl remoteControlService;
+   private volatile MirrorController mirrorControllerService;
 
    private volatile ConnectorsService connectorsService;
 
@@ -1299,7 +1299,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          }
       }
 
-      installRemoteControl(null);
+      installMirrorController(null);
 
       pagingManager = null;
       securityStore = null;
@@ -2310,8 +2310,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             callBrokerQueuePlugins(plugin -> plugin.beforeDestroyQueue(queue, session, checkConsumerCount, removeConsumers, autoDeleteAddress));
          }
 
-         if (remoteControlService != null) {
-            remoteControlService.deleteQueue(queue.getAddress(), queue.getName());
+         if (mirrorControllerService != null) {
+            mirrorControllerService.deleteQueue(queue.getAddress(), queue.getName());
          }
 
          queue.deleteQueue(removeConsumers);
@@ -3073,29 +3073,29 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    }
 
    @Override
-   public void installRemoteControl(RemoteControl remoteControl) {
+   public void installMirrorController(MirrorController mirrorController) {
       logger.debug("Remote control is being installed");
       if (postOffice != null) {
-         postOffice.setRemoteControlSource(remoteControl);
+         postOffice.setMirrorControlSource(mirrorController);
       }
-      this.remoteControlService = remoteControl;
+      this.mirrorControllerService = mirrorController;
    }
 
 
    @Override
-   public void scanAddresses(RemoteControl remoteControl) throws Exception {
+   public void scanAddresses(MirrorController mirrorController) throws Exception {
       logger.debug("Scanning addresses to send on remote control");
-      postOffice.scanAddresses(remoteControl);
+      postOffice.scanAddresses(mirrorController);
    }
 
    @Override
-   public RemoteControl getRemoteControl() {
-      return this.remoteControlService;
+   public MirrorController getMirrorController() {
+      return this.mirrorControllerService;
    }
 
    @Override
-   public void removeRemoteControl() {
-      postOffice.setRemoteControlSource(null);
+   public void removeMirrorControl() {
+      postOffice.setMirrorControlSource(null);
    }
 
    /*
@@ -3671,8 +3671,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          callBrokerQueuePlugins(plugin -> plugin.beforeCreateQueue(queueConfiguration));
       }
 
-      if (remoteControlService != null) {
-         remoteControlService.createQueue(queueConfiguration);
+      if (mirrorControllerService != null) {
+         mirrorControllerService.createQueue(queueConfiguration);
       }
 
       queueConfiguration.setId(storageManager.generateID());

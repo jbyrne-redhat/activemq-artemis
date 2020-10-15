@@ -82,7 +82,7 @@ public class RoutingContextImpl implements RoutingContext {
    }
 
    @Override
-   public boolean isRemoteControl() {
+   public boolean isMirrorController() {
       return false;
    }
 

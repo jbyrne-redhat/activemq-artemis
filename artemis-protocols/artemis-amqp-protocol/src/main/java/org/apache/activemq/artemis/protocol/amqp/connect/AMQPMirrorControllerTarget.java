@@ -33,7 +33,7 @@ import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.server.impl.RoutingContextImpl;
-import org.apache.activemq.artemis.core.server.remotecontrol.RemoteControl;
+import org.apache.activemq.artemis.core.server.remotecontrol.MirrorController;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPMessage;
 import org.apache.activemq.artemis.protocol.amqp.broker.AMQPSessionCallback;
@@ -50,23 +50,23 @@ import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.Receiver;
 import org.jboss.logging.Logger;
 
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.EVENT_TYPE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.POST_ACK;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADD_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.DELETE_ADDRESS;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.CREATE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.DELETE_QUEUE;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.INTERNAL_ID;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADDRESS_SCAN_START;
-import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPRemoteControlsSource.ADDRESS_SCAN_END;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.EVENT_TYPE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.POST_ACK;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADD_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.DELETE_ADDRESS;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.CREATE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.DELETE_QUEUE;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.INTERNAL_ID;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADDRESS_SCAN_START;
+import static org.apache.activemq.artemis.protocol.amqp.connect.AMQPMirrorControllerSource.ADDRESS_SCAN_END;
 
-public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements RemoteControl {
+public class AMQPMirrorControllerTarget extends ProtonAbstractReceiver implements MirrorController {
 
    public static final SimpleString INTERNAL_ID_EXTRA_PROPERTY = SimpleString.toSimpleString("x-opt-INTERNAL-ID");
 
-   private static final Logger logger = Logger.getLogger(AMQPRemoteControlTarget.class);
+   private static final Logger logger = Logger.getLogger(AMQPMirrorControllerTarget.class);
 
    final ActiveMQServer server;
 
@@ -74,11 +74,11 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
 
    Map<SimpleString, Map<SimpleString, QueueConfiguration>> scanAddresses;
 
-   public AMQPRemoteControlTarget(AMQPSessionCallback sessionSPI,
-                                  AMQPConnectionContext connection,
-                                  AMQPSessionContext protonSession,
-                                  Receiver receiver,
-                                  ActiveMQServer server) {
+   public AMQPMirrorControllerTarget(AMQPSessionCallback sessionSPI,
+                                     AMQPConnectionContext connection,
+                                     AMQPSessionContext protonSession,
+                                     Receiver receiver,
+                                     ActiveMQServer server) {
       super(sessionSPI, connection, protonSession, receiver);
       if (logger.isDebugEnabled()) {
          logger.debug("Adding Remote Control target", new Exception("debug"));
@@ -282,11 +282,6 @@ public class AMQPRemoteControlTarget extends ProtonAbstractReceiver implements R
                          "destroy queue " + queueName + " on address = " + addressName);
       }
       server.destroyQueue(queueName);
-   }
-
-   @Override
-   public void routingDone(List<MessageReference> refs, boolean direct) {
-
    }
 
    private static IDSupplier<MessageReference> referenceIDSupplier = new IDSupplier<MessageReference>() {

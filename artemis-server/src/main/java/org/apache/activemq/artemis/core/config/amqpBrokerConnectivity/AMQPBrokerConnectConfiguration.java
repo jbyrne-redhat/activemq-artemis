@@ -56,6 +56,7 @@ public class AMQPBrokerConnectConfiguration extends BrokerConnectConfiguration {
       return connectionElements;
    }
 
+   @Override
    public void parseURI() throws Exception {
       ConnectorTransportConfigurationParser parser = new ConnectorTransportConfigurationParser(false);
       this.transportConfigurations = parser.newObject(getUri(), getName());
@@ -80,6 +81,11 @@ public class AMQPBrokerConnectConfiguration extends BrokerConnectConfiguration {
       return this;
    }
 
+   @Override
+   public AMQPBrokerConnectConfiguration setRetryInterval(int retryInterval) {
+      super.setRetryInterval(retryInterval);
+      return this;
+   }
 
    @Override
    public AMQPBrokerConnectConfiguration setPassword(String password) {
@@ -87,11 +93,13 @@ public class AMQPBrokerConnectConfiguration extends BrokerConnectConfiguration {
       return this;
    }
 
+   @Override
    public AMQPBrokerConnectConfiguration setUri(String uri) {
       super.setUri(uri);
       return this;
    }
 
+   @Override
    public AMQPBrokerConnectConfiguration setName(String name) {
       super.setName(name);
       return this;

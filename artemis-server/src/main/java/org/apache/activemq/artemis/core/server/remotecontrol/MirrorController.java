@@ -30,7 +30,7 @@ import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 /**
  * This represents the contract we will use to send messages to replicas.
  * */
-public interface RemoteControl {
+public interface MirrorController {
    void startAddressScan() throws Exception;
    void endAddressScan() throws Exception;
 
@@ -39,8 +39,6 @@ public interface RemoteControl {
    void createQueue(QueueConfiguration queueConfiguration) throws Exception;
    void deleteQueue(SimpleString addressName, SimpleString queueName) throws Exception;
    void sendMessage(Message message, RoutingContext context, List<MessageReference> refs);
-
-   void routingDone(List<MessageReference> refs, boolean direct);
 
    void postAcknowledge(MessageReference ref, AckReason reason) throws Exception;
 }
