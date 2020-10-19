@@ -77,12 +77,12 @@ public class QpidDispatchPeerTest extends AmqpClientTestSupport {
       qpidProcess.kill();
    }
 
-   @Test
+   @Test(timeout = 60_000)
    public void testWithMatching() throws Exception {
       internalMultipleQueues(true);
    }
 
-   @Test
+   @Test(timeout = 60_000)
    public void testwithQueueName() throws Exception {
       internalMultipleQueues(false);
    }
