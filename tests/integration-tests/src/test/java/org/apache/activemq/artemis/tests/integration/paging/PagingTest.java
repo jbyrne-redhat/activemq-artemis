@@ -151,7 +151,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    @Parameterized.Parameters(name = "storeType={0}, mapped={1}")
    public static Collection<Object[]> data() {
-      Object[][] params = new Object[][]{{StoreConfiguration.StoreType.FILE, false}, {StoreConfiguration.StoreType.FILE, true}, {StoreConfiguration.StoreType.DATABASE, false}};
+      Object[][] params = new Object[][]{{StoreConfiguration.StoreType.DATABASE, false}};
       return Arrays.asList(params);
    }
 

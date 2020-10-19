@@ -147,6 +147,7 @@ import org.apache.activemq.artemis.utils.ThreadLeakCheckRule;
 import org.apache.activemq.artemis.utils.UUIDGenerator;
 import org.apache.activemq.artemis.utils.Wait;
 import org.apache.activemq.artemis.utils.actors.OrderedExecutorFactory;
+import org.apache.derby.jdbc.EmbeddedDriver;
 import org.jboss.logging.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -257,6 +258,10 @@ public abstract class ActiveMQTestBase extends Assert {
 
    @After
    public void shutdownDerby() {
+      try {
+         DriverManager.getConnection("jdbc:derby:" + getEmbeddedDataBaseName() + ";destroy=true");
+      } catch (Exception ignored) {
+      }
       try {
          DriverManager.getConnection("jdbc:derby:;shutdown=true");
       } catch (Exception ignored) {
@@ -515,6 +520,15 @@ public abstract class ActiveMQTestBase extends Assert {
       dbStorageConfiguration.setLargeMessageTableName("LARGE_MESSAGE");
       dbStorageConfiguration.setPageStoreTableName("PAGE_STORE");
       dbStorageConfiguration.setJdbcDriverClassName(getJDBCClassName());
+      // This is turning off Derby connection pooling for Derby embedded driver:
+      // due to a bug of Derby PreparedStatement, using the default connection pool won't make the prepared statements
+      // to be cached as expected, causing a massive slowdown on tests.
+      // Using EmbeddedDataSource seems to correctly cache prepared statements allowing tests to run fine.
+      if (getJDBCClassName().equals(EmbeddedDriver.class.getName())) {
+         dbStorageConfiguration.setDataSourceClassName("org.apache.derby.jdbc.EmbeddedDataSource");
+         dbStorageConfiguration.addDataSourceProperty("databaseName", getEmbeddedDataBaseName());
+         dbStorageConfiguration.addDataSourceProperty("createDatabase", "create");
+      }
       dbStorageConfiguration.setJdbcLockAcquisitionTimeoutMillis(getJdbcLockAcquisitionTimeoutMillis());
       dbStorageConfiguration.setJdbcLockExpirationMillis(getJdbcLockExpirationMillis());
       dbStorageConfiguration.setJdbcLockRenewPeriodMillis(getJdbcLockRenewPeriodMillis());
@@ -837,8 +851,12 @@ public abstract class ActiveMQTestBase extends Assert {
       return testDir;
    }
 
+   private String getEmbeddedDataBaseName() {
+      return "memory:" + getTestDir();
+   }
+
    protected final String getTestJDBCConnectionUrl() {
-      return System.getProperty("jdbc.connection.url", "jdbc:derby:" + getTestDir() + File.separator + "derby;create=true");
+      return System.getProperty("jdbc.connection.url", "jdbc:derby:" + getEmbeddedDataBaseName() + ";create=true");
    }
 
    protected final String getJDBCClassName() {
