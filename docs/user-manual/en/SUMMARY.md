@@ -12,6 +12,8 @@
 * [Address Model](address-model.md)
 * [Protocols and Interoperability](protocols-interoperability.md)
 * [AMQP](amqp.md)
+    * [Broker Server Connections](amqp-server-connections.md)
+    * [Broker Mirroring (Disaster Recovery)](amqp-server-DR.md)
 * [MQTT](mqtt.md)
 * [STOMP](stomp.md)
 * [OpenWire](openwire.md)
