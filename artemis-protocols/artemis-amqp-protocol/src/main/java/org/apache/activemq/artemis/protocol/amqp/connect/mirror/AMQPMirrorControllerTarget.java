@@ -26,6 +26,7 @@ import org.apache.activemq.artemis.api.core.QueueConfiguration;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.impl.LocalQueueBinding;
+import org.apache.activemq.artemis.core.protocol.core.Packet;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
@@ -286,8 +287,11 @@ public class AMQPMirrorControllerTarget extends ProtonAbstractReceiver implement
 
    private static IDSupplier<MessageReference> referenceIDSupplier = new IDSupplier<MessageReference>() {
       @Override
-      public Object getID(MessageReference source) {
+      public long getID(MessageReference source) {
          Long id = (Long) source.getMessage().getBrokerProperty(INTERNAL_ID_EXTRA_PROPERTY);
+         if (id == null) {
+            return -1;
+         }
          return id;
       }
    };

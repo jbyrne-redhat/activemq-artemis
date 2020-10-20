@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
+import io.netty.util.collection.LongObjectHashMap;
+
 /**
  * A linked list implementation which allows multiple iterators to exist at the same time on the queue, and which see any
  * elements added or removed from the queue either directly or via iterators.
@@ -53,7 +55,7 @@ public class LinkedListImpl<E> implements LinkedList<E> {
 
    private IDSupplier<E> idSupplier;
 
-   private Map<Object, Node<E>> nodeMap;
+   LongObjectHashMap<Node<E>> nodeMap;
 
    public LinkedListImpl() {
       this(null, null);
@@ -74,7 +76,7 @@ public class LinkedListImpl<E> implements LinkedList<E> {
    @Override
    public void setIDSupplier(IDSupplier<E> supplier) {
       this.idSupplier = supplier;
-      nodeMap = new HashMap<>();
+      nodeMap = new LongObjectHashMap<>(this.size);
 
       Iterator iterator = (Iterator)iterator();
       try {
@@ -89,8 +91,8 @@ public class LinkedListImpl<E> implements LinkedList<E> {
    }
 
    private void putID(E value, Node<E> position) {
-      Object id = idSupplier.getID(value);
-      if (id != null) {
+      long id = idSupplier.getID(value);
+      if (id >= 0) {
          nodeMap.put(id, position);
       }
    }
@@ -100,7 +102,7 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       this.comparator = comparator;
       this.idSupplier = supplier;
       if (idSupplier != null) {
-         this.nodeMap = new HashMap<>();
+         this.nodeMap = new LongObjectHashMap<>(this.size);
       } else {
          this.nodeMap = null;
       }
@@ -128,7 +130,7 @@ public class LinkedListImpl<E> implements LinkedList<E> {
       size++;
    }
 
-   public E removeWithID(Object id) {
+   public E removeWithID(long id) {
       if (nodeMap == null) {
          return null;
       }

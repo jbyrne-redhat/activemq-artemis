@@ -3206,7 +3206,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    }
 
    @Override
-   public MessageReference removeWithSuppliedID(Object id, IDSupplier<MessageReference> idSupplier) {
+   public MessageReference removeWithSuppliedID(long id, IDSupplier<MessageReference> idSupplier) {
       checkIDSupplier(idSupplier);
       return messageReferences.removeWithID(id);
    }

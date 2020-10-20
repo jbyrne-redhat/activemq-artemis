@@ -35,7 +35,7 @@ public interface PriorityLinkedList<T> {
 
    void installIDSupplier(IDSupplier<T> supplier);
 
-   T removeWithID(Object id);
+   T removeWithID(long id);
 
    /**
     * Returns the size of this list.<br>

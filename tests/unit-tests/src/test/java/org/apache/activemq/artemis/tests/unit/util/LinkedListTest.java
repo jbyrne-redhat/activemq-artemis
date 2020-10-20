@@ -190,7 +190,7 @@ public class LinkedListTest extends ActiveMQTestBase {
       if (!deferSupplier) {
          objs.setIDSupplier(new IDSupplier<ObservableNode>() {
             @Override
-            public Object getID(ObservableNode source) {
+            public long getID(ObservableNode source) {
                return source.id;
             }
          });
@@ -209,7 +209,7 @@ public class LinkedListTest extends ActiveMQTestBase {
          Assert.assertEquals(0, objs.nodeMapSize());
          objs.setIDSupplier(new IDSupplier<ObservableNode>() {
             @Override
-            public Object getID(ObservableNode source) {
+            public long getID(ObservableNode source) {
                return source.id;
             }
          });

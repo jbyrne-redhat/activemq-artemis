@@ -18,5 +18,8 @@
 package org.apache.activemq.artemis.utils.collections;
 
 public interface IDSupplier<E> {
-   Object getID(E source);
+   /**
+    * return -1 if you don't have an ID to offer.
+    * */
+   long getID(E source);
 }

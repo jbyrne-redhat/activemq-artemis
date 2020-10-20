@@ -850,7 +850,7 @@ public class ScheduledDeliveryHandlerTest extends Assert {
       }
 
       @Override
-      public MessageReference removeWithSuppliedID(Object id, IDSupplier<MessageReference> idSupplier) {
+      public MessageReference removeWithSuppliedID(long id, IDSupplier<MessageReference> idSupplier) {
          return null;
       }
 

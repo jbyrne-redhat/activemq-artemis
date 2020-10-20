@@ -74,7 +74,7 @@ public interface Queue extends Bindable,CriticalComponent {
    void refDown(MessageReference messageReference);
 
    /** Remove item with ID */
-   MessageReference removeWithSuppliedID(Object id, IDSupplier<MessageReference> idSupplier);
+   MessageReference removeWithSuppliedID(long id, IDSupplier<MessageReference> idSupplier);
 
    /**
     * The queue definition could be durable, but the messages could eventually be considered non durable.
