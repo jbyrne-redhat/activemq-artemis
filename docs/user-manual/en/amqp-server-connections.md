@@ -165,10 +165,29 @@ With a peer, you have the same properties you would have on a sender and receive
 
 *Important:* Do not use this feature to connect to another broker, otherwise any message send will be immediately ready to consume creating an infinite echo of sends and receives.
 
-# Mirror (Disaster, Recovery and HA)
-We will discuss Mirror more in detail on the [next chapter](amqp-server-DR.md). As for now, lets just focus on the configuration aspect of a broker connection that contains a mirror element.
+# Mirror 
+The mirror option on the broker connection, can capture events from the broker and pass them over the wire to another broker, creating the possibility of haivng multiple asynchronous replicas.
+The events captured are the following:
+
+- Message routing
+- Message acknowledgement
+- Queue and Address Creation
+- Queue and Address Deletion
+
+When you configure mirror, these events are captured from the broker, stored on a local queue and later forward to a target destination on another ActiveMQ Artemis.
+
+The local queue is called source-mirror-address, and the target destination will be called target-mirror-address.
+
+
+*TODO: Picture showing events captuerd into sorce-mirror-address, and being transferred over AMQP towards target-mirror-address.
+
 
 All you have to do is to define the mirror element, where you have these optional arguments:
+
+
+# Catch up on events
+
+Notice that when you configure a broker connection towards another broker, that
 
 ## Boolean arguments:
 - queue-removal = true | false (default true)

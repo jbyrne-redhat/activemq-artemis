@@ -44,6 +44,7 @@ import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class AMQPReplicaTest extends AmqpClientTestSupport {
@@ -74,6 +75,7 @@ public class AMQPReplicaTest extends AmqpClientTestSupport {
       return createServer(AMQP_PORT, false);
    }
 
+   @Ignore
    @Test
    public void testReplicaCatchupOnQueueCreates() throws Exception {
       server.setIdentity("Server1");
